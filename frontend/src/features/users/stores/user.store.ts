@@ -6,7 +6,7 @@ export const useUserStore = defineStore('usersManagement', () => {
   const users = ref<User[]>([
     {
       id: 'usr-1',
-      name: 'Carlos Mendoza',
+      name: 'Carlos Mendoza García',
       email: 'carlos.mendoza@jjphotoshop.es',
       phone: '+34 612 345 678',
       role: 'Gestor Tienda',
