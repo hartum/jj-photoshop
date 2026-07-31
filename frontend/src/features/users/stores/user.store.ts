@@ -16,7 +16,7 @@ export const useUserStore = defineStore('usersManagement', () => {
     },
     {
       id: 'usr-2',
-      name: 'Laura Fernández',
+      name: 'Laura Fernández Perea',
       email: 'laura.foto@jjphotoshop.es',
       phone: '+34 699 887 766',
       role: 'Fotógrafo',
