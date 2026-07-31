@@ -26,7 +26,4 @@ app.use(PrimeVue, {
 app.use(ToastService)
 app.use(ConfirmationService)
 
-// Enable dark mode by default for Photoshop application
-document.documentElement.classList.add('dark-mode')
-
 app.mount('#app')

@@ -1,4 +1,33 @@
-/* Global reset for full viewport Photoshop application */
+/* Root CSS Variables for Light / Dark themes */
+:root {
+  --app-bg: #f8fafc;
+  --app-text: #0f172a;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --nav-link-color: #64748b;
+  --nav-link-hover-bg: #f1f5f9;
+  --nav-link-hover-color: #0f172a;
+  --toolbar-bg: #ffffff;
+  --toolbar-border: #e2e8f0;
+  --content-bg: #f8fafc;
+  --heading-color: #0f172a;
+}
+
+html.dark-mode {
+  --app-bg: #09090b;
+  --app-text: #fafafa;
+  --sidebar-bg: #18181b;
+  --sidebar-border: #27272a;
+  --nav-link-color: #a1a1aa;
+  --nav-link-hover-bg: #27272a;
+  --nav-link-hover-color: #ffffff;
+  --toolbar-bg: #18181b;
+  --toolbar-border: #27272a;
+  --content-bg: #09090b;
+  --heading-color: #ffffff;
+}
+
+/* Global reset for full viewport application */
 html, body, #app {
   margin: 0;
   padding: 0;
@@ -6,11 +35,11 @@ html, body, #app {
   height: 100%;
   overflow: hidden;
   font-family: Inter, var(--font-family, system-ui, -apple-system, sans-serif);
-  background-color: #121212;
-  color: #e0e0e0;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* PrimeVue Aura custom overrides if needed */
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
