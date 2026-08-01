@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { Camera, House, Setting, User, Sunny, Moon } from '@element-plus/icons-vue'
+
+const route = useRoute()
+const isLoginPage = computed(() => route.path === '/login')
 
 const isDark = ref(false)
 
@@ -19,7 +22,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="app-container">
+  <!-- Vista de Login sin Sidebar/Toolbar -->
+  <div v-if="isLoginPage" class="full-screen-wrapper">
+    <RouterView />
+  </div>
+
+  <!-- Vista Principal de la App con Sidebar y Toolbar -->
+  <div v-else class="app-container">
     <!-- Menú lateral izquierdo -->
     <aside class="sidebar">
       <div class="brand">
@@ -72,6 +81,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.full-screen-wrapper {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
 .app-container {
   display: flex;
   width: 100vw;
