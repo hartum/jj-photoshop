@@ -21,6 +21,7 @@ const formData = ref({
   nombre: '',
   apellidos: '',
   email: '',
+  password: '',
   telefono: '',
   profileId: '',
   status: 'Activo' as UserStatus,
@@ -44,6 +45,7 @@ onMounted(async () => {
         nombre: existing.nombre,
         apellidos: existing.apellidos,
         email: existing.email,
+        password: '',
         telefono: existing.telefono,
         profileId: existing.profileId,
         status: existing.status,
@@ -67,6 +69,11 @@ function handleCancel() {
 async function handleSave() {
   if (!formData.value.nombre || !formData.value.email || !formData.value.profileId) {
     ElMessage.warning('Por favor completa todos los campos requeridos (*)')
+    return
+  }
+
+  if (!isEditing.value && !formData.value.password) {
+    ElMessage.warning('La contraseña es obligatoria para nuevos usuarios (*)')
     return
   }
 
@@ -127,6 +134,18 @@ async function handleSave() {
 
       <el-form-item label="Correo electrónico *" required>
         <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
+      </el-form-item>
+
+      <el-form-item
+        :label="isEditing ? 'Contraseña' : 'Contraseña *'"
+        :required="!isEditing"
+      >
+        <el-input
+          v-model="formData.password"
+          type="password"
+          show-password
+          :placeholder="isEditing ? 'Dejar en blanco para no cambiar' : '••••••••'"
+        />
       </el-form-item>
 
       <el-form-item label="Teléfono">

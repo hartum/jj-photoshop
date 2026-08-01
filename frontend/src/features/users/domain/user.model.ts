@@ -10,6 +10,7 @@ export interface User {
   telefono: string
   profileId: string
   status: UserStatus
+  password?: string
   createdAt: string
   deletedAt?: string | null
 }

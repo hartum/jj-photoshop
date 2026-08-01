@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import bcrypt from 'bcryptjs'
 import { prisma } from '../../../shared/db.js'
 
 export async function userRoutes(fastify: FastifyInstance) {
@@ -71,12 +72,20 @@ export async function userRoutes(fastify: FastifyInstance) {
         apellidos: string
         email: string
         telefono?: string
+        password?: string
         profileId: string
         status?: string
       }
 
       if (!body.nombre || !body.email || !body.profileId) {
-        return reply.status(400).send({ error: 'Faltan campos obligatorios (nombre, email, profileId)' })
+        return reply
+          .status(400)
+          .send({ error: 'Faltan campos obligatorios (nombre, email, profileId)' })
+      }
+
+      let passwordHash: string | null = null
+      if (body.password && body.password.trim() !== '') {
+        passwordHash = await bcrypt.hash(body.password, 10)
       }
 
       const nuevo = await prisma.usuario.create({
@@ -85,6 +94,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           apellidos: body.apellidos || '',
           email: body.email,
           telefono: body.telefono || '',
+          passwordHash,
           roleId: body.profileId,
           activo: body.status !== 'Inactivo',
         },
@@ -103,7 +113,9 @@ export async function userRoutes(fastify: FastifyInstance) {
       })
     } catch (err: any) {
       fastify.log.error(err)
-      return reply.status(400).send({ error: err.message || 'Error al crear el usuario en MySQL' })
+      return reply
+        .status(400)
+        .send({ error: err.message || 'Error al crear el usuario en MySQL' })
     }
   })
 
@@ -116,8 +128,14 @@ export async function userRoutes(fastify: FastifyInstance) {
         apellidos?: string
         email?: string
         telefono?: string
+        password?: string
         profileId?: string
         status?: string
+      }
+
+      let passwordHash: string | undefined = undefined
+      if (body.password && body.password.trim() !== '') {
+        passwordHash = await bcrypt.hash(body.password, 10)
       }
 
       const actualizado = await prisma.usuario.update({
@@ -127,6 +145,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           ...(body.apellidos !== undefined && { apellidos: body.apellidos }),
           ...(body.email && { email: body.email }),
           ...(body.telefono !== undefined && { telefono: body.telefono }),
+          ...(passwordHash && { passwordHash }),
           ...(body.profileId && { roleId: body.profileId }),
           ...(body.status !== undefined && { activo: body.status === 'Activo' }),
         },
@@ -145,7 +164,9 @@ export async function userRoutes(fastify: FastifyInstance) {
       })
     } catch (err: any) {
       fastify.log.error(err)
-      return reply.status(400).send({ error: err.message || 'Error al actualizar el usuario en MySQL' })
+      return reply
+        .status(400)
+        .send({ error: err.message || 'Error al actualizar el usuario en MySQL' })
     }
   })
 
@@ -162,7 +183,9 @@ export async function userRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true, id })
     } catch (err: any) {
       fastify.log.error(err)
-      return reply.status(400).send({ error: err.message || 'Error al eliminar el usuario en MySQL' })
+      return reply
+        .status(400)
+        .send({ error: err.message || 'Error al eliminar el usuario en MySQL' })
     }
   })
 }
