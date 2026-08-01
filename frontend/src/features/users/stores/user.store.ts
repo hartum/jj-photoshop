@@ -25,9 +25,12 @@ export const useUserStore = defineStore('users', () => {
       const res = await fetch(`${API_URL}/usuarios`)
       if (res.ok) {
         users.value = await res.json()
+      } else {
+        throw new Error(`HTTP ${res.status}: Error al cargar usuarios`)
       }
     } catch (err) {
       console.error('Error fetching users from DB:', err)
+      throw err
     } finally {
       isLoading.value = false
     }
@@ -40,12 +43,16 @@ export const useUserStore = defineStore('users', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       })
-      if (res.ok) {
-        const created: User = await res.json()
-        users.value.unshift(created)
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${res.status}: Error al guardar en la base de datos`)
       }
+      const created: User = await res.json()
+      users.value.unshift(created)
+      return created
     } catch (err) {
       console.error('Error creating user in DB:', err)
+      throw err
     }
   }
 
@@ -59,15 +66,19 @@ export const useUserStore = defineStore('users', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
       })
-      if (res.ok) {
-        const updated: User = await res.json()
-        const index = users.value.findIndex((u) => u.id === id)
-        if (index !== -1) {
-          users.value[index] = updated
-        }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${res.status}: Error al actualizar en la base de datos`)
       }
+      const updated: User = await res.json()
+      const index = users.value.findIndex((u) => u.id === id)
+      if (index !== -1) {
+        users.value[index] = updated
+      }
+      return updated
     } catch (err) {
       console.error('Error updating user in DB:', err)
+      throw err
     }
   }
 
@@ -76,14 +87,17 @@ export const useUserStore = defineStore('users', () => {
       const res = await fetch(`${API_URL}/usuarios/${id}`, {
         method: 'DELETE',
       })
-      if (res.ok) {
-        const user = users.value.find((u) => u.id === id)
-        if (user) {
-          user.deletedAt = new Date().toISOString().split('T')[0] ?? ''
-        }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${res.status}: Error al eliminar en la base de datos`)
+      }
+      const user = users.value.find((u) => u.id === id)
+      if (user) {
+        user.deletedAt = new Date().toISOString().split('T')[0] ?? ''
       }
     } catch (err) {
       console.error('Error deleting user in DB:', err)
+      throw err
     }
   }
 

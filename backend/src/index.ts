@@ -8,6 +8,8 @@ const fastify = Fastify({
 
 await fastify.register(cors, {
   origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 })
 
 // Register feature routes
