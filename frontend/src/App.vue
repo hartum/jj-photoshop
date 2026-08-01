@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
-import Toolbar from 'primevue/toolbar'
-import ToggleSwitch from 'primevue/toggleswitch'
+import { Camera, House, Setting, User, Sunny, Moon } from '@element-plus/icons-vue'
 
 const isDark = ref(false)
 
 function toggleTheme() {
   if (isDark.value) {
-    document.documentElement.classList.add('dark-mode')
+    document.documentElement.classList.add('dark')
   } else {
-    document.documentElement.classList.remove('dark-mode')
+    document.documentElement.classList.remove('dark')
   }
 }
 
 onMounted(() => {
-  isDark.value = document.documentElement.classList.contains('dark-mode')
+  isDark.value = document.documentElement.classList.contains('dark')
 })
 </script>
 
@@ -24,23 +23,23 @@ onMounted(() => {
     <!-- Menú lateral izquierdo -->
     <aside class="sidebar">
       <div class="brand">
-        <i class="pi pi-camera brand-icon"></i>
+        <el-icon class="brand-icon" :size="24"><Camera /></el-icon>
         <span class="brand-title">JJ Photoshop</span>
       </div>
 
       <nav class="sidebar-nav">
         <RouterLink to="/inicio" class="nav-link">
-          <i class="pi pi-home"></i>
+          <el-icon :size="18"><House /></el-icon>
           <span>Inicio</span>
         </RouterLink>
 
         <RouterLink to="/configuracion" class="nav-link">
-          <i class="pi pi-cog"></i>
+          <el-icon :size="18"><Setting /></el-icon>
           <span>Configuración</span>
         </RouterLink>
 
         <RouterLink to="/usuarios" class="nav-link">
-          <i class="pi pi-users"></i>
+          <el-icon :size="18"><User /></el-icon>
           <span>Usuarios</span>
         </RouterLink>
       </nav>
@@ -49,24 +48,20 @@ onMounted(() => {
     <!-- Área principal con Toolbar superior + Contenido -->
     <div class="main-wrapper">
       <header class="app-toolbar-container">
-        <Toolbar class="app-toolbar">
-          <template #start>
-            <div class="toolbar-slot">
-              <!-- Espacio para elementos futuros del Toolbar -->
-            </div>
-          </template>
+        <div class="app-toolbar">
+          <div class="toolbar-left">
+            <!-- Espacio para elementos futuros del Toolbar -->
+          </div>
 
-          <template #end>
-            <div class="toolbar-slot">
-              <!-- Conmutador de tema con ToggleSwitch de PrimeVue -->
-              <div class="theme-switcher">
-                <i class="pi pi-sun theme-icon sun-icon" :class="{ active: !isDark }"></i>
-                <ToggleSwitch v-model="isDark" @change="toggleTheme" aria-label="Cambiar tema" />
-                <i class="pi pi-moon theme-icon moon-icon" :class="{ active: isDark }"></i>
-              </div>
+          <div class="toolbar-right">
+            <!-- Conmutador de tema con el-switch de Element Plus -->
+            <div class="theme-switcher">
+              <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"><Sunny /></el-icon>
+              <el-switch v-model="isDark" @change="toggleTheme" />
+              <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"><Moon /></el-icon>
             </div>
-          </template>
-        </Toolbar>
+          </div>
+        </div>
       </header>
 
       <main class="main-content">
@@ -96,9 +91,7 @@ onMounted(() => {
   flex-direction: column;
   padding: 1.5rem 1rem;
   z-index: 10;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .brand {
@@ -112,14 +105,13 @@ onMounted(() => {
 }
 
 .brand-icon {
-  font-size: 1.5rem;
-  color: #2563eb;
+  color: #409eff;
 }
 
 .brand-title {
   font-weight: 700;
   font-size: 1.15rem;
-  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #409eff 0%, #a0cfff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -143,10 +135,6 @@ onMounted(() => {
   transition: all 0.2s ease-in-out;
 }
 
-.nav-link i {
-  font-size: 1.1rem;
-}
-
 .nav-link:hover {
   color: var(--nav-link-hover-color, #0f172a);
   background-color: var(--nav-link-hover-bg, #f1f5f9);
@@ -154,9 +142,9 @@ onMounted(() => {
 
 .nav-link.router-link-active {
   color: #ffffff;
-  background-color: #2563eb;
+  background-color: #409eff;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
 }
 
 /* Main Wrapper Styling */
@@ -175,15 +163,16 @@ onMounted(() => {
 
 .app-toolbar {
   background-color: var(--toolbar-bg, #ffffff);
-  border: none;
-  border-radius: 0;
   padding: 0.5rem 1.5rem;
+  height: 56px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   transition: background-color 0.2s ease;
 }
 
-.toolbar-slot {
+.toolbar-left,
+.toolbar-right {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -197,19 +186,16 @@ onMounted(() => {
 }
 
 .theme-icon {
-  font-size: 1.15rem;
   color: var(--nav-link-color, #64748b);
-  transition:
-    color 0.2s ease,
-    transform 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .sun-icon.active {
-  color: #f59e0b;
+  color: #e6a23c;
 }
 
 .moon-icon.active {
-  color: #6366f1;
+  color: #409eff;
 }
 
 /* Content Area */

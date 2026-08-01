@@ -3,16 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { UserStatus, UserWithProfile } from '@/features/users/domain/user.model'
-
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Tag from 'primevue/tag'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { Search, Plus, Edit, Delete, Warning } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const profileStore = useProfileStore()
@@ -54,6 +45,22 @@ const filteredUsers = computed(() => {
     return fullName.includes(query) || email.includes(query) || profileName.includes(query)
   })
 })
+
+function getTagType(severity?: string): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
+  switch (severity) {
+    case 'danger':
+      return 'danger'
+    case 'warn':
+    case 'warning':
+      return 'warning'
+    case 'success':
+      return 'success'
+    case 'contrast':
+      return 'primary'
+    default:
+      return 'info'
+  }
+}
 
 // Modal Open Handlers
 function openCreateModal() {
@@ -120,172 +127,155 @@ async function handleDeleteUser() {
         <p class="page-subtitle">Administra los usuarios del sistema y sus perfiles de acceso</p>
       </div>
 
-      <Button
-        label="Nuevo Usuario"
-        icon="pi pi-user-plus"
-        severity="primary"
-        @click="openCreateModal"
-      />
+      <el-button type="primary" :icon="Plus" size="large" @click="openCreateModal">
+        Nuevo Usuario
+      </el-button>
     </div>
 
     <!-- Barra de búsqueda y filtrado -->
     <div class="toolbar-card">
-      <IconField iconPosition="left" class="search-field">
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model="searchQuery"
-          placeholder="Buscar por nombre, email o perfil..."
-          class="search-input"
-        />
-      </IconField>
+      <el-input
+        v-model="searchQuery"
+        placeholder="Buscar por nombre, email o perfil..."
+        :prefix-icon="Search"
+        clearable
+        class="search-input"
+      />
 
       <span class="user-count"> Total: <strong>{{ filteredUsers.length }}</strong> usuarios </span>
     </div>
 
-    <!-- Tabla de Usuarios -->
+    <!-- Tabla de Usuarios con Element Plus -->
     <div class="table-card">
-      <DataTable
-        :value="filteredUsers"
-        :loading="userStore.isLoading || profileStore.isLoading"
-        paginator
-        :rows="10"
-        responsiveLayout="scroll"
-        dataKey="id"
-        class="p-datatable-sm custom-datatable"
+      <el-table
+        v-loading="userStore.isLoading || profileStore.isLoading"
+        :data="filteredUsers"
+        stripe
+        style="width: 100%"
       >
-        <Column header="Nombre Completo" sortable sortBy="nombre">
-          <template #body="{ data }">
-            <span class="user-fullname">{{ data.nombre }} {{ data.apellidos }}</span>
+        <el-table-column label="Nombre Completo" sortable prop="nombre">
+          <template #default="{ row }">
+            <span class="user-fullname">{{ row.nombre }} {{ row.apellidos }}</span>
           </template>
-        </Column>
+        </el-table-column>
 
-        <Column field="email" header="Correo Electrónico" sortable></Column>
+        <el-table-column prop="email" label="Correo Electrónico" sortable />
 
-        <Column field="telefono" header="Teléfono"></Column>
+        <el-table-column prop="telefono" label="Teléfono" />
 
-        <Column header="Perfil / Rol" sortable sortBy="perfil.name">
-          <template #body="{ data }">
-            <Tag
-              v-if="data.perfil"
-              :value="data.perfil.name"
-              :severity="data.perfil.severity"
-              class="profile-tag"
-            />
+        <el-table-column label="Perfil / Rol" sortable prop="perfil.name">
+          <template #default="{ row }">
+            <el-tag v-if="row.perfil" :type="getTagType(row.perfil.severity)" effect="light">
+              {{ row.perfil.name }}
+            </el-tag>
           </template>
-        </Column>
+        </el-table-column>
 
-        <Column field="status" header="Estado" sortable>
-          <template #body="{ data }">
-            <Tag
-              :value="data.status"
-              :severity="data.status === 'Activo' ? 'success' : 'secondary'"
-            />
+        <el-table-column prop="status" label="Estado" sortable>
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'Activo' ? 'success' : 'info'">
+              {{ row.status }}
+            </el-tag>
           </template>
-        </Column>
+        </el-table-column>
 
-        <Column field="createdAt" header="Fecha de Alta" sortable></Column>
+        <el-table-column prop="createdAt" label="Fecha de Alta" sortable />
 
-        <Column header="Acciones" style="width: 7rem; text-align: center">
-          <template #body="{ data }">
+        <el-table-column label="Acciones" width="120" align="center">
+          <template #default="{ row }">
             <div class="action-buttons">
-              <Button
-                icon="pi pi-pencil"
-                severity="secondary"
-                text
-                rounded
-                size="small"
+              <el-button
+                type="primary"
+                link
+                :icon="Edit"
                 title="Editar usuario"
-                @click="openEditModal(data)"
+                @click="openEditModal(row)"
               />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
+              <el-button
+                type="danger"
+                link
+                :icon="Delete"
                 title="Eliminar usuario"
-                @click="confirmDelete(data)"
+                @click="confirmDelete(row)"
               />
             </div>
           </template>
-        </Column>
-      </DataTable>
+        </el-table-column>
+      </el-table>
     </div>
 
-    <!-- Modal Crear / Editar Usuario -->
-    <Dialog
-      v-model:visible="dialogVisible"
-      modal
-      :header="isEditing ? 'Editar Usuario' : 'Nuevo Usuario'"
-      :style="{ width: '32rem' }"
+    <!-- Modal Crear / Editar Usuario con Element Plus -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="isEditing ? 'Editar Usuario' : 'Nuevo Usuario'"
+      width="500px"
+      destroy-on-close
     >
-      <div class="form-container">
+      <el-form label-position="top" class="form-container">
         <div class="form-row">
-          <div class="form-field">
-            <label for="nombre">Nombre *</label>
-            <InputText id="nombre" v-model="formData.nombre" placeholder="Ej. Juan" />
-          </div>
+          <el-form-item label="Nombre *" class="flex-1">
+            <el-input v-model="formData.nombre" placeholder="Ej. Juan" />
+          </el-form-item>
 
-          <div class="form-field">
-            <label for="apellidos">Apellidos *</label>
-            <InputText id="apellidos" v-model="formData.apellidos" placeholder="Ej. Pérez" />
-          </div>
+          <el-form-item label="Apellidos *" class="flex-1">
+            <el-input v-model="formData.apellidos" placeholder="Ej. Pérez" />
+          </el-form-item>
         </div>
 
-        <div class="form-field">
-          <label for="email">Correo electrónico *</label>
-          <InputText id="email" v-model="formData.email" placeholder="juan@ejemplo.es" />
-        </div>
+        <el-form-item label="Correo electrónico *">
+          <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
+        </el-form-item>
 
-        <div class="form-field">
-          <label for="telefono">Teléfono</label>
-          <InputText id="telefono" v-model="formData.telefono" placeholder="+34 600 000 000" />
-        </div>
+        <el-form-item label="Teléfono">
+          <el-input v-model="formData.telefono" placeholder="+34 600 000 000" />
+        </el-form-item>
 
-        <div class="form-field">
-          <label for="perfil">Perfil de Usuario *</label>
-          <Select
-            id="perfil"
+        <el-form-item label="Perfil de Usuario *">
+          <el-select
             v-model="formData.profileId"
-            :options="profileStore.activeProfiles"
-            optionLabel="name"
-            optionValue="id"
             placeholder="Selecciona un perfil"
+            style="width: 100%"
           >
-            <template #option="{ option }">
+            <el-option
+              v-for="profile in profileStore.activeProfiles"
+              :key="profile.id"
+              :label="profile.name"
+              :value="profile.id"
+            >
               <div class="profile-option">
-                <span class="profile-option-name">{{ option.name }}</span>
-                <small class="profile-option-desc">{{ option.description }}</small>
+                <span class="profile-option-name">{{ profile.name }}</span>
+                <small class="profile-option-desc">{{ profile.description }}</small>
               </div>
-            </template>
-          </Select>
-        </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
 
-        <div class="form-field">
-          <label for="status">Estado</label>
-          <Select id="status" v-model="formData.status" :options="statusOptions" />
-        </div>
-      </div>
+        <el-form-item label="Estado">
+          <el-select v-model="formData.status" style="width: 100%">
+            <el-option
+              v-for="status in statusOptions"
+              :key="status"
+              :label="status"
+              :value="status"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
 
       <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="dialogVisible = false" />
-        <Button
-          :label="isEditing ? 'Guardar Cambios' : 'Crear Usuario'"
-          severity="primary"
-          @click="handleSaveUser"
-        />
+        <div class="dialog-footer">
+          <el-button @click="dialogVisible = false">Cancelar</el-button>
+          <el-button type="primary" @click="handleSaveUser">
+            {{ isEditing ? 'Guardar Cambios' : 'Crear Usuario' }}
+          </el-button>
+        </div>
       </template>
-    </Dialog>
+    </el-dialog>
 
-    <!-- Modal Confirmar Eliminación -->
-    <Dialog
-      v-model:visible="deleteDialogVisible"
-      modal
-      header="Confirmar Eliminación"
-      :style="{ width: '25rem' }"
-    >
+    <!-- Modal Confirmar Eliminación con Element Plus -->
+    <el-dialog v-model="deleteDialogVisible" title="Confirmar Eliminación" width="400px">
       <div class="confirm-dialog-content">
-        <i class="pi pi-exclamation-triangle warning-icon"></i>
+        <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
         <p v-if="userToDelete">
           ¿Estás seguro de que deseas eliminar al usuario
           <strong>{{ userToDelete.nombre }} {{ userToDelete.apellidos }}</strong>? Esta acción no se puede deshacer.
@@ -293,10 +283,12 @@ async function handleDeleteUser() {
       </div>
 
       <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="deleteDialogVisible = false" />
-        <Button label="Eliminar" severity="danger" @click="handleDeleteUser" />
+        <div class="dialog-footer">
+          <el-button @click="deleteDialogVisible = false">Cancelar</el-button>
+          <el-button type="danger" @click="handleDeleteUser">Eliminar</el-button>
+        </div>
       </template>
-    </Dialog>
+    </el-dialog>
   </div>
 </template>
 
@@ -338,12 +330,8 @@ async function handleDeleteUser() {
   margin-bottom: 1rem;
 }
 
-.search-field {
-  width: 320px;
-}
-
 .search-input {
-  width: 100%;
+  width: 320px;
 }
 
 .user-count {
@@ -362,23 +350,17 @@ async function handleDeleteUser() {
   font-weight: 600;
 }
 
-.profile-tag {
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
 /* Form Modal Styling */
 .form-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding-top: 0.5rem;
+  gap: 0.5rem;
 }
 
 .form-row {
@@ -386,20 +368,8 @@ async function handleDeleteUser() {
   gap: 1rem;
 }
 
-.form-row .form-field {
+.flex-1 {
   flex: 1;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.form-field label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--heading-color, #0f172a);
 }
 
 .profile-option {
@@ -426,13 +396,18 @@ async function handleDeleteUser() {
 }
 
 .warning-icon {
-  font-size: 2rem;
-  color: #f59e0b;
+  color: #e6a23c;
 }
 
 .confirm-dialog-content p {
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.4;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>

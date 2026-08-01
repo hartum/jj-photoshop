@@ -1,4 +1,4 @@
-/* Root CSS Variables for Light / Dark themes */
+/* Root CSS Variables for Light / Dark themes with Element Plus */
 :root {
   --app-bg: #f8fafc;
   --app-text: #0f172a;
@@ -13,17 +13,17 @@
   --heading-color: #0f172a;
 }
 
-html.dark-mode {
-  --app-bg: #09090b;
+html.dark {
+  --app-bg: #121212;
   --app-text: #fafafa;
-  --sidebar-bg: #18181b;
-  --sidebar-border: #27272a;
+  --sidebar-bg: #1d1e1f;
+  --sidebar-border: #363637;
   --nav-link-color: #a1a1aa;
-  --nav-link-hover-bg: #27272a;
+  --nav-link-hover-bg: #2b2d30;
   --nav-link-hover-color: #ffffff;
-  --toolbar-bg: #18181b;
-  --toolbar-border: #27272a;
-  --content-bg: #09090b;
+  --toolbar-bg: #1d1e1f;
+  --toolbar-border: #363637;
+  --content-bg: #121212;
   --heading-color: #ffffff;
 }
 
