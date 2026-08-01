@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { User, Lock } from '@element-plus/icons-vue'
@@ -15,6 +15,14 @@ const password = ref('')
 const rememberMe = ref(false)
 const isLoading = ref(false)
 
+onMounted(() => {
+  const savedEmail = localStorage.getItem('remembered_email')
+  if (savedEmail) {
+    email.value = savedEmail
+    rememberMe.value = true
+  }
+})
+
 async function handleLogin() {
   if (!email.value || !password.value) {
     ElMessage.warning('Por favor introduce tu correo electrónico y contraseña')
@@ -24,6 +32,13 @@ async function handleLogin() {
   isLoading.value = true
   try {
     await authStore.login(email.value, password.value)
+
+    if (rememberMe.value) {
+      localStorage.setItem('remembered_email', email.value)
+    } else {
+      localStorage.removeItem('remembered_email')
+    }
+
     ElMessage.success('¡Sesión iniciada correctamente!')
     router.push('/inicio')
   } catch (err: any) {
@@ -50,10 +65,13 @@ async function handleLogin() {
             <el-input
               v-model="email"
               type="email"
+              autocomplete="email"
+              name="email"
               placeholder="Correo electrónico"
               :prefix-icon="User"
               size="large"
               class="login-input"
+              @keyup.enter="handleLogin"
             />
           </el-form-item>
 
@@ -62,10 +80,13 @@ async function handleLogin() {
               v-model="password"
               type="password"
               show-password
+              autocomplete="current-password"
+              name="password"
               placeholder="Contraseña"
               :prefix-icon="Lock"
               size="large"
               class="login-input"
+              @keyup.enter="handleLogin"
             />
           </el-form-item>
 
@@ -77,6 +98,7 @@ async function handleLogin() {
             <el-button
               type="primary"
               size="large"
+              native-type="submit"
               :loading="isLoading"
               class="login-button"
               @click="handleLogin"
