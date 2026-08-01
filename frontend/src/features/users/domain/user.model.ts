@@ -1,13 +1,19 @@
-export type UserRole = 'Cliente' | 'Fotógrafo' | 'Gestor Tienda' | 'Administrador';
-export type UserStatus = 'Activo' | 'Inactivo';
+import type { Perfil } from './profile.model'
+
+export type UserStatus = 'Activo' | 'Inactivo'
 
 export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  storeLocation: string; // Tienda física asociada (ej. "JJ Photoshop - Centro", "JJ Photoshop - Norte")
-  status: UserStatus;
-  createdAt: string;
+  id: string
+  nombre: string
+  apellidos: string
+  email: string
+  telefono: string
+  profileId: string
+  status: UserStatus
+  createdAt: string
+  deletedAt?: string | null
+}
+
+export interface UserWithProfile extends User {
+  perfil?: Perfil
 }
