@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -66,28 +67,43 @@ async function main() {
     },
   })
 
-  // Create initial users
+  // Encriptar contraseña del SuperUsuario "fardaka"
+  const superuserPassword = await bcrypt.hash('fardaka', 10)
+  const defaultPassword = await bcrypt.hash('123456', 10)
+
+  // SuperUsuario principal
   await prisma.usuario.upsert({
-    where: { email: 'hartumia@jjphotoshop.es' },
-    update: {},
+    where: { email: 'hartum@gmail.com' },
+    update: {
+      nombre: 'Ivan',
+      apellidos: 'Gascon',
+      telefono: '+34 645 584 470',
+      passwordHash: superuserPassword,
+      roleId: superuserRole.id,
+      activo: true,
+      deletedAt: null,
+    },
     create: {
-      nombre: 'Hartumia',
-      apellidos: 'SuperUser',
-      email: 'hartumia@jjphotoshop.es',
-      telefono: '+34 600 000 001',
+      nombre: 'Ivan',
+      apellidos: 'Gascon',
+      email: 'hartum@gmail.com',
+      telefono: '+34 645 584 470',
+      passwordHash: superuserPassword,
       roleId: superuserRole.id,
       activo: true,
     },
   })
 
+  // Usuarios adicionales de ejemplo
   await prisma.usuario.upsert({
     where: { email: 'carlos.mendoza@jjphotoshop.es' },
-    update: {},
+    update: { passwordHash: defaultPassword },
     create: {
       nombre: 'Carlos',
       apellidos: 'Mendoza García',
       email: 'carlos.mendoza@jjphotoshop.es',
       telefono: '+34 612 345 678',
+      passwordHash: defaultPassword,
       roleId: adminRole.id,
       activo: true,
     },
@@ -95,12 +111,13 @@ async function main() {
 
   await prisma.usuario.upsert({
     where: { email: 'laura.foto@jjphotoshop.es' },
-    update: {},
+    update: { passwordHash: defaultPassword },
     create: {
       nombre: 'Laura',
       apellidos: 'Fernández Perea',
       email: 'laura.foto@jjphotoshop.es',
       telefono: '+34 699 887 766',
+      passwordHash: defaultPassword,
       roleId: fotografoRole.id,
       activo: true,
     },
@@ -108,18 +125,19 @@ async function main() {
 
   await prisma.usuario.upsert({
     where: { email: 'maria.ruiz@jjphotoshop.es' },
-    update: {},
+    update: { passwordHash: defaultPassword },
     create: {
       nombre: 'María',
       apellidos: 'Ruiz Gómez',
       email: 'maria.ruiz@jjphotoshop.es',
       telefono: '+34 655 443 322',
+      passwordHash: defaultPassword,
       roleId: supervisorRole.id,
       activo: true,
     },
   })
 
-  console.log('✅ Seeding completed!')
+  console.log('✅ Seeding completed! SuperUsuario: hartum@gmail.com / fardaka')
 }
 
 main()

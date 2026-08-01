@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { User, Lock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import logoImg from '@/assets/logoJJ.png'
 import bgImg from '@/assets/login_bg.jpg'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
@@ -21,14 +23,13 @@ async function handleLogin() {
 
   isLoading.value = true
   try {
-    setTimeout(() => {
-      isLoading.value = false
-      ElMessage.success('¡Sesión iniciada correctamente!')
-      router.push('/inicio')
-    }, 600)
-  } catch (err) {
+    await authStore.login(email.value, password.value)
+    ElMessage.success('¡Sesión iniciada correctamente!')
+    router.push('/inicio')
+  } catch (err: any) {
+    ElMessage.error(err.message || 'Error al iniciar sesión')
+  } finally {
     isLoading.value = false
-    ElMessage.error('Error al iniciar sesión')
   }
 }
 </script>

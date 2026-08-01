@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { Camera, House, Setting, User, Sunny, Moon } from '@element-plus/icons-vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { Camera, House, Setting, User, Sunny, Moon, SwitchButton } from '@element-plus/icons-vue'
 
 const route = useRoute()
-const isLoginPage = computed(() => route.path === '/login')
+const router = useRouter()
+const authStore = useAuthStore()
 
+const isLoginPage = computed(() => route.path === '/login')
 const isDark = ref(false)
 
 function toggleTheme() {
@@ -14,6 +17,11 @@ function toggleTheme() {
   } else {
     document.documentElement.classList.remove('dark')
   }
+}
+
+function handleLogout() {
+  authStore.logout()
+  router.push('/login')
 }
 
 onMounted(() => {
@@ -63,6 +71,23 @@ onMounted(() => {
           </div>
 
           <div class="toolbar-right">
+            <!-- Usuario autenticado -->
+            <div v-if="authStore.user" class="user-badge">
+              <span class="user-name">{{ authStore.user.nombre }} {{ authStore.user.apellidos }}</span>
+              <el-tag size="small" effect="plain">{{ authStore.user.roleName }}</el-tag>
+            </div>
+
+            <!-- Botón Cerrar Sesión -->
+            <el-button
+              type="danger"
+              link
+              :icon="SwitchButton"
+              title="Cerrar sesión"
+              @click="handleLogout"
+            >
+              Salir
+            </el-button>
+
             <!-- Conmutador de tema con el-switch de Element Plus -->
             <div class="theme-switcher">
               <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"><Sunny /></el-icon>
@@ -190,7 +215,19 @@ onMounted(() => {
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--heading-color, #0f172a);
 }
 
 /* Theme Switcher Styling */

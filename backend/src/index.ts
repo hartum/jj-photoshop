@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import jwt from '@fastify/jwt'
 import { userRoutes } from './features/users/infrastructure/user.routes.js'
 
 const fastify = Fastify({
@@ -10,6 +11,10 @@ await fastify.register(cors, {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+})
+
+await fastify.register(jwt, {
+  secret: process.env.JWT_SECRET || 'super-secret-key-jj-photoshop-2026',
 })
 
 // Register feature routes

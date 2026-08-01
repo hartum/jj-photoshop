@@ -3,6 +3,70 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../../../shared/db.js'
 
 export async function userRoutes(fastify: FastifyInstance) {
+  // POST /api/auth/login
+  fastify.post('/api/auth/login', async (request, reply) => {
+    try {
+      const { email, password } = request.body as { email?: string; password?: string }
+
+      if (!email || !password) {
+        return reply.status(400).send({ error: 'Debes proporcionar correo y contraseña' })
+      }
+
+      const user = await prisma.usuario.findUnique({
+        where: { email: email.trim() },
+        include: { role: true },
+      })
+
+      if (!user || user.deletedAt !== null) {
+        return reply
+          .status(401)
+          .send({ error: 'Credenciales incorrectas o usuario no encontrado' })
+      }
+
+      if (!user.activo) {
+        return reply.status(401).send({ error: 'El usuario se encuentra inactivo' })
+      }
+
+      let isMatch = false
+      if (user.passwordHash) {
+        if (user.passwordHash.startsWith('$2a$') || user.passwordHash.startsWith('$2b$')) {
+          isMatch = await bcrypt.compare(password, user.passwordHash)
+        } else {
+          isMatch = user.passwordHash === password
+        }
+      }
+
+      if (!isMatch) {
+        return reply.status(401).send({ error: 'Credenciales incorrectas' })
+      }
+
+      const token = fastify.jwt.sign({
+        id: user.id,
+        email: user.email,
+        role: user.role.codigo,
+      })
+
+      return reply.send({
+        token,
+        user: {
+          id: user.id,
+          nombre: user.nombre,
+          apellidos: user.apellidos,
+          email: user.email,
+          telefono: user.telefono || '',
+          profileId: user.roleId,
+          roleCode: user.role.codigo,
+          roleName: user.role.nombre,
+        },
+      })
+    } catch (err: any) {
+      fastify.log.error(err)
+      return reply
+        .status(500)
+        .send({ error: err.message || 'Error durante el inicio de sesión' })
+    }
+  })
+
   // GET /api/roles
   fastify.get('/api/roles', async (_request, reply) => {
     try {
