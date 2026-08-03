@@ -5,6 +5,7 @@ import InicioView from '@/features/home/ui/InicioView.vue'
 import ConfiguracionView from '@/features/configuration/ui/ConfiguracionView.vue'
 import UsuariosView from '@/features/users/ui/UsuariosView.vue'
 import UsuarioFormView from '@/features/users/ui/UsuarioFormView.vue'
+import HotelFormView from '@/features/hotels/ui/HotelFormView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -47,6 +48,18 @@ const router = createRouter({
       path: '/usuarios/:id/editar',
       name: 'usuario-editar',
       component: UsuarioFormView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/hoteles/nuevo',
+      name: 'hotel-nuevo',
+      component: HotelFormView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/hoteles/:id/editar',
+      name: 'hotel-editar',
+      component: HotelFormView,
       meta: { requiresAuth: true },
     },
   ],

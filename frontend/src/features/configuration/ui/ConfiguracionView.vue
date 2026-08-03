@@ -1,8 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PaisesConfig from '@/features/countries/ui/PaisesConfig.vue'
+import HotelesConfig from '@/features/hotels/ui/HotelesConfig.vue'
 
-const activeTab = ref('paises')
+const route = useRoute()
+const router = useRouter()
+
+// Leer la pestaña activa desde el parámetro de consulta ?tab=
+const activeTab = ref((route.query.tab as string) || 'paises')
+
+// Sincronizar el tab si cambia la query de la URL (ej. al volver de un formulario)
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab) {
+      activeTab.value = newTab as string
+    }
+  },
+)
+
+function handleTabChange(paneName: string | number) {
+  router.replace({ query: { ...route.query, tab: String(paneName) } })
+}
 </script>
 
 <template>
@@ -16,17 +36,20 @@ const activeTab = ref('paises')
     </div>
 
     <!-- Componente Tabs estilo tarjeta de Element Plus -->
-    <el-tabs v-model="activeTab" type="card" class="config-tabs">
+    <el-tabs
+      v-model="activeTab"
+      type="card"
+      class="config-tabs"
+      @tab-change="handleTabChange"
+    >
       <el-tab-pane label="Paises & Areas" name="paises">
         <!-- Componente modular de la feature 'countries' -->
         <PaisesConfig />
       </el-tab-pane>
 
-      <el-tab-pane label="Test" name="test">
-        <div class="tab-pane-content">
-          <h3>Pestaña de Pruebas</h3>
-          <p>Espacio reservado para pruebas y configuraciones adicionales.</p>
-        </div>
+      <el-tab-pane label="Hoteles" name="hoteles">
+        <!-- Componente modular de la feature 'hotels' -->
+        <HotelesConfig />
       </el-tab-pane>
     </el-tabs>
   </div>
