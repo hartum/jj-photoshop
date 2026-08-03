@@ -34,7 +34,7 @@ const isSaving = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const cropperDialogVisible = ref(false)
 const imageToCrop = ref<string | null>(null)
-const cropperRef = ref<any>(null)
+const cropperRef = ref<InstanceType<typeof Cropper> | null>(null)
 
 const formData = ref({
   nombre: '',
@@ -168,8 +168,9 @@ async function handleSave() {
       ElMessage.success('Usuario creado correctamente')
     }
     router.push('/usuarios')
-  } catch (err: any) {
-    ElMessage.error(err.message || 'Error al conectar con la base de datos')
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al conectar con la base de datos'
+    ElMessage.error(message)
   } finally {
     isSaving.value = false
   }

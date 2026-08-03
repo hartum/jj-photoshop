@@ -41,8 +41,9 @@ async function handleLogin() {
 
     ElMessage.success('¡Sesión iniciada correctamente!')
     router.push('/inicio')
-  } catch (err: any) {
-    ElMessage.error(err.message || 'Error al iniciar sesión')
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al iniciar sesión'
+    ElMessage.error(message)
   } finally {
     isLoading.value = false
   }

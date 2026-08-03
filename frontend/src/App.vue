@@ -12,7 +12,6 @@ import {
   Sunny,
   Moon,
   SwitchButton,
-  Place,
   Location,
   OfficeBuilding,
 } from '@element-plus/icons-vue'
