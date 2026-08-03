@@ -2,13 +2,25 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { useCountryStore } from '@/features/countries/stores/country.store'
 import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
 import logoJJ from '@/assets/logoJJ.png'
-import { House, Setting, User, Sunny, Moon, SwitchButton } from '@element-plus/icons-vue'
+import {
+  House,
+  Setting,
+  User,
+  Sunny,
+  Moon,
+  SwitchButton,
+  Place,
+  Location,
+  OfficeBuilding,
+} from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const countryStore = useCountryStore()
 
 const isLoginPage = computed(() => route.path === '/login')
 const isDark = ref(false)
@@ -33,8 +45,9 @@ function handleLogout() {
   router.push('/login')
 }
 
-onMounted(() => {
+onMounted(async () => {
   isDark.value = document.documentElement.classList.contains('dark')
+  await countryStore.fetchCountries()
 })
 </script>
 
@@ -68,6 +81,33 @@ onMounted(() => {
           <el-icon :size="18"><User /></el-icon>
           <span>Usuarios</span>
         </RouterLink>
+
+        <!-- Línea de separación -->
+        <div class="sidebar-divider"></div>
+
+        <!-- Estructura Jerárquica: Países -> Áreas -> Hoteles (sin bandera, no clickable, indentado) -->
+        <div class="sidebar-tree">
+          <div v-for="pais in countryStore.countries" :key="pais.id" class="tree-country-group">
+            <!-- Nivel 1: País (sin bandera) -->
+            <div class="tree-node node-country">
+              <span class="node-text">{{ pais.nombre }}</span>
+            </div>
+
+            <!-- Nivel 2: Áreas -->
+            <div v-for="area in pais.areas" :key="area.id" class="tree-area-group">
+              <div class="tree-node node-area">
+                <el-icon :size="18" class="node-icon area-icon"><Location /></el-icon>
+                <span class="node-text">{{ area.nombre }}</span>
+              </div>
+
+              <!-- Nivel 3: Hoteles -->
+              <div v-for="hotel in area.hoteles" :key="hotel.id" class="tree-node node-hotel">
+                <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+                <span class="node-text">{{ hotel.nombre }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </nav>
     </aside>
 
@@ -149,6 +189,7 @@ onMounted(() => {
   flex-direction: column;
   padding: 1.5rem 1rem;
   z-index: 10;
+  overflow-y: auto;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease;
@@ -208,6 +249,85 @@ onMounted(() => {
   background-color: #409eff;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+}
+
+/* Sidebar Tree Hierarchy Styling */
+.sidebar-divider {
+  height: 1px;
+  background-color: var(--sidebar-border, #e2e8f0);
+  margin: 0.75rem 0;
+  width: 100%;
+}
+
+.sidebar-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  user-select: none;
+  cursor: default;
+}
+
+.tree-country-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tree-area-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: none;
+  line-height: 1.3;
+}
+
+.node-country {
+  padding-left: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--heading-color, #0f172a);
+}
+
+.node-area {
+  padding-left: 1.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--nav-link-color, #475569);
+}
+
+.node-hotel {
+  padding-left: 2.5rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--nav-link-color, #64748b);
+}
+
+.node-icon {
+  flex-shrink: 0;
+}
+
+.country-icon {
+  color: #409eff;
+}
+
+.area-icon {
+  color: #e6a23c;
+}
+
+.hotel-icon {
+  color: #94a3b8;
+}
+
+.node-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Main Wrapper Styling */
