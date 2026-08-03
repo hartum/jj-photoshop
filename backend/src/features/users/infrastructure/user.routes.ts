@@ -164,6 +164,18 @@ export async function userRoutes(fastify: FastifyInstance) {
           .send({ error: 'Faltan campos obligatorios (nombre, email, profileId)' })
       }
 
+      const normalizedEmail = body.email.trim()
+
+      const existingUser = await prisma.usuario.findUnique({
+        where: { email: normalizedEmail },
+      })
+
+      if (existingUser) {
+        return reply.status(400).send({
+          error: 'El correo electrónico ya se encuentra registrado por otro usuario',
+        })
+      }
+
       let passwordHash: string | null = null
       if (body.password && body.password.trim() !== '') {
         passwordHash = await bcrypt.hash(body.password, 10)
@@ -174,10 +186,10 @@ export async function userRoutes(fastify: FastifyInstance) {
 
       const nuevo = await prisma.usuario.create({
         data: {
-          nombre: body.nombre,
-          apellidos: body.apellidos || '',
-          email: body.email,
-          telefono: body.telefono || '',
+          nombre: body.nombre.trim(),
+          apellidos: body.apellidos ? body.apellidos.trim() : '',
+          email: normalizedEmail,
+          telefono: body.telefono ? body.telefono.trim() : '',
           passwordHash,
           imagen: body.imagen || null,
           roleId: Number(body.profileId),
@@ -215,6 +227,11 @@ export async function userRoutes(fastify: FastifyInstance) {
       })
     } catch (err: any) {
       fastify.log.error(err)
+      if (err.code === 'P2002' || err.message?.includes('usuarios_email_key')) {
+        return reply.status(400).send({
+          error: 'El correo electrónico ya se encuentra registrado por otro usuario',
+        })
+      }
       return reply
         .status(400)
         .send({ error: err.message || 'Error al crear el usuario en MySQL' })
@@ -236,6 +253,18 @@ export async function userRoutes(fastify: FastifyInstance) {
         imagen?: string | null
         areaIds?: number[]
         hotelIds?: number[]
+      }
+
+      if (body.email) {
+        const normalizedEmail = body.email.trim()
+        const existingUser = await prisma.usuario.findUnique({
+          where: { email: normalizedEmail },
+        })
+        if (existingUser && existingUser.id !== id) {
+          return reply.status(400).send({
+            error: 'El correo electrónico ya se encuentra registrado por otro usuario',
+          })
+        }
       }
 
       let passwordHash: string | undefined = undefined
@@ -264,10 +293,10 @@ export async function userRoutes(fastify: FastifyInstance) {
       const actualizado = await prisma.usuario.update({
         where: { id },
         data: {
-          ...(body.nombre && { nombre: body.nombre }),
-          ...(body.apellidos !== undefined && { apellidos: body.apellidos }),
-          ...(body.email && { email: body.email }),
-          ...(body.telefono !== undefined && { telefono: body.telefono }),
+          ...(body.nombre && { nombre: body.nombre.trim() }),
+          ...(body.apellidos !== undefined && { apellidos: body.apellidos.trim() }),
+          ...(body.email && { email: body.email.trim() }),
+          ...(body.telefono !== undefined && { telefono: body.telefono.trim() }),
           ...(passwordHash && { passwordHash }),
           ...(body.imagen !== undefined && { imagen: body.imagen }),
           ...(body.profileId !== undefined && { roleId: Number(body.profileId) }),
@@ -295,6 +324,11 @@ export async function userRoutes(fastify: FastifyInstance) {
       })
     } catch (err: any) {
       fastify.log.error(err)
+      if (err.code === 'P2002' || err.message?.includes('usuarios_email_key')) {
+        return reply.status(400).send({
+          error: 'El correo electrónico ya se encuentra registrado por otro usuario',
+        })
+      }
       return reply
         .status(400)
         .send({ error: err.message || 'Error al actualizar el usuario en MySQL' })
