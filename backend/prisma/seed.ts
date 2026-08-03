@@ -137,7 +137,40 @@ async function main() {
     },
   })
 
-  console.log('✅ Seeding completed! SuperUsuario: hartum@gmail.com / fardaka')
+  // Seeding de Países
+  await prisma.pais.upsert({
+    where: { codigo: 'MX' },
+    update: { nombre: 'México', codigoTelefono: '+52' },
+    create: {
+      codigo: 'MX',
+      nombre: 'México',
+      codigoTelefono: '+52',
+    },
+  })
+
+  await prisma.pais.upsert({
+    where: { codigo: 'JM' },
+    update: { nombre: 'Jamaica', codigoTelefono: '+1876' },
+    create: {
+      codigo: 'JM',
+      nombre: 'Jamaica',
+      codigoTelefono: '+1876',
+    },
+  })
+
+  await prisma.pais.upsert({
+    where: { codigo: 'DO' },
+    update: { nombre: 'Rep. Dominicana', codigoTelefono: '+1809' },
+    create: {
+      codigo: 'DO',
+      nombre: 'Rep. Dominicana',
+      codigoTelefono: '+1809',
+    },
+  })
+
+  console.log(
+    '✅ Seeding completed! Paises: MX (México +52), JM (Jamaica +1876), DO (Rep. Dominicana +1809)',
+  )
 }
 
 main()

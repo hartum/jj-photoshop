@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import { userRoutes } from './features/users/infrastructure/user.routes.js'
+import { countryRoutes } from './features/countries/infrastructure/country.routes.js'
 
 const fastify = Fastify({
   logger: true,
@@ -19,6 +20,7 @@ await fastify.register(jwt, {
 
 // Register feature routes
 await fastify.register(userRoutes)
+await fastify.register(countryRoutes)
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }

@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
-import InicioView from '@/views/InicioView.vue'
-import ConfiguracionView from '@/views/ConfiguracionView.vue'
-import UsuariosView from '@/views/UsuariosView.vue'
-import UsuarioFormView from '@/views/UsuarioFormView.vue'
-import LoginView from '@/views/LoginView.vue'
+import LoginView from '@/features/auth/ui/LoginView.vue'
+import InicioView from '@/features/home/ui/InicioView.vue'
+import ConfiguracionView from '@/features/configuration/ui/ConfiguracionView.vue'
+import UsuariosView from '@/features/users/ui/UsuariosView.vue'
+import UsuarioFormView from '@/features/users/ui/UsuarioFormView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
