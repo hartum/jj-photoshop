@@ -33,22 +33,6 @@ const filteredUsers = computed(() => {
   })
 })
 
-function getTagType(severity?: string): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
-  switch (severity) {
-    case 'danger':
-      return 'danger'
-    case 'warn':
-    case 'warning':
-      return 'warning'
-    case 'success':
-      return 'success'
-    case 'contrast':
-      return 'primary'
-    default:
-      return 'info'
-  }
-}
-
 // Navigation Handlers
 function navigateToCreate() {
   router.push('/usuarios/nuevo')
@@ -119,7 +103,7 @@ async function handleDeleteUser() {
 
         <el-table-column label="Perfil / Rol" sortable prop="perfil.name">
           <template #default="{ row }">
-            <el-tag v-if="row.perfil" :type="getTagType(row.perfil.severity)" effect="light">
+            <el-tag v-if="row.perfil" :type="row.perfil.severity || 'info'" effect="light">
               {{ row.perfil.name }}
             </el-tag>
           </template>

@@ -8,7 +8,7 @@ export interface User {
   apellidos: string
   email: string
   telefono: string
-  profileId: string
+  profileId: number
   status: UserStatus
   password?: string
   createdAt: string

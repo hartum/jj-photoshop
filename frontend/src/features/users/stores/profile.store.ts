@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Perfil } from '../domain/profile.model'
 
-const API_URL = 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL
 
 export const useProfileStore = defineStore('profiles', () => {
   const profiles = ref<Perfil[]>([])
@@ -24,8 +24,9 @@ export const useProfileStore = defineStore('profiles', () => {
     }
   }
 
-  function getProfileById(id: string): Perfil | undefined {
-    return profiles.value.find((p) => p.id === id)
+  function getProfileById(id: number | string): Perfil | undefined {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id
+    return profiles.value.find((p) => p.id === numericId)
   }
 
   return {

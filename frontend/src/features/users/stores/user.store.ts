@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { User, UserWithProfile } from '../domain/user.model'
 import { useProfileStore } from './profile.store'
 
-const API_URL = 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL
 
 export const useUserStore = defineStore('users', () => {
   const profileStore = useProfileStore()
@@ -45,7 +45,9 @@ export const useUserStore = defineStore('users', () => {
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${res.status}: Error al guardar en la base de datos`)
+        throw new Error(
+          errorData.error || `HTTP ${res.status}: Error al guardar en la base de datos`,
+        )
       }
       const created: User = await res.json()
       users.value.unshift(created)
@@ -68,7 +70,9 @@ export const useUserStore = defineStore('users', () => {
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${res.status}: Error al actualizar en la base de datos`)
+        throw new Error(
+          errorData.error || `HTTP ${res.status}: Error al actualizar en la base de datos`,
+        )
       }
       const updated: User = await res.json()
       const index = users.value.findIndex((u) => u.id === id)
@@ -89,7 +93,9 @@ export const useUserStore = defineStore('users', () => {
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${res.status}: Error al eliminar en la base de datos`)
+        throw new Error(
+          errorData.error || `HTTP ${res.status}: Error al eliminar en la base de datos`,
+        )
       }
       const user = users.value.find((u) => u.id === id)
       if (user) {

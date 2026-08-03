@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-const API_URL = 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL
 
 export interface AuthUser {
   id: string
@@ -9,7 +9,7 @@ export interface AuthUser {
   apellidos: string
   email: string
   telefono: string
-  profileId: string
+  profileId: number
   roleCode: string
   roleName: string
 }

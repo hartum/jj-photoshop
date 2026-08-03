@@ -75,13 +75,13 @@ export async function userRoutes(fastify: FastifyInstance) {
         orderBy: { createdAt: 'asc' },
       })
 
-      const severityMap: Record<string, string> = {
-        SUPERUSUARIO: 'contrast',
+      const severityMap: Record<string, 'primary' | 'danger' | 'warning' | 'info' | 'success'> = {
+        SUPERUSUARIO: 'primary',
         ADMIN: 'danger',
-        GERENTE: 'warn',
+        GERENTE: 'warning',
         SUPERVISOR: 'info',
         FOTOGRAFO: 'success',
-        CONTABLE: 'secondary',
+        CONTABLE: 'info',
       }
 
       const mapped = roles.map((r) => ({
@@ -137,11 +137,11 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: string
         telefono?: string
         password?: string
-        profileId: string
+        profileId: number | string
         status?: string
       }
 
-      if (!body.nombre || !body.email || !body.profileId) {
+      if (!body.nombre || !body.email || body.profileId === undefined) {
         return reply
           .status(400)
           .send({ error: 'Faltan campos obligatorios (nombre, email, profileId)' })
@@ -159,7 +159,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           email: body.email,
           telefono: body.telefono || '',
           passwordHash,
-          roleId: body.profileId,
+          roleId: Number(body.profileId),
           activo: body.status !== 'Inactivo',
         },
         include: { role: true },
@@ -193,7 +193,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email?: string
         telefono?: string
         password?: string
-        profileId?: string
+        profileId?: number | string
         status?: string
       }
 
@@ -210,7 +210,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           ...(body.email && { email: body.email }),
           ...(body.telefono !== undefined && { telefono: body.telefono }),
           ...(passwordHash && { passwordHash }),
-          ...(body.profileId && { roleId: body.profileId }),
+          ...(body.profileId !== undefined && { roleId: Number(body.profileId) }),
           ...(body.status !== undefined && { activo: body.status === 'Activo' }),
         },
         include: { role: true },

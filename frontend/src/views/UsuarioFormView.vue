@@ -23,7 +23,7 @@ const formData = ref({
   email: '',
   password: '',
   telefono: '',
-  profileId: '',
+  profileId: null as number | null,
   status: 'Activo' as UserStatus,
 })
 
@@ -67,7 +67,7 @@ function handleCancel() {
 }
 
 async function handleSave() {
-  if (!formData.value.nombre || !formData.value.email || !formData.value.profileId) {
+  if (!formData.value.nombre || !formData.value.email || formData.value.profileId === null) {
     ElMessage.warning('Por favor completa todos los campos requeridos (*)')
     return
   }
@@ -80,10 +80,16 @@ async function handleSave() {
   isSaving.value = true
   try {
     if (isEditing.value && userId.value) {
-      await userStore.updateUser(userId.value, { ...formData.value })
+      await userStore.updateUser(userId.value, {
+        ...formData.value,
+        profileId: formData.value.profileId,
+      })
       ElMessage.success('Usuario actualizado correctamente')
     } else {
-      await userStore.addUser({ ...formData.value })
+      await userStore.addUser({
+        ...formData.value,
+        profileId: formData.value.profileId,
+      })
       ElMessage.success('Usuario creado correctamente')
     }
     router.push('/usuarios')
