@@ -1,25 +1,32 @@
-import adminImg from '@/assets/users/admin.png'
-import contableImg from '@/assets/users/contable.png'
-import fotografoImg from '@/assets/users/fotografo.png'
-import gerenteImg from '@/assets/users/gerente.png'
-import superuserImg from '@/assets/users/superuser.png'
-import supervisorImg from '@/assets/users/supervisor.png'
+import userImg from '@/assets/users/user.png'
+import adminSvg from '@/assets/users/admin.svg'
+import contableSvg from '@/assets/users/contable.svg'
+import fotografoSvg from '@/assets/users/fotografo.svg'
+import gerenteSvg from '@/assets/users/gerente.svg'
+import superuserSvg from '@/assets/users/superuser.svg'
+import supervisorSvg from '@/assets/users/supervisor.svg'
 
-const avatarMap: Record<string, string> = {
-  SUPERUSUARIO: superuserImg,
-  ADMIN: adminImg,
-  GERENTE: gerenteImg,
-  SUPERVISOR: supervisorImg,
-  FOTOGRAFO: fotografoImg,
-  CONTABLE: contableImg,
+const svgMap: Record<string, string> = {
+  SUPERUSUARIO: superuserSvg,
+  ADMIN: adminSvg,
+  GERENTE: gerenteSvg,
+  SUPERVISOR: supervisorSvg,
+  FOTOGRAFO: fotografoSvg,
+  CONTABLE: contableSvg,
 }
 
 /**
- * Retorna la imagen por defecto correspondiente al código de perfil.
- * En caso de no encontrar coincidencia, retorna superuser.png por defecto.
+ * Retorna la imagen por defecto genérica para cualquier usuario sin imagen.
  */
-export function getDefaultAvatarByProfileCode(code?: string | null): string {
-  if (!code) return superuserImg
+export function getDefaultAvatar(): string {
+  return userImg
+}
+
+/**
+ * Retorna la URL del recurso SVG correspondiente al código de perfil.
+ */
+export function getRoleSvg(code?: string | null): string {
+  if (!code) return superuserSvg
   const upper = code.toUpperCase().trim()
-  return avatarMap[upper] || superuserImg
+  return svgMap[upper] || superuserSvg
 }

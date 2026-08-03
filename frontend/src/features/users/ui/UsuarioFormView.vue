@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { UserStatus } from '@/features/users/domain/user.model'
-import { getDefaultAvatarByProfileCode } from '@/features/users/utils/user-avatar'
+import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
 import {
   ArrowLeft,
   Check,
@@ -54,14 +54,11 @@ const isActivo = computed({
   },
 })
 
-// Calcula la imagen a mostrar: si el usuario tiene una recortada/cargada la usa,
-// de lo contrario asigna la imagen por defecto basada en el perfil seleccionado
 const displayAvatar = computed(() => {
   if (formData.value.imagen) {
     return formData.value.imagen
   }
-  const currentProfile = profileStore.getProfileById(formData.value.profileId || 0)
-  return getDefaultAvatarByProfileCode(currentProfile?.code)
+  return getDefaultAvatar()
 })
 
 onMounted(async () => {

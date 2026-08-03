@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
-import { getDefaultAvatarByProfileCode } from '@/features/users/utils/user-avatar'
+import { getDefaultAvatar, getRoleSvg } from '@/features/users/utils/user-avatar'
 import { Search, Plus, Edit, Delete, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -36,7 +36,7 @@ const filteredUsers = computed(() => {
 
 function getUserAvatar(user: UserWithProfile): string {
   if (user.imagen) return user.imagen
-  return getDefaultAvatarByProfileCode(user.perfil?.code)
+  return getDefaultAvatar()
 }
 
 // Navigation Handlers
@@ -86,7 +86,9 @@ async function handleDeleteUser() {
         class="search-input"
       />
 
-      <span class="user-count"> Total: <strong>{{ filteredUsers.length }}</strong> usuarios </span>
+      <span class="user-count">
+        Total: <strong>{{ filteredUsers.length }}</strong> usuarios
+      </span>
     </div>
 
     <!-- Tabla de Usuarios con Element Plus -->
@@ -97,14 +99,16 @@ async function handleDeleteUser() {
         stripe
         style="width: 100%"
       >
-        <el-table-column label="Usuario" sortable prop="nombre" min-width="180">
+        <el-table-column label="Nombre" sortable prop="nombre" min-width="150">
           <template #default="{ row }">
             <div class="user-cell">
               <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
-              <span class="user-fullname">{{ row.nombre }} {{ row.apellidos }}</span>
+              <span class="user-fullname">{{ row.nombre }}</span>
             </div>
           </template>
         </el-table-column>
+
+        <el-table-column prop="apellidos" label="Apellidos" sortable min-width="150" />
 
         <el-table-column prop="email" label="Correo Electrónico" sortable />
 
@@ -112,9 +116,12 @@ async function handleDeleteUser() {
 
         <el-table-column label="Perfil / Rol" sortable prop="perfil.name">
           <template #default="{ row }">
-            <el-tag v-if="row.perfil" :type="row.perfil.severity || 'info'" effect="light">
-              {{ row.perfil.name }}
-            </el-tag>
+            <div class="role-cell" v-if="row.perfil">
+              <img :src="getRoleSvg(row.perfil.code)" class="role-icon" :alt="row.perfil.name" />
+              <el-tag :type="row.perfil.severity || 'info'" effect="light">
+                {{ row.perfil.name }}
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
 
@@ -157,7 +164,8 @@ async function handleDeleteUser() {
         <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
         <p v-if="userToDelete">
           ¿Estás seguro de que deseas eliminar al usuario
-          <strong>{{ userToDelete.nombre }} {{ userToDelete.apellidos }}</strong>? Esta acción no se puede deshacer.
+          <strong>{{ userToDelete.nombre }} {{ userToDelete.apellidos }}</strong
+          >? Esta acción no se puede deshacer.
         </p>
       </div>
 
@@ -229,6 +237,18 @@ async function handleDeleteUser() {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.role-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .user-fullname {
