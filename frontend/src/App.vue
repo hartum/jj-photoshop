@@ -2,7 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
-import { Camera, House, Setting, User, Sunny, Moon, SwitchButton } from '@element-plus/icons-vue'
+import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import logoJJ from '@/assets/logoJJ.png'
+import { House, Setting, User, Sunny, Moon, SwitchButton } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,6 +12,13 @@ const authStore = useAuthStore()
 
 const isLoginPage = computed(() => route.path === '/login')
 const isDark = ref(false)
+
+const userAvatar = computed(() => {
+  if (authStore.user?.imagen) {
+    return authStore.user.imagen
+  }
+  return getDefaultAvatar()
+})
 
 function toggleTheme() {
   if (isDark.value) {
@@ -40,8 +49,8 @@ onMounted(() => {
     <!-- Menú lateral izquierdo -->
     <aside class="sidebar">
       <div class="brand">
-        <el-icon class="brand-icon" :size="24"><Camera /></el-icon>
-        <span class="brand-title">JJ Photoshop</span>
+        <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
+        <span class="brand-title">JJ Studio</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -71,10 +80,26 @@ onMounted(() => {
           </div>
 
           <div class="toolbar-right">
+            <!-- Conmutador de tema con el-switch de Element Plus -->
+            <div class="theme-switcher">
+              <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"
+                ><Sunny
+              /></el-icon>
+              <el-switch v-model="isDark" @change="toggleTheme" />
+              <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"
+                ><Moon
+              /></el-icon>
+            </div>
+
             <!-- Usuario autenticado -->
             <div v-if="authStore.user" class="user-badge">
-              <span class="user-name">{{ authStore.user.nombre }} {{ authStore.user.apellidos }}</span>
-              <el-tag size="small" effect="plain">{{ authStore.user.roleName }}</el-tag>
+              <el-avatar :src="userAvatar" shape="circle" :size="36" class="topbar-avatar" />
+              <div class="user-info">
+                <span class="user-name"
+                  >{{ authStore.user.nombre }} {{ authStore.user.apellidos }}</span
+                >
+                <span class="user-role">{{ authStore.user.roleName }}</span>
+              </div>
             </div>
 
             <!-- Botón Cerrar Sesión -->
@@ -87,13 +112,6 @@ onMounted(() => {
             >
               Salir
             </el-button>
-
-            <!-- Conmutador de tema con el-switch de Element Plus -->
-            <div class="theme-switcher">
-              <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"><Sunny /></el-icon>
-              <el-switch v-model="isDark" @change="toggleTheme" />
-              <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"><Moon /></el-icon>
-            </div>
           </div>
         </div>
       </header>
@@ -131,7 +149,9 @@ onMounted(() => {
   flex-direction: column;
   padding: 1.5rem 1rem;
   z-index: 10;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .brand {
@@ -142,10 +162,13 @@ onMounted(() => {
   border-bottom: 1px solid var(--sidebar-border, #e2e8f0);
   margin-bottom: 1.5rem;
   transition: border-color 0.2s ease;
+  height: 24px;
 }
 
-.brand-icon {
-  color: #409eff;
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
 }
 
 .brand-title {
@@ -221,13 +244,25 @@ onMounted(() => {
 .user-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
 }
 
 .user-name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--heading-color, #0f172a);
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--nav-link-color, #64748b);
+  font-weight: 400;
 }
 
 /* Theme Switcher Styling */

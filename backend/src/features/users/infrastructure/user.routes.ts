@@ -57,6 +57,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           profileId: user.roleId,
           roleCode: user.role.codigo,
           roleName: user.role.nombre,
+          imagen: user.imagen || null,
         },
       })
     } catch (err: any) {

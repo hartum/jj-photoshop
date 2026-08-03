@@ -12,6 +12,7 @@ export interface AuthUser {
   profileId: number
   roleCode: string
   roleName: string
+  imagen?: string | null
 }
 
 export const useAuthStore = defineStore('auth', () => {
