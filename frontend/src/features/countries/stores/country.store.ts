@@ -56,11 +56,47 @@ export const useCountryStore = defineStore('countries', () => {
     }
   }
 
+  async function addArea(payload: { paisId: number; nombre: string }) {
+    try {
+      const res = await fetch(`${API_URL}/areas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al crear el área en la base de datos')
+      }
+      await fetchCountries()
+    } catch (err) {
+      console.error('Error adding area:', err)
+      throw err
+    }
+  }
+
+  async function deleteArea(id: number) {
+    try {
+      const res = await fetch(`${API_URL}/areas/${id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al eliminar el área')
+      }
+      await fetchCountries()
+    } catch (err) {
+      console.error('Error deleting area:', err)
+      throw err
+    }
+  }
+
   return {
     countries,
     isLoading,
     fetchCountries,
     addCountry,
     deleteCountry,
+    addArea,
+    deleteArea,
   }
 })

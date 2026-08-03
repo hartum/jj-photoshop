@@ -122,4 +122,65 @@ export async function countryRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: err.message || 'Error al eliminar el país' })
     }
   })
+
+  // POST /api/areas
+  fastify.post('/api/areas', async (request, reply) => {
+    try {
+      const body = request.body as {
+        paisId: number
+        nombre: string
+      }
+
+      if (!body.paisId || !body.nombre || body.nombre.trim() === '') {
+        return reply.status(400).send({ error: 'Faltan campos obligatorios (paisId, nombre)' })
+      }
+
+      const areaNombre = body.nombre.trim()
+
+      const existing = await prisma.area.findFirst({
+        where: { paisId: Number(body.paisId), nombre: areaNombre },
+      })
+
+      if (existing) {
+        if (existing.deletedAt === null) {
+          return reply.status(400).send({ error: 'El área ya existe para este país' })
+        } else {
+          const reactivada = await prisma.area.update({
+            where: { id: existing.id },
+            data: { deletedAt: null },
+          })
+          return reply.status(200).send(reactivada)
+        }
+      }
+
+      const nuevaArea = await prisma.area.create({
+        data: {
+          paisId: Number(body.paisId),
+          nombre: areaNombre,
+        },
+      })
+
+      return reply.status(201).send(nuevaArea)
+    } catch (err: any) {
+      fastify.log.error(err)
+      return reply.status(400).send({ error: err.message || 'Error al crear el área' })
+    }
+  })
+
+  // DELETE /api/areas/:id (Soft delete)
+  fastify.delete('/api/areas/:id', async (request, reply) => {
+    try {
+      const id = Number(request.params && (request.params as any).id)
+
+      await prisma.area.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      })
+
+      return reply.send({ success: true, id })
+    } catch (err: any) {
+      fastify.log.error(err)
+      return reply.status(400).send({ error: err.message || 'Error al eliminar el área' })
+    }
+  })
 }
