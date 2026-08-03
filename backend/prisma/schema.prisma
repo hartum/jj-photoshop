@@ -45,6 +45,40 @@ model Pais {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
+  areas          Area[]
 
   @@map("paises")
+}
+
+model Area {
+  id        Int       @id @default(autoincrement())
+  paisId    Int       @map("id_pais")
+  nombre    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  pais      Pais      @relation(fields: [paisId], references: [id])
+  hoteles   Hotel[]
+
+  @@map("areas")
+}
+
+model Hotel {
+  id              Int       @id @default(autoincrement())
+  areaId          Int       @map("id_area")
+  nombre          String    @map("nombre_hotel")
+  direccion       String?
+  estrellas       Int?
+  latitud         Float?
+  longitud        Float?
+  cadenaHotelera  String?
+  personaContacto String?
+  email           String?
+  telefono        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  area            Area      @relation(fields: [areaId], references: [id])
+
+  @@map("hoteles")
 }

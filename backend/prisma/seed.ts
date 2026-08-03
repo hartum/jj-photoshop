@@ -138,7 +138,7 @@ async function main() {
   })
 
   // Seeding de Países
-  await prisma.pais.upsert({
+  const mexico = await prisma.pais.upsert({
     where: { codigo: 'MX' },
     update: { nombre: 'México', codigoTelefono: '+52' },
     create: {
@@ -148,7 +148,7 @@ async function main() {
     },
   })
 
-  await prisma.pais.upsert({
+  const jamaica = await prisma.pais.upsert({
     where: { codigo: 'JM' },
     update: { nombre: 'Jamaica', codigoTelefono: '+1876' },
     create: {
@@ -158,7 +158,7 @@ async function main() {
     },
   })
 
-  await prisma.pais.upsert({
+  const repDominicana = await prisma.pais.upsert({
     where: { codigo: 'DO' },
     update: { nombre: 'Rep. Dominicana', codigoTelefono: '+1809' },
     create: {
@@ -168,8 +168,74 @@ async function main() {
     },
   })
 
+  // Seeding de Áreas
+  const areasMexico = ['Cancún', 'Riviera Maya', 'Vallarta', 'Los Cabos']
+  for (const nombre of areasMexico) {
+    const existingArea = await prisma.area.findFirst({
+      where: { paisId: mexico.id, nombre },
+    })
+    if (!existingArea) {
+      await prisma.area.create({
+        data: { paisId: mexico.id, nombre },
+      })
+    }
+  }
+
+  const areasJamaica = ['Costa Norte']
+  for (const nombre of areasJamaica) {
+    const existingArea = await prisma.area.findFirst({
+      where: { paisId: jamaica.id, nombre },
+    })
+    if (!existingArea) {
+      await prisma.area.create({
+        data: { paisId: jamaica.id, nombre },
+      })
+    }
+  }
+
+  const areasRepDom = ['Punta Cana']
+  for (const nombre of areasRepDom) {
+    const existingArea = await prisma.area.findFirst({
+      where: { paisId: repDominicana.id, nombre },
+    })
+    if (!existingArea) {
+      await prisma.area.create({
+        data: { paisId: repDominicana.id, nombre },
+      })
+    }
+  }
+
+  // Seeding de Hoteles por Área
+  const hotelesMap: Record<string, string[]> = {
+    'Cancún': ['Ziva', 'Zilara', 'HRC', 'AVA'],
+    'Riviera Maya': ['Único', 'HRRM'],
+    'Vallarta': ['HRV', 'Único'],
+    'Los Cabos': ['HRLC', 'Nobu'],
+    'Costa Norte': ['Bahía Principe', 'Único'],
+    'Punta Cana': ['HRC', 'PC'],
+  }
+
+  for (const [nombreArea, nombresHoteles] of Object.entries(hotelesMap)) {
+    const area = await prisma.area.findFirst({ where: { nombre: nombreArea } })
+    if (area) {
+      for (const nombreHotel of nombresHoteles) {
+        const existingHotel = await prisma.hotel.findFirst({
+          where: { areaId: area.id, nombre: nombreHotel },
+        })
+        if (!existingHotel) {
+          await prisma.hotel.create({
+            data: {
+              areaId: area.id,
+              nombre: nombreHotel,
+            },
+          })
+        }
+      }
+    }
+  }
+
   console.log(
-    '✅ Seeding completed! Paises: MX (México +52), JM (Jamaica +1876), DO (Rep. Dominicana +1809)',
+    '✅ Seeding completed! Países, Áreas y Hoteles creados correctamente.',
   )
 }
 
