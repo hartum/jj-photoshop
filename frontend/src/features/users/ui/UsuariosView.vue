@@ -252,8 +252,8 @@ async function handleDeleteUser() {
 }
 
 .role-icon {
-  width: 32px;
-  height: 32px;
+  width: 35px;
+  height: 35px;
   object-fit: contain;
 }
 
