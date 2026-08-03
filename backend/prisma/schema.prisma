@@ -21,19 +21,21 @@ model Role {
 }
 
 model Usuario {
-  id           String    @id @default(uuid())
-  nombre       String
-  apellidos    String
-  email        String    @unique
-  telefono     String?
-  passwordHash String?
-  imagen       String?   @db.LongText
-  activo       Boolean   @default(true)
-  roleId       Int
-  role         Role      @relation(fields: [roleId], references: [id])
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id               String         @id @default(uuid())
+  nombre           String
+  apellidos        String
+  email            String         @unique
+  telefono         String?
+  passwordHash     String?
+  imagen           String?        @db.LongText
+  activo           Boolean        @default(true)
+  roleId           Int
+  role             Role           @relation(fields: [roleId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+  areasAsignadas   UsuarioArea[]
+  hotelesAsignados UsuarioHotel[]
 
   @@map("usuarios")
 }
@@ -52,22 +54,23 @@ model Pais {
 }
 
 model Area {
-  id        Int       @id @default(autoincrement())
-  paisId    Int       @map("id_pais")
-  nombre    String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  pais      Pais      @relation(fields: [paisId], references: [id])
-  hoteles   Hotel[]
+  id                Int           @id @default(autoincrement())
+  paisId            Int           @map("id_pais")
+  nombre            String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  pais              Pais          @relation(fields: [paisId], references: [id])
+  hoteles           Hotel[]
+  usuariosAsignados UsuarioArea[]
 
   @@map("areas")
 }
 
 model Hotel {
-  id              Int       @id @default(autoincrement())
-  areaId          Int       @map("id_area")
-  nombre          String    @map("nombre_hotel")
+  id              Int            @id @default(autoincrement())
+  areaId          Int            @map("id_area")
+  nombre          String         @map("nombre_hotel")
   direccion       String?
   estrellas       Int?
   latitud         Float?
@@ -76,10 +79,38 @@ model Hotel {
   personaContacto String?
   email           String?
   telefono        String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   deletedAt       DateTime?
-  area            Area      @relation(fields: [areaId], references: [id])
+  area            Area           @relation(fields: [areaId], references: [id])
+  usuariosAsignados UsuarioHotel[]
 
   @@map("hoteles")
 }
+
+model UsuarioArea {
+  id        Int      @id @default(autoincrement())
+  usuarioId String   @map("usuario_id")
+  areaId    Int      @map("area_id")
+  createdAt DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  area    Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, areaId])
+  @@map("usuario_area_acceso")
+}
+
+model UsuarioHotel {
+  id        Int      @id @default(autoincrement())
+  usuarioId String   @map("usuario_id")
+  hotelId   Int      @map("hotel_id")
+  createdAt DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, hotelId])
+  @@map("usuario_hotel_acceso")
+}
+

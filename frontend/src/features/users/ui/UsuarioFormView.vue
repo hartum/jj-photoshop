@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
+import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserStatus } from '@/features/users/domain/user.model'
 import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
 import {
@@ -15,6 +16,8 @@ import {
   ZoomOut,
   RefreshLeft,
   RefreshRight,
+  Location,
+  OfficeBuilding,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { Cropper, CircleStencil } from 'vue-advanced-cropper'
@@ -24,6 +27,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
+const countryStore = useCountryStore()
 
 const userId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!userId.value)
@@ -45,7 +49,29 @@ const formData = ref({
   profileId: null as number | null,
   status: 'Activo' as UserStatus,
   imagen: null as string | null,
+  areaIds: [] as number[],
+  hotelIds: [] as number[],
 })
+
+const selectedProfile = computed(() => {
+  if (!formData.value.profileId) return null
+  return profileStore.getProfileById(formData.value.profileId)
+})
+
+const selectedRoleCode = computed(() => {
+  return selectedProfile.value?.code?.toUpperCase() || ''
+})
+
+const isGerente = computed(() => selectedRoleCode.value === 'GERENTE')
+const isSupervisorOrFotografo = computed(
+  () => selectedRoleCode.value === 'SUPERVISOR' || selectedRoleCode.value === 'FOTOGRAFO',
+)
+const isGlobalAccess = computed(
+  () =>
+    selectedRoleCode.value === 'SUPERUSUARIO' ||
+    selectedRoleCode.value === 'ADMIN' ||
+    selectedRoleCode.value === 'CONTABLE',
+)
 
 const isActivo = computed({
   get: () => formData.value.status === 'Activo',
@@ -62,8 +88,11 @@ const displayAvatar = computed(() => {
 })
 
 onMounted(async () => {
-  await profileStore.fetchProfiles()
-  await userStore.fetchUsers()
+  await Promise.all([
+    profileStore.fetchProfiles(),
+    userStore.fetchUsers(),
+    countryStore.fetchCountries(),
+  ])
 
   if (isEditing.value && userId.value) {
     const existing = userStore.users.find((u) => u.id === userId.value)
@@ -77,6 +106,8 @@ onMounted(async () => {
         profileId: existing.profileId,
         status: existing.status,
         imagen: existing.imagen || null,
+        areaIds: existing.areaIds ? [...existing.areaIds] : [],
+        hotelIds: existing.hotelIds ? [...existing.hotelIds] : [],
       }
     } else {
       ElMessage.error('Usuario no encontrado')
@@ -154,17 +185,18 @@ async function handleSave() {
 
   isSaving.value = true
   try {
+    const payload = {
+      ...formData.value,
+      profileId: formData.value.profileId,
+      areaIds: isGerente.value ? formData.value.areaIds : [],
+      hotelIds: isSupervisorOrFotografo.value ? formData.value.hotelIds : [],
+    }
+
     if (isEditing.value && userId.value) {
-      await userStore.updateUser(userId.value, {
-        ...formData.value,
-        profileId: formData.value.profileId,
-      })
+      await userStore.updateUser(userId.value, payload)
       ElMessage.success('Usuario actualizado correctamente')
     } else {
-      await userStore.addUser({
-        ...formData.value,
-        profileId: formData.value.profileId,
-      })
+      await userStore.addUser(payload)
       ElMessage.success('Usuario creado correctamente')
     }
     router.push('/usuarios')
@@ -190,7 +222,7 @@ async function handleSave() {
           <p class="page-subtitle">
             {{
               isEditing
-                ? 'Modifica los datos, perfil e imagen del usuario'
+                ? 'Modifica los datos, perfil, accesos e imagen del usuario'
                 : 'Completa la información para dar de alta a un nuevo usuario'
             }}
           </p>
@@ -209,12 +241,7 @@ async function handleSave() {
       <!-- Campo Fotografía / Avatar de Usuario -->
       <el-form-item label="Imagen">
         <div class="avatar-field-container">
-          <el-avatar
-            :src="displayAvatar"
-            shape="circle"
-            :size="90"
-            class="user-avatar"
-          />
+          <el-avatar :src="displayAvatar" shape="circle" :size="90" class="user-avatar" />
           <div class="avatar-actions">
             <input
               ref="fileInput"
@@ -260,10 +287,7 @@ async function handleSave() {
         <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
       </el-form-item>
 
-      <el-form-item
-        :label="isEditing ? 'Contraseña' : 'Contraseña *'"
-        :required="!isEditing"
-      >
+      <el-form-item :label="isEditing ? 'Contraseña' : 'Contraseña *'" :required="!isEditing">
         <el-input
           v-model="formData.password"
           type="password"
@@ -296,17 +320,98 @@ async function handleSave() {
         </el-select>
       </el-form-item>
 
+      <!-- Asignaciones de accesos por Rol -->
+      <template v-if="isGerente">
+        <el-form-item label="Áreas asignadas">
+          <el-select
+            v-model="formData.areaIds"
+            multiple
+            filterable
+            placeholder="Selecciona una o varias áreas"
+            style="width: 100%"
+            popper-class="custom-group-select-dropdown"
+          >
+            <el-option-group
+              v-for="pais in countryStore.countries"
+              :key="pais.id"
+              :label="`${pais.nombre} (${pais.codigo})`"
+            >
+              <el-option
+                v-for="area in pais.areas || []"
+                :key="area.id"
+                :label="area.nombre"
+                :value="area.id"
+              >
+                <div class="option-item-content">
+                  <el-icon class="area-option-icon"><Location /></el-icon>
+                  <span>{{ area.nombre }}</span>
+                </div>
+              </el-option>
+            </el-option-group>
+          </el-select>
+          <small class="assignment-hint">
+            El gerente estará a cargo de las áreas seleccionadas y todos los hoteles dentro de las
+            mismas.
+          </small>
+        </el-form-item>
+      </template>
+
+      <template v-else-if="isSupervisorOrFotografo">
+        <el-form-item label="Hoteles asignados">
+          <el-select
+            v-model="formData.hotelIds"
+            multiple
+            filterable
+            placeholder="Selecciona uno o varios hoteles"
+            style="width: 100%"
+            popper-class="custom-group-select-dropdown"
+          >
+            <template v-for="pais in countryStore.countries" :key="pais.id">
+              <el-option-group
+                v-for="area in pais.areas || []"
+                :key="area.id"
+                :label="`${pais.nombre} — ${area.nombre}`"
+              >
+                <el-option
+                  v-for="hotel in area.hoteles || []"
+                  :key="hotel.id"
+                  :label="hotel.nombre"
+                  :value="hotel.id"
+                >
+                  <div class="option-item-content">
+                    <el-icon class="hotel-option-icon"><OfficeBuilding /></el-icon>
+                    <span>{{ hotel.nombre }}</span>
+                  </div>
+                </el-option>
+              </el-option-group>
+            </template>
+          </el-select>
+          <small class="assignment-hint">
+            Indica los hoteles sobre los que este
+            {{ selectedRoleCode === 'SUPERVISOR' ? 'supervisor' : 'fotógrafo' }} podrá gestionar u
+            operar.
+          </small>
+        </el-form-item>
+      </template>
+
+      <template v-else-if="isGlobalAccess">
+        <el-form-item label="Alcance">
+          <el-alert
+            type="info"
+            :closable="false"
+            show-icon
+            title="Acceso Global"
+            description="Este usuario tendrá visibilidad y acceso total sobre todos los países, áreas y hoteles del sistema."
+          />
+        </el-form-item>
+      </template>
+
       <el-form-item label="Estado">
         <el-checkbox v-model="isActivo" label="Usuario Activo" />
       </el-form-item>
 
       <el-form-item class="form-actions-item">
-        <el-button
-          type="primary"
-          :icon="Check"
-          :loading="isSaving"
-          @click="handleSave"
-        >
+        <el-button type="primary" :icon="Check" :loading="isSaving" @click="handleSave">
           {{ isEditing ? 'Guardar Cambios' : 'Crear Usuario' }}
         </el-button>
         <el-button :icon="Close" @click="handleCancel">Cancelar</el-button>
@@ -342,9 +447,7 @@ async function handleSave() {
       </div>
       <template #footer>
         <el-button @click="cropperDialogVisible = false">Cancelar</el-button>
-        <el-button type="primary" :icon="Check" @click="applyCrop">
-          Guardar Recorte
-        </el-button>
+        <el-button type="primary" :icon="Check" @click="applyCrop"> Guardar Recorte </el-button>
       </template>
     </el-dialog>
   </div>
@@ -416,9 +519,12 @@ async function handleSave() {
   gap: 0.5rem;
 }
 
-.avatar-hint {
+.avatar-hint,
+.assignment-hint {
+  display: block;
   font-size: 0.8rem;
   color: var(--nav-link-color, #64748b);
+  margin-top: 0.25rem;
   line-height: 1.3;
 }
 
@@ -459,5 +565,41 @@ async function handleSave() {
 .cropper-controls {
   display: flex;
   justify-content: center;
+}
+
+.option-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.area-option-icon {
+  color: #e6a23c;
+  font-size: 1.1rem;
+}
+
+.hotel-option-icon {
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+:deep(.el-select-group__title) {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--heading-color, #0f172a);
+  padding-top: 0.6rem;
+  padding-bottom: 0.3rem;
+}
+</style>
+
+<style>
+/* Estilos globales para los títulos de grupos de los desplegables */
+.custom-group-select-dropdown .el-select-group__title {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.3rem !important;
+  letter-spacing: 0.02em;
 }
 </style>

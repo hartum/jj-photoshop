@@ -14,7 +14,11 @@ export async function userRoutes(fastify: FastifyInstance) {
 
       const user = await prisma.usuario.findUnique({
         where: { email: email.trim() },
-        include: { role: true },
+        include: {
+          role: true,
+          areasAsignadas: true,
+          hotelesAsignados: true,
+        },
       })
 
       if (!user || user.deletedAt !== null) {
@@ -58,6 +62,8 @@ export async function userRoutes(fastify: FastifyInstance) {
           roleCode: user.role.codigo,
           roleName: user.role.nombre,
           imagen: user.imagen || null,
+          areaIds: user.areasAsignadas.map((a) => a.areaId),
+          hotelIds: user.hotelesAsignados.map((h) => h.hotelId),
         },
       })
     } catch (err: any) {
@@ -106,7 +112,11 @@ export async function userRoutes(fastify: FastifyInstance) {
     try {
       const usuarios = await prisma.usuario.findMany({
         where: { deletedAt: null },
-        include: { role: true },
+        include: {
+          role: true,
+          areasAsignadas: true,
+          hotelesAsignados: true,
+        },
         orderBy: { createdAt: 'desc' },
       })
 
@@ -119,6 +129,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: u.roleId,
         status: u.activo ? 'Activo' : 'Inactivo',
         imagen: u.imagen || null,
+        areaIds: u.areasAsignadas.map((a) => a.areaId),
+        hotelIds: u.hotelesAsignados.map((h) => h.hotelId),
         createdAt: u.createdAt.toISOString().split('T')[0],
         deletedAt: u.deletedAt ? u.deletedAt.toISOString() : null,
       }))
@@ -142,6 +154,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: number | string
         status?: string
         imagen?: string | null
+        areaIds?: number[]
+        hotelIds?: number[]
       }
 
       if (!body.nombre || !body.email || body.profileId === undefined) {
@@ -155,6 +169,9 @@ export async function userRoutes(fastify: FastifyInstance) {
         passwordHash = await bcrypt.hash(body.password, 10)
       }
 
+      const areaIds = Array.isArray(body.areaIds) ? body.areaIds.map(Number) : []
+      const hotelIds = Array.isArray(body.hotelIds) ? body.hotelIds.map(Number) : []
+
       const nuevo = await prisma.usuario.create({
         data: {
           nombre: body.nombre,
@@ -165,8 +182,22 @@ export async function userRoutes(fastify: FastifyInstance) {
           imagen: body.imagen || null,
           roleId: Number(body.profileId),
           activo: body.status !== 'Inactivo',
+          ...(areaIds.length > 0 && {
+            areasAsignadas: {
+              create: areaIds.map((areaId) => ({ areaId })),
+            },
+          }),
+          ...(hotelIds.length > 0 && {
+            hotelesAsignados: {
+              create: hotelIds.map((hotelId) => ({ hotelId })),
+            },
+          }),
         },
-        include: { role: true },
+        include: {
+          role: true,
+          areasAsignadas: true,
+          hotelesAsignados: true,
+        },
       })
 
       return reply.status(201).send({
@@ -178,6 +209,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: nuevo.roleId,
         status: nuevo.activo ? 'Activo' : 'Inactivo',
         imagen: nuevo.imagen || null,
+        areaIds: nuevo.areasAsignadas.map((a) => a.areaId),
+        hotelIds: nuevo.hotelesAsignados.map((h) => h.hotelId),
         createdAt: nuevo.createdAt.toISOString().split('T')[0],
       })
     } catch (err: any) {
@@ -201,11 +234,31 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId?: number | string
         status?: string
         imagen?: string | null
+        areaIds?: number[]
+        hotelIds?: number[]
       }
 
       let passwordHash: string | undefined = undefined
       if (body.password && body.password.trim() !== '') {
         passwordHash = await bcrypt.hash(body.password, 10)
+      }
+
+      if (body.areaIds !== undefined) {
+        await prisma.usuarioArea.deleteMany({ where: { usuarioId: id } })
+        if (Array.isArray(body.areaIds) && body.areaIds.length > 0) {
+          await prisma.usuarioArea.createMany({
+            data: body.areaIds.map((areaId) => ({ usuarioId: id, areaId: Number(areaId) })),
+          })
+        }
+      }
+
+      if (body.hotelIds !== undefined) {
+        await prisma.usuarioHotel.deleteMany({ where: { usuarioId: id } })
+        if (Array.isArray(body.hotelIds) && body.hotelIds.length > 0) {
+          await prisma.usuarioHotel.createMany({
+            data: body.hotelIds.map((hotelId) => ({ usuarioId: id, hotelId: Number(hotelId) })),
+          })
+        }
       }
 
       const actualizado = await prisma.usuario.update({
@@ -220,7 +273,11 @@ export async function userRoutes(fastify: FastifyInstance) {
           ...(body.profileId !== undefined && { roleId: Number(body.profileId) }),
           ...(body.status !== undefined && { activo: body.status === 'Activo' }),
         },
-        include: { role: true },
+        include: {
+          role: true,
+          areasAsignadas: true,
+          hotelesAsignados: true,
+        },
       })
 
       return reply.send({
@@ -232,6 +289,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: actualizado.roleId,
         status: actualizado.activo ? 'Activo' : 'Inactivo',
         imagen: actualizado.imagen || null,
+        areaIds: actualizado.areasAsignadas.map((a) => a.areaId),
+        hotelIds: actualizado.hotelesAsignados.map((h) => h.hotelId),
         createdAt: actualizado.createdAt.toISOString().split('T')[0],
       })
     } catch (err: any) {
