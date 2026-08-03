@@ -11,6 +11,7 @@ export interface User {
   profileId: number
   status: UserStatus
   password?: string
+  imagen?: string | null
   createdAt: string
   deletedAt?: string | null
 }

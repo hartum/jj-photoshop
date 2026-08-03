@@ -117,6 +117,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         telefono: u.telefono || '',
         profileId: u.roleId,
         status: u.activo ? 'Activo' : 'Inactivo',
+        imagen: u.imagen || null,
         createdAt: u.createdAt.toISOString().split('T')[0],
         deletedAt: u.deletedAt ? u.deletedAt.toISOString() : null,
       }))
@@ -139,6 +140,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         password?: string
         profileId: number | string
         status?: string
+        imagen?: string | null
       }
 
       if (!body.nombre || !body.email || body.profileId === undefined) {
@@ -159,6 +161,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           email: body.email,
           telefono: body.telefono || '',
           passwordHash,
+          imagen: body.imagen || null,
           roleId: Number(body.profileId),
           activo: body.status !== 'Inactivo',
         },
@@ -173,6 +176,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         telefono: nuevo.telefono || '',
         profileId: nuevo.roleId,
         status: nuevo.activo ? 'Activo' : 'Inactivo',
+        imagen: nuevo.imagen || null,
         createdAt: nuevo.createdAt.toISOString().split('T')[0],
       })
     } catch (err: any) {
@@ -195,6 +199,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         password?: string
         profileId?: number | string
         status?: string
+        imagen?: string | null
       }
 
       let passwordHash: string | undefined = undefined
@@ -210,6 +215,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           ...(body.email && { email: body.email }),
           ...(body.telefono !== undefined && { telefono: body.telefono }),
           ...(passwordHash && { passwordHash }),
+          ...(body.imagen !== undefined && { imagen: body.imagen }),
           ...(body.profileId !== undefined && { roleId: Number(body.profileId) }),
           ...(body.status !== undefined && { activo: body.status === 'Activo' }),
         },
@@ -224,6 +230,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         telefono: actualizado.telefono || '',
         profileId: actualizado.roleId,
         status: actualizado.activo ? 'Activo' : 'Inactivo',
+        imagen: actualizado.imagen || null,
         createdAt: actualizado.createdAt.toISOString().split('T')[0],
       })
     } catch (err: any) {

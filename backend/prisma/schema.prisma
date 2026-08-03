@@ -27,6 +27,7 @@ model Usuario {
   email        String    @unique
   telefono     String?
   passwordHash String?
+  imagen       String?   @db.LongText
   activo       Boolean   @default(true)
   roleId       Int
   role         Role      @relation(fields: [roleId], references: [id])

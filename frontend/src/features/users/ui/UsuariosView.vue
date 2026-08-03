@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
+import { getDefaultAvatarByProfileCode } from '@/features/users/utils/user-avatar'
 import { Search, Plus, Edit, Delete, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -32,6 +33,11 @@ const filteredUsers = computed(() => {
     return fullName.includes(query) || email.includes(query) || profileName.includes(query)
   })
 })
+
+function getUserAvatar(user: UserWithProfile): string {
+  if (user.imagen) return user.imagen
+  return getDefaultAvatarByProfileCode(user.perfil?.code)
+}
 
 // Navigation Handlers
 function navigateToCreate() {
@@ -91,9 +97,12 @@ async function handleDeleteUser() {
         stripe
         style="width: 100%"
       >
-        <el-table-column label="Nombre Completo" sortable prop="nombre">
+        <el-table-column label="Usuario" sortable prop="nombre" min-width="180">
           <template #default="{ row }">
-            <span class="user-fullname">{{ row.nombre }} {{ row.apellidos }}</span>
+            <div class="user-cell">
+              <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
+              <span class="user-fullname">{{ row.nombre }} {{ row.apellidos }}</span>
+            </div>
           </template>
         </el-table-column>
 
@@ -214,6 +223,12 @@ async function handleDeleteUser() {
   border: 1px solid var(--toolbar-border, #e2e8f0);
   border-radius: 10px;
   overflow: hidden;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .user-fullname {
