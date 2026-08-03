@@ -5,7 +5,7 @@ import { useHotelStore } from '../stores/hotel.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { Hotel } from '../domain/hotel.model'
 import { getFlagEmoji } from '@/components/flagEmoji'
-import { Search, Plus, Edit, Delete, Warning, OfficeBuilding, Location } from '@element-plus/icons-vue'
+import { Search, Plus, EditPen, Delete, Warning, OfficeBuilding, Location } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -186,7 +186,7 @@ async function handleDeleteHotel() {
               <el-button
                 type="primary"
                 link
-                :icon="Edit"
+                :icon="EditPen"
                 title="Editar hotel"
                 @click="navigateToEdit(row)"
               />
@@ -317,7 +317,11 @@ async function handleDeleteHotel() {
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.1rem;
+  .el-button {
+    font-size: 1.3rem;
+    padding: 4px;
+  }
 }
 
 .text-muted {

@@ -5,7 +5,7 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
 import { getDefaultAvatar, getRoleSvg } from '@/features/users/utils/user-avatar'
-import { Search, Plus, Edit, Delete, Warning } from '@element-plus/icons-vue'
+import { Search, Plus, EditPen, Delete, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -99,7 +99,7 @@ async function handleDeleteUser() {
         stripe
         style="width: 100%"
       >
-        <el-table-column label="Nombre" sortable prop="nombre" min-width="150">
+        <el-table-column label="Nombre" sortable prop="nombre" width="120">
           <template #default="{ row }">
             <div class="user-cell">
               <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
@@ -108,13 +108,19 @@ async function handleDeleteUser() {
           </template>
         </el-table-column>
 
-        <el-table-column prop="apellidos" label="Apellidos" sortable min-width="150" />
+        <el-table-column
+          prop="apellidos"
+          label="Apellidos"
+          show-overflow-tooltip
+          sortable
+          width="160"
+        />
 
-        <el-table-column prop="email" label="Correo Electrónico" sortable />
+        <el-table-column prop="email" label="Correo Electrónico" show-overflow-tooltip sortable />
 
-        <el-table-column prop="telefono" label="Teléfono" />
+        <el-table-column prop="telefono" label="Teléfono" width="140" />
 
-        <el-table-column label="Perfil / Rol" sortable prop="perfil.name">
+        <el-table-column label="Perfil / Rol" sortable prop="perfil.name" width="180">
           <template #default="{ row }">
             <div class="role-cell" v-if="row.perfil">
               <img :src="getRoleSvg(row.perfil.code)" class="role-icon" :alt="row.perfil.name" />
@@ -125,7 +131,7 @@ async function handleDeleteUser() {
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" label="Estado" sortable>
+        <el-table-column prop="status" label="Estado" sortable width="110">
           <template #default="{ row }">
             <el-tag :type="row.status === 'Activo' ? 'success' : 'info'">
               {{ row.status }}
@@ -133,15 +139,15 @@ async function handleDeleteUser() {
           </template>
         </el-table-column>
 
-        <el-table-column prop="createdAt" label="Fecha de Alta" sortable />
+        <el-table-column prop="createdAt" label="Fecha Alta" sortable width="130" />
 
-        <el-table-column label="Acciones" width="120" align="center">
+        <el-table-column label="Acciones" width="100" align="center" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button
                 type="primary"
                 link
-                :icon="Edit"
+                :icon="EditPen"
                 title="Editar usuario"
                 @click="navigateToEdit(row)"
               />
@@ -258,7 +264,11 @@ async function handleDeleteUser() {
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.1rem;
+  .el-button {
+    font-size: 1.3rem;
+    padding: 4px;
+  }
 }
 
 /* Confirm Dialog Styling */
