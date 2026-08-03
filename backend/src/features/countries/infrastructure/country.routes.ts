@@ -2,11 +2,23 @@ import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../../shared/db.js'
 
 export async function countryRoutes(fastify: FastifyInstance) {
-  // GET /api/paises
+  // GET /api/paises (con áreas y hoteles anidados)
   fastify.get('/api/paises', async (_request, reply) => {
     try {
       const paises = await prisma.pais.findMany({
         where: { deletedAt: null },
+        include: {
+          areas: {
+            where: { deletedAt: null },
+            orderBy: { nombre: 'asc' },
+            include: {
+              hoteles: {
+                where: { deletedAt: null },
+                orderBy: { nombre: 'asc' },
+              },
+            },
+          },
+        },
         orderBy: { nombre: 'asc' },
       })
       return reply.send(paises)

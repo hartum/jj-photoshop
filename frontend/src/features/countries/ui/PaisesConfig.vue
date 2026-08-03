@@ -2,14 +2,23 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCountryStore } from '../stores/country.store'
 import { WORLD_COUNTRIES } from '../domain/world-countries.data'
-import type { Pais } from '../domain/country.model'
+import type { Pais, AreaItem, HotelItem } from '../domain/country.model'
 import { getFlagEmoji } from '@/components/flagEmoji'
-import { Plus, Delete, Warning } from '@element-plus/icons-vue'
+import { Plus, Delete, Warning, Location, OfficeBuilding } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+
+interface TreeNode {
+  id: string
+  label: string
+  type: 'pais' | 'area' | 'hotel'
+  rawPais?: Pais
+  rawArea?: AreaItem
+  rawHotel?: HotelItem
+  children?: TreeNode[]
+}
 
 const countryStore = useCountryStore()
 
-const activeCollapse = ref<number | string>('')
 const selectedCountryCode = ref<string>('')
 const isAdding = ref(false)
 
@@ -30,6 +39,28 @@ const availableSelectCountries = computed(() => {
   })
 })
 
+// Convertir los países (con áreas y hoteles anidados) en la estructura de árbol para el el-tree
+const treeData = computed<TreeNode[]>(() => {
+  return countryStore.countries.map((pais) => ({
+    id: `pais-${pais.id}`,
+    label: pais.nombre,
+    type: 'pais',
+    rawPais: pais,
+    children: (pais.areas || []).map((area) => ({
+      id: `area-${area.id}`,
+      label: area.nombre,
+      type: 'area',
+      rawArea: area,
+      children: (area.hoteles || []).map((hotel) => ({
+        id: `hotel-${hotel.id}`,
+        label: hotel.nombre,
+        type: 'hotel',
+        rawHotel: hotel,
+      })),
+    })),
+  }))
+})
+
 async function handleAddCountry() {
   if (!selectedCountryCode.value) {
     ElMessage.warning('Por favor selecciona un país de la lista')
@@ -39,7 +70,6 @@ async function handleAddCountry() {
   const target = WORLD_COUNTRIES.find((c) => c.codigo === selectedCountryCode.value)
   if (!target) return
 
-  // Verificación adicional para asegurar que no esté ya en la BBDD
   const alreadyExists = countryStore.countries.some(
     (c) => c.codigo.toUpperCase() === target.codigo.toUpperCase(),
   )
@@ -57,8 +87,9 @@ async function handleAddCountry() {
     })
     ElMessage.success(`País "${target.nombre}" añadido correctamente`)
     selectedCountryCode.value = ''
-  } catch (err: any) {
-    ElMessage.error(err.message || 'Error al añadir el país')
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al añadir el país'
+    ElMessage.error(message)
   } finally {
     isAdding.value = false
   }
@@ -78,8 +109,9 @@ async function handleDeleteCountry() {
     ElMessage.success(`País "${countryToDelete.value.nombre}" eliminado correctamente`)
     countryToDelete.value = null
     deleteDialogVisible.value = false
-  } catch (err: any) {
-    ElMessage.error(err.message || 'Error al eliminar el país')
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar el país'
+    ElMessage.error(message)
   } finally {
     isDeleting.value = false
   }
@@ -88,7 +120,7 @@ async function handleDeleteCountry() {
 
 <template>
   <div v-loading="countryStore.isLoading" class="paises-config-container">
-    <!-- Barra superior de selección y botón para añadir país (antes del collapse) -->
+    <!-- Barra superior de selección y botón para añadir país -->
     <div class="add-country-bar">
       <el-select
         v-model="selectedCountryCode"
@@ -126,59 +158,44 @@ async function handleDeleteCountry() {
       </el-button>
     </div>
 
-    <!-- Componente Acordeón para la gestión de Países & Áreas -->
-    <el-collapse v-model="activeCollapse" accordion class="country-collapse">
-      <el-collapse-item v-for="pais in countryStore.countries" :key="pais.id" :name="pais.id">
-        <template #title>
-          <div class="collapse-header-title">
-            <span class="flag-icon">{{ getFlagEmoji(pais.codigo) }}</span>
-            <strong class="country-name">{{ pais.nombre }}</strong>
-            <!-- Acciones en la cabecera: Botón eliminar -->
-            <div class="header-actions">
-              <el-button
-                type="danger"
-                link
-                :icon="Delete"
-                title="Eliminar país"
-                class="delete-btn"
-                @click.stop="confirmDeleteCountry(pais)"
-              />
-            </div>
+    <!-- Árbol de dependencias (País -> Área -> Hotel) -->
+    <div class="tree-wrapper">
+      <el-tree :data="treeData" node-key="id" :expand-on-click-node="false" class="country-tree">
+        <template #default="{ data }">
+          <div class="tree-node-content">
+            <!-- Nodo País (Raíz) -->
+            <template v-if="data.type === 'pais' && data.rawPais">
+              <span class="node-flag">{{ getFlagEmoji(data.rawPais.codigo) }}</span>
+              <strong class="node-title country-title">{{ data.rawPais.nombre }}</strong>
+              <!-- Botón Eliminar País -->
+              <div class="node-actions">
+                <el-button
+                  type="danger"
+                  link
+                  :icon="Delete"
+                  title="Eliminar país"
+                  class="delete-btn"
+                  @click.stop="confirmDeleteCountry(data.rawPais)"
+                />
+              </div>
+            </template>
+
+            <!-- Nodo Área (Hijo de País) -->
+            <template v-else-if="data.type === 'area' && data.rawArea">
+              <el-icon class="node-icon area-icon"><Location /></el-icon>
+              <span class="node-title area-title">{{ data.rawArea.nombre }}</span>
+              <span class="count-badge">({{ (data.rawArea.hoteles || []).length }} hoteles)</span>
+            </template>
+
+            <!-- Nodo Hotel (Hijo de Área) -->
+            <template v-else-if="data.type === 'hotel' && data.rawHotel">
+              <el-icon class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+              <span class="node-title hotel-title">{{ data.rawHotel.nombre }}</span>
+            </template>
           </div>
         </template>
-
-        <div class="collapse-body-content">
-          <el-tag size="small" type="info" effect="plain" class="country-tag">
-            {{ pais.codigo }}
-          </el-tag>
-          <el-tag
-            v-if="pais.codigoTelefono"
-            size="small"
-            type="success"
-            effect="plain"
-            class="country-tag"
-          >
-            {{ pais.codigoTelefono }}
-          </el-tag>
-          <p class="country-info-text">
-            Configuración y áreas asignadas para <strong>{{ pais.nombre }}</strong> ({{
-              pais.codigo
-            }}).
-          </p>
-
-          <div class="country-details-grid">
-            <div class="detail-item">
-              <span class="detail-label">Código ISO:</span>
-              <span class="detail-value">{{ pais.codigo }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Prefijo Telefónico:</span>
-              <span class="detail-value">{{ pais.codigoTelefono || 'N/A' }}</span>
-            </div>
-          </div>
-        </div>
-      </el-collapse-item>
-    </el-collapse>
+      </el-tree>
+    </div>
 
     <!-- Modal Confirmar Eliminación (Soft delete) -->
     <el-dialog v-model="deleteDialogVisible" title="Confirmar Eliminación de País" width="420px">
@@ -245,71 +262,83 @@ async function handleDeleteCountry() {
   margin-left: auto;
 }
 
-.country-collapse {
-  border-top: none;
+/* Contenedor del Árbol */
+.tree-wrapper {
+  background-color: var(--toolbar-bg, #ffffff);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  border-radius: 10px;
+  padding: 1rem;
 }
 
-.collapse-header-title {
+.country-tree {
+  font-size: 0.95rem;
+  background: transparent;
+}
+
+.tree-node-content {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1rem;
-  padding-left: 0.5rem;
+  gap: 0.6rem;
   width: 100%;
+  padding: 0.25rem 0;
 }
 
-.flag-icon {
-  font-size: 1.25rem;
+.node-flag {
+  font-size: 1.2rem;
 }
 
-.country-name {
+.node-icon {
+  font-size: 1.1rem;
+}
+
+.area-icon {
+  color: #e6a23c;
+}
+
+.hotel-icon {
+  color: #409eff;
+}
+
+.node-title {
+  font-weight: 500;
   color: var(--heading-color, #0f172a);
 }
 
-.country-tag {
-  font-weight: 500;
-  margin-right: 0.5em;
+.country-title {
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
-.header-actions {
+.area-title {
+  font-weight: 600;
+}
+
+.hotel-title {
+  color: var(--nav-link-color, #475569);
+}
+
+.node-tag {
+  font-weight: 500;
+}
+
+.node-type-badge {
+  margin-left: 0.25rem;
+}
+
+.count-badge {
+  font-size: 0.8rem;
+  color: var(--nav-link-color, #94a3b8);
+}
+
+.node-actions {
   margin-left: auto;
-  margin-right: 1rem;
+  margin-right: 0.5rem;
   display: flex;
   align-items: center;
 }
 
 .delete-btn {
   font-size: 1.1rem;
-}
-
-.collapse-body-content {
-  padding: 1rem 0.5rem;
-}
-
-.country-info-text {
-  margin: 0.75rem 0 1rem 0;
-  color: var(--nav-link-color, #64748b);
-  font-size: 0.95rem;
-}
-
-.country-details-grid {
-  display: flex;
-  gap: 2rem;
-}
-
-.detail-item {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.detail-label {
-  color: var(--nav-link-color, #64748b);
-}
-
-.detail-value {
-  font-weight: 600;
-  color: var(--heading-color, #0f172a);
 }
 
 /* Modal styling */
