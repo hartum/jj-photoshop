@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useCountryStore } from '../stores/country.store'
+import { getFlagEmoji } from '@/components/flagEmoji'
 
 const activeCollapse = ref<number | string>('')
 const countryStore = useCountryStore()
@@ -8,33 +9,18 @@ const countryStore = useCountryStore()
 onMounted(async () => {
   await countryStore.fetchCountries()
 })
-
-function getFlagEmoji(countryCode: string): string {
-  const code = countryCode.toUpperCase()
-  if (code === 'MX') return '🇲🇽'
-  if (code === 'JM') return '🇯🇲'
-  if (code === 'DO') return '🇩🇴'
-  if (code === 'ES') return '🇪🇸'
-  return '🌐'
-}
 </script>
 
 <template>
   <!-- Componente Acordeón para la gestión de Países & Áreas (sin envoltorio de card) -->
   <div v-loading="countryStore.isLoading" class="paises-config-container">
     <el-collapse v-model="activeCollapse" accordion class="country-collapse">
-      <el-collapse-item
-        v-for="pais in countryStore.countries"
-        :key="pais.id"
-        :name="pais.id"
-      >
+      <el-collapse-item v-for="pais in countryStore.countries" :key="pais.id" :name="pais.id">
         <template #title>
           <div class="collapse-header-title">
             <span class="flag-icon">{{ getFlagEmoji(pais.codigo) }}</span>
+
             <strong class="country-name">{{ pais.nombre }}</strong>
-            <el-tag size="small" type="info" effect="plain" class="country-tag">
-              {{ pais.codigo }}
-            </el-tag>
             <el-tag
               v-if="pais.codigoTelefono"
               size="small"
@@ -48,6 +34,9 @@ function getFlagEmoji(countryCode: string): string {
         </template>
 
         <div class="collapse-body-content">
+          <el-tag size="small" type="info" effect="plain" class="country-tag">
+            {{ pais.codigo }}
+          </el-tag>
           <p class="country-info-text">
             Configuración y áreas asignadas para <strong>{{ pais.nombre }}</strong> ({{
               pais.codigo
@@ -84,6 +73,7 @@ function getFlagEmoji(countryCode: string): string {
   align-items: center;
   gap: 0.75rem;
   font-size: 1rem;
+  padding-left: 0.5em;
 }
 
 .flag-icon {
