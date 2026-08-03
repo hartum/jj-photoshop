@@ -29,9 +29,31 @@ export async function countryRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Faltan campos obligatorios (codigo, nombre)' })
       }
 
+      const codeUpper = body.codigo.toUpperCase().trim()
+
+      const existing = await prisma.pais.findUnique({
+        where: { codigo: codeUpper },
+      })
+
+      if (existing) {
+        if (existing.deletedAt === null) {
+          return reply.status(400).send({ error: 'El país ya se encuentra añadido en el sistema' })
+        } else {
+          const reactivado = await prisma.pais.update({
+            where: { id: existing.id },
+            data: {
+              nombre: body.nombre.trim(),
+              codigoTelefono: body.codigoTelefono ? body.codigoTelefono.trim() : null,
+              deletedAt: null,
+            },
+          })
+          return reply.status(200).send(reactivado)
+        }
+      }
+
       const nuevo = await prisma.pais.create({
         data: {
-          codigo: body.codigo.toUpperCase().trim(),
+          codigo: codeUpper,
           nombre: body.nombre.trim(),
           codigoTelefono: body.codigoTelefono ? body.codigoTelefono.trim() : null,
         },

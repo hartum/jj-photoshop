@@ -22,9 +22,45 @@ export const useCountryStore = defineStore('countries', () => {
     }
   }
 
+  async function addCountry(payload: { codigo: string; nombre: string; codigoTelefono?: string }) {
+    try {
+      const res = await fetch(`${API_URL}/paises`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al guardar el país en la base de datos')
+      }
+      await fetchCountries()
+    } catch (err) {
+      console.error('Error adding country:', err)
+      throw err
+    }
+  }
+
+  async function deleteCountry(id: number) {
+    try {
+      const res = await fetch(`${API_URL}/paises/${id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al eliminar el país')
+      }
+      await fetchCountries()
+    } catch (err) {
+      console.error('Error deleting country:', err)
+      throw err
+    }
+  }
+
   return {
     countries,
     isLoading,
     fetchCountries,
+    addCountry,
+    deleteCountry,
   }
 })

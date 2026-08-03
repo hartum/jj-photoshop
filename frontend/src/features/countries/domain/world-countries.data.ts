@@ -1,0 +1,47 @@
+export interface WorldCountry {
+  codigo: string
+  nombre: string
+  codigoTelefono: string
+}
+
+export const WORLD_COUNTRIES: WorldCountry[] = [
+  { codigo: 'ES', nombre: 'España', codigoTelefono: '+34' },
+  { codigo: 'MX', nombre: 'México', codigoTelefono: '+52' },
+  { codigo: 'JM', nombre: 'Jamaica', codigoTelefono: '+1876' },
+  { codigo: 'DO', nombre: 'Rep. Dominicana', codigoTelefono: '+1809' },
+  { codigo: 'US', nombre: 'Estados Unidos', codigoTelefono: '+1' },
+  { codigo: 'CA', nombre: 'Canadá', codigoTelefono: '+1' },
+  { codigo: 'AR', nombre: 'Argentina', codigoTelefono: '+54' },
+  { codigo: 'BR', nombre: 'Brasil', codigoTelefono: '+55' },
+  { codigo: 'CL', nombre: 'Chile', codigoTelefono: '+56' },
+  { codigo: 'CO', nombre: 'Colombia', codigoTelefono: '+57' },
+  { codigo: 'CR', nombre: 'Costa Rica', codigoTelefono: '+506' },
+  { codigo: 'CU', nombre: 'Cuba', codigoTelefono: '+53' },
+  { codigo: 'EC', nombre: 'Ecuador', codigoTelefono: '+593' },
+  { codigo: 'GT', nombre: 'Guatemala', codigoTelefono: '+502' },
+  { codigo: 'HN', nombre: 'Honduras', codigoTelefono: '+504' },
+  { codigo: 'NI', nombre: 'Nicaragua', codigoTelefono: '+505' },
+  { codigo: 'PA', nombre: 'Panamá', codigoTelefono: '+507' },
+  { codigo: 'PY', nombre: 'Paraguay', codigoTelefono: '+595' },
+  { codigo: 'PE', nombre: 'Perú', codigoTelefono: '+51' },
+  { codigo: 'PR', nombre: 'Puerto Rico', codigoTelefono: '+1787' },
+  { codigo: 'UY', nombre: 'Uruguay', codigoTelefono: '+598' },
+  { codigo: 'VE', nombre: 'Venezuela', codigoTelefono: '+58' },
+  { codigo: 'DE', nombre: 'Alemania', codigoTelefono: '+49' },
+  { codigo: 'FR', nombre: 'Francia', codigoTelefono: '+33' },
+  { codigo: 'IT', nombre: 'Italia', codigoTelefono: '+39' },
+  { codigo: 'GB', nombre: 'Reino Unido', codigoTelefono: '+44' },
+  { codigo: 'PT', nombre: 'Portugal', codigoTelefono: '+351' },
+  { codigo: 'NL', nombre: 'Países Bajos', codigoTelefono: '+31' },
+  { codigo: 'BE', nombre: 'Bélgica', codigoTelefono: '+32' },
+  { codigo: 'CH', nombre: 'Suiza', codigoTelefono: '+41' },
+  { codigo: 'AT', nombre: 'Austria', codigoTelefono: '+43' },
+  { codigo: 'GR', nombre: 'Grecia', codigoTelefono: '+30' },
+  { codigo: 'SE', nombre: 'Suecia', codigoTelefono: '+46' },
+  { codigo: 'NO', nombre: 'Noruega', codigoTelefono: '+47' },
+  { codigo: 'DK', nombre: 'Dinamarca', codigoTelefono: '+45' },
+  { codigo: 'FI', nombre: 'Finlandia', codigoTelefono: '+358' },
+  { codigo: 'JP', nombre: 'Japón', codigoTelefono: '+81' },
+  { codigo: 'CN', nombre: 'China', codigoTelefono: '+86' },
+  { codigo: 'AU', nombre: 'Australia', codigoTelefono: '+61' },
+]
