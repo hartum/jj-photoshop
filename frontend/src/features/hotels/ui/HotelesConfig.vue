@@ -269,7 +269,7 @@ async function handleDeleteHotel() {
 }
 
 .hotel-cell-icon {
-  color: #409eff;
+  color: #94a3b8;
   font-size: 1.1rem;
 }
 

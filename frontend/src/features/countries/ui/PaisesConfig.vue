@@ -429,7 +429,7 @@ async function handleDeleteArea() {
 }
 
 .hotel-icon {
-  color: #409eff;
+  color: #94a3b8;
 }
 
 .node-title {
