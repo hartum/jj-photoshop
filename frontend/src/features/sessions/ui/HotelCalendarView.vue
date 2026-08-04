@@ -83,9 +83,7 @@ const selectedHotelName = computed(() => {
 
 // Photographers list for assignment
 const photographers = computed(() => {
-  return userStore.usersWithProfile.filter(
-    (u) => u.perfil?.code?.toUpperCase() === 'FOTOGRAFO',
-  )
+  return userStore.usersWithProfile.filter((u) => u.perfil?.code?.toUpperCase() === 'FOTOGRAFO')
 })
 
 // Filtered sessions for FullCalendar
@@ -181,7 +179,9 @@ function handleDateSelect(selectInfo: { startStr: string; endStr: string }) {
   openNewSessionModal(startIso, endIso)
 }
 
-function handleEventClick(clickInfo: { event: { extendedProps: { rawSession?: SesionFotografica } } }) {
+function handleEventClick(clickInfo: {
+  event: { extendedProps: { rawSession?: SesionFotografica } }
+}) {
   const session = clickInfo.event.extendedProps.rawSession
   if (session) {
     ElMessage.info(`Sesión de ${session.clienteNombre} - Estado: ${session.estado}`)
@@ -406,7 +406,7 @@ async function handleSaveSession() {
 .calendar-card {
   background: var(--toolbar-bg, #ffffff);
   border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 12px;
+  border-radius: var(--el-card-border-radius, 4px);
   padding: 1.25rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
@@ -422,15 +422,67 @@ async function handleSaveSession() {
 }
 
 :deep(.fc-button-primary) {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  font-weight: 500;
-  border-radius: 6px;
+  background-color: var(--el-color-primary, #409eff) !important;
+  border-color: var(--el-color-primary, #409eff) !important;
+  color: #ffffff !important;
+  font-size: var(--el-font-size-base, 14px) !important;
+  font-weight: 500 !important;
+  border-radius: var(--el-border-radius-base, 4px) !important;
+  padding: 19px 26px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease-in-out !important;
 }
 
 :deep(.fc-button-primary:hover) {
-  background-color: #2563eb;
-  border-color: #2563eb;
+  background-color: var(--el-color-primary-light-3, #66b1ff) !important;
+  border-color: var(--el-color-primary-light-3, #66b1ff) !important;
+  color: #ffffff !important;
+}
+
+:deep(.fc-button-primary:not(:disabled).fc-button-active),
+:deep(.fc-button-primary:not(:disabled):active) {
+  background-color: var(--el-color-primary-dark-2, #337ecc) !important;
+  border-color: var(--el-color-primary-dark-2, #337ecc) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.fc-button-primary:disabled) {
+  background-color: var(--el-color-primary-light-5, #a0cfff) !important;
+  border-color: var(--el-color-primary-light-5, #a0cfff) !important;
+  opacity: 0.6;
+}
+
+:deep(.fc-button-group) {
+  gap: 2px;
+}
+
+/*--------------------------------_*/
+
+/* Estilo base para todos los botones del grupo */
+:deep(.fc-button-group .fc-button) {
+  border-radius: 0 !important; /* Quita el redondeado por defecto */
+}
+
+/* Redondea solo el primer botón (Mes en tu imagen) */
+:deep(.fc-button-group .fc-button:first-child) {
+  border-top-left-radius: 4px !important;
+  border-bottom-left-radius: 4px !important;
+}
+
+/* Redondea solo el último botón (Agenda en tu imagen) */
+:deep(.fc-button-group .fc-button:last-child) {
+  border-top-right-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+}
+/*--------------------------------_*/
+
+:deep(.fc-button-group > .fc-button) {
+  margin-right: 0;
 }
 
 .form-row-2 {
