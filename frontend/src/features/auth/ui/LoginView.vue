@@ -57,7 +57,7 @@ async function handleLogin() {
       <div class="form-wrapper">
         <!-- Logo de la empresa -->
         <div class="logo-container">
-          <img :src="logoImg" alt="JJ Photoshop Studio" class="company-logo" />
+          <img :src="logoImg" alt="JJ Studio" class="company-logo" />
         </div>
 
         <!-- Formulario -->
@@ -92,9 +92,7 @@ async function handleLogin() {
           </el-form-item>
 
           <div class="form-actions-row">
-            <el-checkbox v-model="rememberMe" class="remember-checkbox">
-              Recordarme
-            </el-checkbox>
+            <el-checkbox v-model="rememberMe" class="remember-checkbox"> Recordarme </el-checkbox>
 
             <el-button
               type="primary"

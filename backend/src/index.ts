@@ -4,7 +4,7 @@ import jwt from '@fastify/jwt'
 import { userRoutes } from './features/users/infrastructure/user.routes.js'
 import { countryRoutes } from './features/countries/infrastructure/country.routes.js'
 import { hotelRoutes } from './features/hotels/infrastructure/hotel.routes.js'
-import { sessionRoutes } from './features/sessions/infrastructure/session.routes.js'
+import { sessionRoutes } from './features/photo-sessions/infrastructure/session.routes.js'
 
 const fastify = Fastify({
   logger: true,
@@ -34,7 +34,7 @@ const start = async () => {
   try {
     const port = Number(process.env.PORT) || 3000
     await fastify.listen({ port, host: '0.0.0.0' })
-    console.log(`🚀 JJ Photoshop Backend running on http://localhost:${port}`)
+    console.log(`JJ Studio Backend running on http://localhost:${port}`)
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
