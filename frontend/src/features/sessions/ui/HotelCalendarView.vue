@@ -417,8 +417,16 @@ async function handleSaveSession() {
 
 :deep(.fc-toolbar-title) {
   font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--heading-color, #0f172a);
+  font-weight: 500;
+  text-transform: capitalize;
+  color: var(--el-input-text-color, var(--el-text-color-regular));
+}
+
+:deep(.fc-col-header-cell),
+:deep(.fc-col-header-cell-cushion) {
+  font-weight: 400 !important;
+  text-transform: capitalize;
+  color: var(--el-input-text-color, var(--el-text-color-regular));
 }
 
 :deep(.fc-button-primary) {
