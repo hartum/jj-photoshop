@@ -16,14 +16,14 @@ export interface RoleConfig {
 
 export const PERMISSION_MATRIX: Record<RoleCode, RoleConfig> = {
   SUPERUSUARIO: {
-    allowedNavRoutes: ['/inicio', '/configuracion', '/usuarios'],
+    allowedNavRoutes: ['/inicio', '/configuracion', '/usuarios', '/hoteles'],
     visibleTargetRoles: ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     assignableTargetRoles: ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     canCreateUsers: true,
     scopeType: 'GLOBAL',
   },
   ADMIN: {
-    allowedNavRoutes: ['/inicio', '/configuracion', '/usuarios'],
+    allowedNavRoutes: ['/inicio', '/configuracion', '/usuarios', '/hoteles'],
     visibleTargetRoles: ['ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     assignableTargetRoles: ['ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     canCreateUsers: true,
