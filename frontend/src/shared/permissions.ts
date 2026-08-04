@@ -16,42 +16,42 @@ export interface RoleConfig {
 
 export const PERMISSION_MATRIX: Record<RoleCode, RoleConfig> = {
   SUPERUSUARIO: {
-    allowedNavRoutes: ['/inicio', '/configuracion', '/usuarios', '/hoteles'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/configuracion', '/usuarios', '/hoteles'],
     visibleTargetRoles: ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     assignableTargetRoles: ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     canCreateUsers: true,
     scopeType: 'GLOBAL',
   },
   ADMIN: {
-    allowedNavRoutes: ['/inicio', '/configuracion', '/usuarios', '/hoteles'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/configuracion', '/usuarios', '/hoteles'],
     visibleTargetRoles: ['ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     assignableTargetRoles: ['ADMIN', 'GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'CONTABLE'],
     canCreateUsers: true,
     scopeType: 'GLOBAL',
   },
   GERENTE: {
-    allowedNavRoutes: ['/inicio', '/usuarios'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/usuarios'],
     visibleTargetRoles: ['GERENTE', 'SUPERVISOR', 'FOTOGRAFO'],
     assignableTargetRoles: ['SUPERVISOR', 'FOTOGRAFO'],
     canCreateUsers: true,
     scopeType: 'AREAS',
   },
   SUPERVISOR: {
-    allowedNavRoutes: ['/inicio', '/usuarios'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/usuarios'],
     visibleTargetRoles: ['SUPERVISOR', 'FOTOGRAFO'],
     assignableTargetRoles: ['FOTOGRAFO'],
     canCreateUsers: true,
     scopeType: 'HOTELS',
   },
   FOTOGRAFO: {
-    allowedNavRoutes: ['/inicio'],
+    allowedNavRoutes: ['/inicio', '/agenda'],
     visibleTargetRoles: [],
     assignableTargetRoles: [],
     canCreateUsers: false,
     scopeType: 'HOTELS',
   },
   CONTABLE: {
-    allowedNavRoutes: ['/inicio', '/configuracion'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/configuracion'],
     visibleTargetRoles: [],
     assignableTargetRoles: [],
     canCreateUsers: false,

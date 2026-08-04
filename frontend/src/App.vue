@@ -17,6 +17,7 @@ import {
   OfficeBuilding,
   Menu,
   Close,
+  Calendar,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -35,8 +36,14 @@ const userAvatar = computed(() => {
   return getDefaultAvatar()
 })
 
+const canSeeAgenda = computed(() => canAccessRoute(authStore.user?.roleCode, '/agenda'))
 const canSeeConfig = computed(() => canAccessRoute(authStore.user?.roleCode, '/configuracion'))
 const canSeeUsers = computed(() => canAccessRoute(authStore.user?.roleCode, '/usuarios'))
+
+function handleSelectHotelNode(hotelId: number) {
+  closeMobileDrawer()
+  router.push({ path: '/agenda', query: { hotelId } })
+}
 
 const filteredCountriesTree = computed(() => {
   const user = authStore.user
@@ -132,6 +139,11 @@ onMounted(async () => {
           <span>Inicio</span>
         </RouterLink>
 
+        <RouterLink v-if="canSeeAgenda" to="/agenda" class="nav-link">
+          <el-icon :size="18"><Calendar /></el-icon>
+          <span>Agenda</span>
+        </RouterLink>
+
         <RouterLink v-if="canSeeConfig" to="/configuracion" class="nav-link">
           <el-icon :size="18"><Setting /></el-icon>
           <span>Configuración</span>
@@ -165,7 +177,8 @@ onMounted(async () => {
                 v-for="hotel in area.hoteles"
                 :key="hotel.id"
                 class="tree-node node-hotel clickable-node"
-                title="Hotel asignado"
+                title="Ver agenda del hotel"
+                @click="handleSelectHotelNode(hotel.id)"
               >
                 <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
                 <span class="node-text">{{ hotel.nombre }}</span>
@@ -206,6 +219,16 @@ onMounted(async () => {
           </RouterLink>
 
           <RouterLink
+            v-if="canSeeAgenda"
+            to="/agenda"
+            class="nav-link"
+            @click="closeMobileDrawer"
+          >
+            <el-icon :size="18"><Calendar /></el-icon>
+            <span>Agenda</span>
+          </RouterLink>
+
+          <RouterLink
             v-if="canSeeConfig"
             to="/configuracion"
             class="nav-link"
@@ -238,7 +261,7 @@ onMounted(async () => {
                   v-for="hotel in area.hoteles"
                   :key="hotel.id"
                   class="tree-node node-hotel clickable-node"
-                  @click="closeMobileDrawer"
+                  @click="handleSelectHotelNode(hotel.id)"
                 >
                   <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
                   <span class="node-text">{{ hotel.nombre }}</span>
