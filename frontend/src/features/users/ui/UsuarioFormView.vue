@@ -372,7 +372,7 @@ async function handleSave() {
     <el-form
       :model="formData"
       label-width="150px"
-      label-position="right"
+      label-position="left"
       class="user-form"
       @submit.prevent="handleSave"
     >
@@ -601,7 +601,7 @@ async function handleSave() {
       </template>
 
       <el-form-item label="Estado">
-        <el-checkbox v-model="isActivo" label="Usuario Activo" />
+        <el-switch v-model="isActivo" active-text="Activo" inactive-text="Inactivo" />
       </el-form-item>
 
       <el-form-item class="form-actions-item">

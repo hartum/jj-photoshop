@@ -155,7 +155,7 @@ async function handleSave() {
     <el-form
       :model="formData"
       label-width="170px"
-      label-position="right"
+      label-position="left"
       class="hotel-form"
       @submit.prevent="handleSave"
     >
@@ -175,7 +175,10 @@ async function handleSave() {
       </el-form-item>
 
       <el-form-item label="Cadena Hotelera">
-        <el-input v-model="formData.cadenaHotelera" placeholder="Ej. RIU, Iberostar, Hyatt, Secrets" />
+        <el-input
+          v-model="formData.cadenaHotelera"
+          placeholder="Ej. RIU, Iberostar, Hyatt, Secrets"
+        />
       </el-form-item>
 
       <el-form-item label="Categoría / Estrellas">
@@ -183,7 +186,10 @@ async function handleSave() {
       </el-form-item>
 
       <el-form-item label="Persona de Contacto">
-        <el-input v-model="formData.personaContacto" placeholder="Ej. Director de Animación / Gerente" />
+        <el-input
+          v-model="formData.personaContacto"
+          placeholder="Ej. Director de Animación / Gerente"
+        />
       </el-form-item>
 
       <el-form-item label="Teléfono de Contacto">
@@ -195,7 +201,12 @@ async function handleSave() {
       </el-form-item>
 
       <el-form-item label="Dirección Física">
-        <el-input v-model="formData.direccion" type="textarea" :rows="3" placeholder="Dirección completa del hotel" />
+        <el-input
+          v-model="formData.direccion"
+          type="textarea"
+          :rows="3"
+          placeholder="Dirección completa del hotel"
+        />
       </el-form-item>
 
       <el-form-item class="form-actions-item">
