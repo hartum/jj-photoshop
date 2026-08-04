@@ -73,6 +73,30 @@ const isGlobalAccess = computed(
     selectedRoleCode.value === 'CONTABLE',
 )
 
+const assignedAreaIdsByOtherGerentes = computed<Set<number>>(() => {
+  const set = new Set<number>()
+  for (const u of userStore.users) {
+    if (u.id === userId.value) continue
+    const roleCode = profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+    if (roleCode === 'GERENTE' && u.areaIds) {
+      u.areaIds.forEach((id) => set.add(id))
+    }
+  }
+  return set
+})
+
+const assignedHotelIdsByOtherSupervisores = computed<Set<number>>(() => {
+  const set = new Set<number>()
+  for (const u of userStore.users) {
+    if (u.id === userId.value) continue
+    const roleCode = profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+    if (roleCode === 'SUPERVISOR' && u.hotelIds) {
+      u.hotelIds.forEach((id) => set.add(id))
+    }
+  }
+  return set
+})
+
 const isActivo = computed({
   get: () => formData.value.status === 'Activo',
   set: (val: boolean) => {
@@ -341,10 +365,17 @@ async function handleSave() {
                 :key="area.id"
                 :label="area.nombre"
                 :value="area.id"
+                :disabled="assignedAreaIdsByOtherGerentes.has(area.id)"
               >
                 <div class="option-item-content">
                   <el-icon class="area-option-icon"><Location /></el-icon>
                   <span>{{ area.nombre }}</span>
+                  <small
+                    v-if="assignedAreaIdsByOtherGerentes.has(area.id)"
+                    class="disabled-label"
+                  >
+                    (Asignada a otro gerente)
+                  </small>
                 </div>
               </el-option>
             </el-option-group>
@@ -377,10 +408,23 @@ async function handleSave() {
                   :key="hotel.id"
                   :label="hotel.nombre"
                   :value="hotel.id"
+                  :disabled="
+                    selectedRoleCode === 'SUPERVISOR' &&
+                    assignedHotelIdsByOtherSupervisores.has(hotel.id)
+                  "
                 >
                   <div class="option-item-content">
                     <el-icon class="hotel-option-icon"><OfficeBuilding /></el-icon>
                     <span>{{ hotel.nombre }}</span>
+                    <small
+                      v-if="
+                        selectedRoleCode === 'SUPERVISOR' &&
+                        assignedHotelIdsByOtherSupervisores.has(hotel.id)
+                      "
+                      class="disabled-label"
+                    >
+                      (Asignado a otro supervisor)
+                    </small>
                   </div>
                 </el-option>
               </el-option-group>
@@ -571,6 +615,14 @@ async function handleSave() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+}
+
+.disabled-label {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .area-option-icon {

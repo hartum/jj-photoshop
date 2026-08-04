@@ -184,6 +184,46 @@ export async function userRoutes(fastify: FastifyInstance) {
       const areaIds = Array.isArray(body.areaIds) ? body.areaIds.map(Number) : []
       const hotelIds = Array.isArray(body.hotelIds) ? body.hotelIds.map(Number) : []
 
+      const targetRole = await prisma.role.findUnique({
+        where: { id: Number(body.profileId) },
+      })
+
+      if (targetRole?.codigo === 'GERENTE' && areaIds.length > 0) {
+        const conflict = await prisma.usuarioArea.findFirst({
+          where: {
+            areaId: { in: areaIds },
+            usuario: {
+              role: { codigo: 'GERENTE' },
+              deletedAt: null,
+            },
+          },
+          include: { area: true, usuario: true },
+        })
+        if (conflict) {
+          return reply.status(400).send({
+            error: `El área "${conflict.area.nombre}" ya está asignada al gerente ${conflict.usuario.nombre} ${conflict.usuario.apellidos}`,
+          })
+        }
+      }
+
+      if (targetRole?.codigo === 'SUPERVISOR' && hotelIds.length > 0) {
+        const conflict = await prisma.usuarioHotel.findFirst({
+          where: {
+            hotelId: { in: hotelIds },
+            usuario: {
+              role: { codigo: 'SUPERVISOR' },
+              deletedAt: null,
+            },
+          },
+          include: { hotel: true, usuario: true },
+        })
+        if (conflict) {
+          return reply.status(400).send({
+            error: `El hotel "${conflict.hotel.nombre}" ya está asignado al supervisor ${conflict.usuario.nombre} ${conflict.usuario.apellidos}`,
+          })
+        }
+      }
+
       const nuevo = await prisma.usuario.create({
         data: {
           nombre: body.nombre.trim(),
@@ -272,20 +312,70 @@ export async function userRoutes(fastify: FastifyInstance) {
         passwordHash = await bcrypt.hash(body.password, 10)
       }
 
+      const currentUser = await prisma.usuario.findUnique({
+        where: { id },
+        include: { role: true },
+      })
+
+      const targetRoleId = body.profileId !== undefined ? Number(body.profileId) : currentUser?.roleId
+      const targetRole = targetRoleId
+        ? await prisma.role.findUnique({ where: { id: targetRoleId } })
+        : currentUser?.role
+
       if (body.areaIds !== undefined) {
+        const newAreaIds = Array.isArray(body.areaIds) ? body.areaIds.map(Number) : []
+        if (targetRole?.codigo === 'GERENTE' && newAreaIds.length > 0) {
+          const conflict = await prisma.usuarioArea.findFirst({
+            where: {
+              areaId: { in: newAreaIds },
+              usuarioId: { not: id },
+              usuario: {
+                role: { codigo: 'GERENTE' },
+                deletedAt: null,
+              },
+            },
+            include: { area: true, usuario: true },
+          })
+          if (conflict) {
+            return reply.status(400).send({
+              error: `El área "${conflict.area.nombre}" ya está asignada al gerente ${conflict.usuario.nombre} ${conflict.usuario.apellidos}`,
+            })
+          }
+        }
+
         await prisma.usuarioArea.deleteMany({ where: { usuarioId: id } })
-        if (Array.isArray(body.areaIds) && body.areaIds.length > 0) {
+        if (newAreaIds.length > 0) {
           await prisma.usuarioArea.createMany({
-            data: body.areaIds.map((areaId) => ({ usuarioId: id, areaId: Number(areaId) })),
+            data: newAreaIds.map((areaId) => ({ usuarioId: id, areaId })),
           })
         }
       }
 
       if (body.hotelIds !== undefined) {
+        const newHotelIds = Array.isArray(body.hotelIds) ? body.hotelIds.map(Number) : []
+        if (targetRole?.codigo === 'SUPERVISOR' && newHotelIds.length > 0) {
+          const conflict = await prisma.usuarioHotel.findFirst({
+            where: {
+              hotelId: { in: newHotelIds },
+              usuarioId: { not: id },
+              usuario: {
+                role: { codigo: 'SUPERVISOR' },
+                deletedAt: null,
+              },
+            },
+            include: { hotel: true, usuario: true },
+          })
+          if (conflict) {
+            return reply.status(400).send({
+              error: `El hotel "${conflict.hotel.nombre}" ya está asignado al supervisor ${conflict.usuario.nombre} ${conflict.usuario.apellidos}`,
+            })
+          }
+        }
+
         await prisma.usuarioHotel.deleteMany({ where: { usuarioId: id } })
-        if (Array.isArray(body.hotelIds) && body.hotelIds.length > 0) {
+        if (newHotelIds.length > 0) {
           await prisma.usuarioHotel.createMany({
-            data: body.hotelIds.map((hotelId) => ({ usuarioId: id, hotelId: Number(hotelId) })),
+            data: newHotelIds.map((hotelId) => ({ usuarioId: id, hotelId })),
           })
         }
       }

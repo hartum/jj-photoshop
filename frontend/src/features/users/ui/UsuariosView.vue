@@ -255,6 +255,8 @@ async function handleDeleteUser() {
   width: 35px;
   height: 35px;
   object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(50%) sepia(0%) saturate(0%) hue-rotate(244deg)
+    brightness(97%) contrast(85%);
 }
 
 .user-fullname {
