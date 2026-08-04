@@ -93,6 +93,18 @@ const isGlobalAccess = computed(
     selectedRoleCode.value === 'CONTABLE',
 )
 
+const isStatusDisabled = computed(() => {
+  if (!isSelfEditing.value) return false
+  const role = currentUser.value?.roleCode?.toUpperCase()
+  return role === 'GERENTE' || role === 'SUPERVISOR'
+})
+
+const isSelfEditingProfileReadonly = computed(() => {
+  if (!isSelfEditing.value) return false
+  const role = currentUser.value?.roleCode?.toUpperCase()
+  return role === 'GERENTE' || role === 'SUPERVISOR'
+})
+
 // --- Helpers reutilizables ---
 
 /** IDs asignados a otros usuarios con un rol determinado, excluyendo al usuario en edición */
@@ -413,16 +425,12 @@ async function handleSave() {
         </div>
       </el-form-item>
 
-      <el-form-item label="Nombre *" required>
+      <el-form-item label="Nombre" required>
         <el-input v-model="formData.nombre" placeholder="Ej. Juan" />
       </el-form-item>
 
-      <el-form-item label="Apellidos *" required>
+      <el-form-item label="Apellidos" required>
         <el-input v-model="formData.apellidos" placeholder="Ej. Pérez" />
-      </el-form-item>
-
-      <el-form-item label="Correo electrónico *" required>
-        <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
       </el-form-item>
 
       <el-form-item :label="isEditing ? 'Contraseña' : 'Contraseña *'" :required="!isEditing">
@@ -434,12 +442,20 @@ async function handleSave() {
         />
       </el-form-item>
 
+      <el-form-item label="Email" required>
+        <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
+      </el-form-item>
+
       <el-form-item label="Teléfono">
         <el-input v-model="formData.telefono" placeholder="+34 600 000 000" />
       </el-form-item>
 
-      <el-form-item label="Perfil / Rol *" required>
+      <el-form-item label="Perfil / Rol" required>
+        <span v-if="isSelfEditingProfileReadonly" class="read-only-profile-text">
+          {{ selectedProfile?.name }}
+        </span>
         <el-select
+          v-else
           v-model="formData.profileId"
           placeholder="Selecciona un perfil"
           style="width: 100%"
@@ -461,6 +477,10 @@ async function handleSave() {
       <!-- Asignaciones de accesos por Rol -->
       <template v-if="isGerente">
         <el-form-item label="Áreas asignadas">
+          <small class="assignment-hint">
+            El gerente estará a cargo de las áreas seleccionadas y todos los hoteles dentro de las
+            mismas.
+          </small>
           <div v-if="isSelfEditing" class="assigned-tags-container">
             <el-tag
               v-for="area in assignedAreaNames"
@@ -476,7 +496,6 @@ async function handleSave() {
               >Sin áreas asignadas</span
             >
           </div>
-
           <el-select
             v-else
             v-model="formData.areaIds"
@@ -508,10 +527,6 @@ async function handleSave() {
               </el-option>
             </el-option-group>
           </el-select>
-          <small class="assignment-hint">
-            El gerente estará a cargo de las áreas seleccionadas y todos los hoteles dentro de las
-            mismas.
-          </small>
         </el-form-item>
       </template>
 
@@ -600,7 +615,7 @@ async function handleSave() {
         </el-form-item>
       </template>
 
-      <el-form-item label="Estado">
+      <el-form-item v-if="!isStatusDisabled" label="Estado">
         <el-switch v-model="isActivo" active-text="Activo" inactive-text="Inactivo" />
       </el-form-item>
 
@@ -798,6 +813,12 @@ async function handleSave() {
   font-size: 0.85rem;
   color: #94a3b8;
   font-style: italic;
+}
+
+.read-only-profile-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--heading-color, #0f172a);
 }
 
 :deep(.el-select-group__title) {
