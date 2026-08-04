@@ -828,6 +828,59 @@ async function handleSave() {
   padding-top: 0.6rem;
   padding-bottom: 0.3rem;
 }
+
+@media (max-width: 768px) {
+  .view-container {
+    padding: 1rem;
+  }
+
+  .user-form {
+    padding: 1rem;
+  }
+
+  :deep(.user-form .el-form-item) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  :deep(.user-form .el-form-item__label) {
+    width: 100% !important;
+    text-align: left !important;
+    margin-bottom: 0.25rem;
+  }
+
+  .avatar-field-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .avatar-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .avatar-buttons .el-button {
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  .form-actions .el-button {
+    width: 100%;
+  }
+
+  :deep(.el-dialog) {
+    width: 95% !important;
+  }
+
+  .cropper {
+    height: 240px;
+  }
+}
 </style>
 
 <style>

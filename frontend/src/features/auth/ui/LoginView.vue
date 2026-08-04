@@ -228,12 +228,22 @@ async function handleLogin() {
 
   .login-left-side {
     width: 100%;
-    height: 60%;
+    height: 100%;
+    padding: 1.5rem;
   }
 
   .login-right-side {
+    display: none;
+  }
+
+  .form-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .login-button {
     width: 100%;
-    height: 40%;
   }
 }
 </style>

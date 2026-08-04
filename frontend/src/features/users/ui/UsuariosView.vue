@@ -378,4 +378,39 @@ async function handleDeleteUser() {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+@media (max-width: 768px) {
+  .view-container {
+    padding: 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .page-header .el-button {
+    width: 100%;
+  }
+
+  .toolbar-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .table-card {
+    overflow-x: auto;
+  }
+
+  :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 400px;
+  }
+}
 </style>

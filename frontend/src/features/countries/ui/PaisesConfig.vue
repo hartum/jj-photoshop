@@ -516,4 +516,33 @@ async function handleDeleteArea() {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+@media (max-width: 768px) {
+  .paises-config-container {
+    padding: 1rem;
+  }
+
+  .add-country-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .country-select {
+    width: 100%;
+  }
+
+  .add-country-card .el-button {
+    width: 100%;
+  }
+
+  .area-inline-input {
+    width: 130px;
+  }
+
+  :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 400px;
+  }
+}
 </style>

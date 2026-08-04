@@ -263,4 +263,34 @@ async function handleSave() {
 .form-actions-item {
   margin-top: 2rem;
 }
+
+@media (max-width: 768px) {
+  .view-container {
+    padding: 1rem;
+  }
+
+  :deep(.hotel-form .el-form-item) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  :deep(.hotel-form .el-form-item__label) {
+    width: 100% !important;
+    text-align: left !important;
+    margin-bottom: 0.25rem;
+  }
+
+  :deep(.form-actions-item .el-form-item__content) {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  :deep(.form-actions-item .el-button) {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+}
 </style>

@@ -350,4 +350,40 @@ async function handleDeleteHotel() {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+@media (max-width: 768px) {
+  .hoteles-config-container {
+    padding: 1rem;
+  }
+
+  .toolbar-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .search-input,
+  .area-filter-select {
+    width: 100%;
+  }
+
+  .toolbar-card .el-button {
+    width: 100%;
+  }
+
+  .table-card {
+    overflow-x: auto;
+  }
+
+  :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 400px;
+  }
+}
 </style>

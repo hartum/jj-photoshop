@@ -99,4 +99,14 @@ function handleTabChange(paneName: string | number) {
   color: var(--nav-link-color, #64748b);
   font-size: 0.95rem;
 }
+
+@media (max-width: 768px) {
+  .view-container {
+    padding: 1rem;
+  }
+
+  :deep(.el-tabs__nav-scroll) {
+    overflow-x: auto;
+  }
+}
 </style>

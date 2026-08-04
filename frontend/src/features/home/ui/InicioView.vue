@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
@@ -15,7 +15,6 @@ import {
   Phone,
   Message,
   Star,
-  Notebook,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -28,29 +27,31 @@ const hotelStore = useHotelStore()
 const currentUser = computed(() => authStore.user)
 const userRole = computed(() => currentUser.value?.roleCode?.toUpperCase() || '')
 
-// Carga inicial de datos
 onMounted(async () => {
   await Promise.all([
-    userStore.fetchUsers(),
     countryStore.fetchCountries(),
+    userStore.fetchUsers(),
     profileStore.fetchProfiles(),
     hotelStore.fetchHotels(),
   ])
 })
 
-// --- CÁLCULO DE DATOS GLOBALES (Superusuario, Admin, Contable) ---
+// --- CÁLCULOS GLOBALES Y KPIS ---
 
 const totalUsers = computed(() => userStore.usersWithProfile.length)
-const activeUsers = computed(() => userStore.usersWithProfile.filter((u) => u.status === 'Activo').length)
+const activeUsers = computed(
+  () => userStore.usersWithProfile.filter((u) => u.status === 'Activo').length,
+)
 
 const totalCountries = computed(() => countryStore.countries.length)
+
 const totalAreas = computed(() => {
   return countryStore.countries.reduce((acc, c) => acc + (c.areas?.length || 0), 0)
 })
+
 const totalHotels = computed(() => {
   return countryStore.countries.reduce((acc, c) => {
-    const areasHotels = c.areas?.reduce((sum, a) => sum + (a.hoteles?.length || 0), 0) || 0
-    return acc + areasHotels
+    return acc + (c.areas?.reduce((areaAcc, a) => areaAcc + (a.hoteles?.length || 0), 0) || 0)
   }, 0)
 })
 
@@ -63,7 +64,7 @@ const usersByRole = computed(() => {
   return Object.entries(counts).map(([name, value]) => ({ name, value }))
 })
 
-// --- CÁLCULO DE DATOS PARA GERENTE ---
+// --- CÁLCULO DE DATOS PARA GERENTE DE ÁREA ---
 
 const managerAreaIds = computed(() => new Set(currentUser.value?.areaIds || []))
 
@@ -108,22 +109,23 @@ const managerTeam = computed(() => {
   return userStore.usersWithProfile.filter((u) => {
     const role = u.perfil?.code?.toUpperCase()
     if (role !== 'SUPERVISOR' && role !== 'FOTOGRAFO') return false
-    if (role === 'SUPERVISOR') {
-      return u.hotelIds?.some((hid) => mHotels.has(hid))
-    }
-    if (role === 'FOTOGRAFO') {
-      return u.hotelIds?.some((hid) => mHotels.has(hid))
-    }
-    return false
+    return u.hotelIds?.some((hid) => mHotels.has(hid))
   })
 })
 
-// --- CÁLCULO DE DATOS PARA SUPERVISOR ---
+// --- CÁLCULO DE DATOS PARA SUPERVISOR DE HOTEL ---
 
 const supervisorHotelIds = computed(() => new Set(currentUser.value?.hotelIds || []))
 
 const supervisorHotels = computed(() => {
-  const list: { id: number; nombre: string; areaNombre: string; paisNombre: string; cadena?: string; categoria?: number }[] = []
+  const list: {
+    id: number
+    nombre: string
+    areaNombre: string
+    paisNombre: string
+    cadena?: string
+    categoria?: number
+  }[] = []
   for (const pais of countryStore.countries) {
     for (const area of pais.areas || []) {
       for (const hotel of area.hoteles || []) {
@@ -135,7 +137,7 @@ const supervisorHotels = computed(() => {
             areaNombre: area.nombre,
             paisNombre: pais.nombre,
             cadena: details?.cadenaHotelera,
-            categoria: details?.categoriaEstrellas,
+            categoria: details?.estrellas,
           })
         }
       }
@@ -154,24 +156,37 @@ const supervisorPhotographers = computed(() => {
 
 // --- CÁLCULO DE DATOS PARA FOTÓGRAFO ---
 
+interface PhotographerHotelData {
+  id: number
+  nombre: string
+  areaNombre: string
+  paisNombre: string
+  cadenaHotelera?: string
+  categoriaEstrellas?: number
+  personaContacto?: string
+  telefonoContacto?: string
+  emailContacto?: string
+  direccion?: string
+}
+
 const photographerHotels = computed(() => {
-  const list: any[] = []
+  const list: PhotographerHotelData[] = []
   const photographerHotelIds = new Set(currentUser.value?.hotelIds || [])
 
   for (const pais of countryStore.countries) {
     for (const area of pais.areas || []) {
       for (const hotel of area.hoteles || []) {
-        if (photographerHotelIds.value.has(hotel.id)) {
+        if (photographerHotelIds.has(hotel.id)) {
           const details = hotelStore.hotels.find((h) => h.id === hotel.id)
           list.push({
             ...hotel,
             areaNombre: area.nombre,
             paisNombre: pais.nombre,
             cadenaHotelera: details?.cadenaHotelera,
-            categoriaEstrellas: details?.categoriaEstrellas,
+            categoriaEstrellas: details?.estrellas,
             personaContacto: details?.personaContacto,
-            telefonoContacto: details?.telefonoContacto,
-            emailContacto: details?.emailContacto,
+            telefonoContacto: details?.telefono,
+            emailContacto: details?.email,
             direccion: details?.direccion,
           })
         }
@@ -969,5 +984,25 @@ function goToUsers() {
   font-weight: 700;
   font-size: 0.95rem;
   color: var(--heading-color, #0f172a);
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .welcome-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .welcome-avatar-wrapper {
+    margin-right: 0;
+  }
+
+  .stats-row .el-col {
+    margin-bottom: 0.75rem;
+  }
 }
 </style>

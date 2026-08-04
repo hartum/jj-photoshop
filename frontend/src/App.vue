@@ -15,6 +15,7 @@ import {
   SwitchButton,
   Location,
   OfficeBuilding,
+  Menu,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -24,6 +25,7 @@ const countryStore = useCountryStore()
 
 const isLoginPage = computed(() => route.path === '/login')
 const isDark = ref(false)
+const isMobileDrawerOpen = ref(false)
 
 const userAvatar = computed(() => {
   if (authStore.user?.imagen) {
@@ -98,6 +100,10 @@ function handleLogout() {
   router.push('/login')
 }
 
+function closeMobileDrawer() {
+  isMobileDrawerOpen.value = false
+}
+
 onMounted(async () => {
   isDark.value = document.documentElement.classList.contains('dark')
   await countryStore.fetchCountries()
@@ -112,8 +118,8 @@ onMounted(async () => {
 
   <!-- Vista Principal de la App con Sidebar y Toolbar -->
   <div v-else class="app-container">
-    <!-- Menú lateral izquierdo -->
-    <aside class="sidebar">
+    <!-- Menú lateral izquierdo (Desktop) -->
+    <aside class="sidebar desktop-sidebar">
       <div class="brand">
         <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
         <span class="brand-title">JJ Studio</span>
@@ -164,12 +170,73 @@ onMounted(async () => {
       </nav>
     </aside>
 
+    <!-- Drawer Lateral de Navegación (Móvil) -->
+    <el-drawer
+      v-model="isMobileDrawerOpen"
+      direction="ltr"
+      size="280px"
+      :with-header="false"
+      class="mobile-drawer"
+    >
+      <div class="sidebar mobile-drawer-content">
+        <div class="brand">
+          <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
+          <span class="brand-title">JJ Studio</span>
+        </div>
+
+        <nav class="sidebar-nav">
+          <RouterLink to="/inicio" class="nav-link" @click="closeMobileDrawer">
+            <el-icon :size="18"><House /></el-icon>
+            <span>Inicio</span>
+          </RouterLink>
+
+          <RouterLink v-if="canSeeConfig" to="/configuracion" class="nav-link" @click="closeMobileDrawer">
+            <el-icon :size="18"><Setting /></el-icon>
+            <span>Configuración</span>
+          </RouterLink>
+
+          <RouterLink v-if="canSeeUsers" to="/usuarios" class="nav-link" @click="closeMobileDrawer">
+            <el-icon :size="18"><User /></el-icon>
+            <span>Usuarios</span>
+          </RouterLink>
+
+          <div class="sidebar-divider" v-if="filteredCountriesTree.length > 0"></div>
+
+          <div class="sidebar-tree" v-if="filteredCountriesTree.length > 0">
+            <div v-for="pais in filteredCountriesTree" :key="pais.id" class="tree-country-group">
+              <div class="tree-node node-country">
+                <span class="node-text">{{ pais.nombre }}</span>
+              </div>
+
+              <div v-for="area in pais.areas" :key="area.id" class="tree-area-group">
+                <div class="tree-node node-area">
+                  <el-icon :size="18" class="node-icon area-icon"><Location /></el-icon>
+                  <span class="node-text">{{ area.nombre }}</span>
+                </div>
+
+                <div v-for="hotel in area.hoteles" :key="hotel.id" class="tree-node node-hotel">
+                  <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+                  <span class="node-text">{{ hotel.nombre }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </el-drawer>
+
     <!-- Área principal con Toolbar superior + Contenido -->
     <div class="main-wrapper">
       <header class="app-toolbar-container">
         <div class="app-toolbar">
           <div class="toolbar-left">
-            <!-- Espacio para elementos futuros del Toolbar -->
+            <el-button
+              class="mobile-menu-btn"
+              circle
+              :icon="Menu"
+              @click="isMobileDrawerOpen = true"
+              aria-label="Abrir menú de navegación"
+            />
           </div>
 
           <div class="toolbar-right">
@@ -202,8 +269,9 @@ onMounted(async () => {
               :icon="SwitchButton"
               title="Cerrar sesión"
               @click="handleLogout"
+              class="logout-btn"
             >
-              Salir
+              <span class="logout-text">Salir</span>
             </el-button>
           </div>
         </div>
@@ -464,5 +532,52 @@ onMounted(async () => {
   overflow-y: auto;
   background-color: var(--content-bg, #f8fafc);
   transition: background-color 0.2s ease;
+}
+
+/* Responsive Elements & Media Queries */
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-drawer-content {
+  height: 100%;
+  width: 100%;
+  border-right: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .app-toolbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .toolbar-right {
+    gap: 0.75rem;
+  }
+
+  .user-badge {
+    gap: 0.35rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-info {
+    display: none;
+  }
+
+  .logout-text {
+    display: none;
+  }
+
+  .app-toolbar {
+    padding: 0.5rem 0.75rem;
+  }
 }
 </style>
