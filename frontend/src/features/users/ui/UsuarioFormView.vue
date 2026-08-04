@@ -20,6 +20,8 @@ import {
   OfficeBuilding,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { getRolePermissions, canEditUser, type RoleCode } from '@/shared/permissions'
 import { Cropper, CircleStencil } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
 
@@ -28,7 +30,9 @@ const router = useRouter()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
 const countryStore = useCountryStore()
+const authStore = useAuthStore()
 
+const currentUser = computed(() => authStore.user)
 const userId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!userId.value)
 
@@ -51,6 +55,21 @@ const formData = ref({
   imagen: null as string | null,
   areaIds: [] as number[],
   hotelIds: [] as number[],
+})
+
+const assignableProfiles = computed(() => {
+  const user = currentUser.value
+  if (!user) return []
+
+  const roleCode = user.roleCode?.toUpperCase()
+  const perm = getRolePermissions(roleCode)
+
+  return profileStore.activeProfiles.filter((p) => {
+    const code = p.code?.toUpperCase() as RoleCode
+    if (perm.assignableTargetRoles.includes(code)) return true
+    if (isEditing.value && formData.value.profileId === p.id) return true
+    return false
+  })
 })
 
 const selectedProfile = computed(() => {
@@ -119,8 +138,22 @@ onMounted(async () => {
   ])
 
   if (isEditing.value && userId.value) {
-    const existing = userStore.users.find((u) => u.id === userId.value)
+    const existing = userStore.usersWithProfile.find((u) => u.id === userId.value)
     if (existing) {
+      const targetRoleCode = existing.perfil?.code
+      if (
+        !canEditUser(
+          currentUser.value?.roleCode,
+          targetRoleCode,
+          currentUser.value?.id,
+          existing.id,
+        )
+      ) {
+        ElMessage.error('No tienes permisos para editar este usuario')
+        router.push('/usuarios')
+        return
+      }
+
       formData.value = {
         nombre: existing.nombre,
         apellidos: existing.apellidos,
@@ -138,7 +171,7 @@ onMounted(async () => {
       router.push('/usuarios')
     }
   } else {
-    const defaultProfile = profileStore.activeProfiles[0]
+    const defaultProfile = assignableProfiles.value[0]
     if (defaultProfile) {
       formData.value.profileId = defaultProfile.id
     }
@@ -331,7 +364,7 @@ async function handleSave() {
           style="width: 100%"
         >
           <el-option
-            v-for="profile in profileStore.activeProfiles"
+            v-for="profile in assignableProfiles"
             :key="profile.id"
             :label="profile.name"
             :value="profile.id"

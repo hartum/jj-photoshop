@@ -3,30 +3,110 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
 import { getDefaultAvatar, getRoleSvg } from '@/features/users/utils/user-avatar'
+import {
+  getRolePermissions,
+  canEditUser,
+  canDeleteUser,
+  type RoleCode,
+} from '@/shared/permissions'
 import { Search, Plus, EditPen, Delete, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
+const authStore = useAuthStore()
+const countryStore = useCountryStore()
 
 // State
 const searchQuery = ref('')
 const deleteDialogVisible = ref(false)
 const userToDelete = ref<UserWithProfile | null>(null)
 
+const currentUser = computed(() => authStore.user)
+
 onMounted(async () => {
-  await profileStore.fetchProfiles()
-  await userStore.fetchUsers()
+  await Promise.all([
+    profileStore.fetchProfiles(),
+    userStore.fetchUsers(),
+    countryStore.fetchCountries(),
+  ])
 })
 
-// Filtered Users
-const filteredUsers = computed(() => {
-  const query = searchQuery.value.toLowerCase().trim()
-  if (!query) return userStore.usersWithProfile
+function getHotelIdsInArea(areaId: number): number[] {
+  for (const pais of countryStore.countries) {
+    const area = (pais.areas || []).find((a) => a.id === areaId)
+    if (area) {
+      return (area.hoteles || []).map((h) => h.id)
+    }
+  }
+  return []
+}
+
+// Visible users filtered by RBAC role visibility and scope
+const visibleUsersByRole = computed(() => {
+  const user = currentUser.value
+  if (!user) return []
+
+  const roleCode = user.roleCode?.toUpperCase()
+  const perm = getRolePermissions(roleCode)
 
   return userStore.usersWithProfile.filter((u) => {
+    const targetRoleCode = (u.perfil?.code?.toUpperCase() as RoleCode) || 'FOTOGRAFO'
+
+    // 1. Role visibility check
+    if (!perm.visibleTargetRoles.includes(targetRoleCode)) {
+      return false
+    }
+
+    // 2. Scope check
+    if (perm.scopeType === 'GLOBAL') {
+      return true
+    }
+
+    if (perm.scopeType === 'AREAS') {
+      const myAreaIds = new Set(user.areaIds || [])
+      const myHotelIdsInAreas = new Set<number>()
+      myAreaIds.forEach((areaId) => {
+        getHotelIdsInArea(areaId).forEach((hId) => myHotelIdsInAreas.add(hId))
+      })
+
+      if (u.id === user.id) return true
+
+      if (u.areaIds && u.areaIds.some((id) => myAreaIds.has(id))) {
+        return true
+      }
+
+      if (u.hotelIds && u.hotelIds.some((hId) => myHotelIdsInAreas.has(hId))) {
+        return true
+      }
+
+      return false
+    }
+
+    if (perm.scopeType === 'HOTELS') {
+      const myHotelIds = new Set(user.hotelIds || [])
+      if (u.id === user.id) return true
+      if (u.hotelIds && u.hotelIds.some((hId) => myHotelIds.has(hId))) {
+        return true
+      }
+      return false
+    }
+
+    return false
+  })
+})
+
+// Filtered Users with search query
+const filteredUsers = computed(() => {
+  const baseList = visibleUsersByRole.value
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) return baseList
+
+  return baseList.filter((u) => {
     const fullName = `${u.nombre} ${u.apellidos}`.toLowerCase()
     const email = u.email.toLowerCase()
     const profileName = u.perfil?.name.toLowerCase() ?? ''
@@ -145,6 +225,7 @@ async function handleDeleteUser() {
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button
+                v-if="canEditUser(currentUser?.roleCode, row.perfil?.code, currentUser?.id, row.id)"
                 type="primary"
                 link
                 :icon="EditPen"
@@ -152,6 +233,7 @@ async function handleDeleteUser() {
                 @click="navigateToEdit(row)"
               />
               <el-button
+                v-if="canDeleteUser(currentUser?.roleCode, row.perfil?.code, currentUser?.id, row.id)"
                 type="danger"
                 link
                 :icon="Delete"

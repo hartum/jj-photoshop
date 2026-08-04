@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import { canAccessRoute, getRolePermissions } from '@/shared/permissions'
 import logoJJ from '@/assets/logoJJ.png'
 import {
   House,
@@ -29,6 +30,59 @@ const userAvatar = computed(() => {
     return authStore.user.imagen
   }
   return getDefaultAvatar()
+})
+
+const canSeeConfig = computed(() => canAccessRoute(authStore.user?.roleCode, '/configuracion'))
+const canSeeUsers = computed(() => canAccessRoute(authStore.user?.roleCode, '/usuarios'))
+
+const filteredCountriesTree = computed(() => {
+  const user = authStore.user
+  if (!user) return []
+
+  const roleCode = user.roleCode?.toUpperCase()
+  const perm = getRolePermissions(roleCode)
+
+  if (perm.scopeType === 'GLOBAL') {
+    return countryStore.countries
+  }
+
+  if (perm.scopeType === 'AREAS') {
+    const userAreaIds = new Set(user.areaIds || [])
+    return countryStore.countries
+      .map((pais) => {
+        const allowedAreas = (pais.areas || []).filter((area) => userAreaIds.has(area.id))
+        return {
+          ...pais,
+          areas: allowedAreas,
+        }
+      })
+      .filter((pais) => (pais.areas || []).length > 0)
+  }
+
+  if (perm.scopeType === 'HOTELS') {
+    const userHotelIds = new Set(user.hotelIds || [])
+    return countryStore.countries
+      .map((pais) => {
+        const allowedAreas = (pais.areas || [])
+          .map((area) => {
+            const allowedHotels = (area.hoteles || []).filter((hotel) =>
+              userHotelIds.has(hotel.id),
+            )
+            return {
+              ...area,
+              hoteles: allowedHotels,
+            }
+          })
+          .filter((area) => (area.hoteles || []).length > 0)
+        return {
+          ...pais,
+          areas: allowedAreas,
+        }
+      })
+      .filter((pais) => (pais.areas || []).length > 0)
+  }
+
+  return []
 })
 
 function toggleTheme() {
@@ -71,22 +125,22 @@ onMounted(async () => {
           <span>Inicio</span>
         </RouterLink>
 
-        <RouterLink to="/configuracion" class="nav-link">
+        <RouterLink v-if="canSeeConfig" to="/configuracion" class="nav-link">
           <el-icon :size="18"><Setting /></el-icon>
           <span>Configuración</span>
         </RouterLink>
 
-        <RouterLink to="/usuarios" class="nav-link">
+        <RouterLink v-if="canSeeUsers" to="/usuarios" class="nav-link">
           <el-icon :size="18"><User /></el-icon>
           <span>Usuarios</span>
         </RouterLink>
 
         <!-- Línea de separación -->
-        <div class="sidebar-divider"></div>
+        <div class="sidebar-divider" v-if="filteredCountriesTree.length > 0"></div>
 
-        <!-- Estructura Jerárquica: Países -> Áreas -> Hoteles (sin bandera, no clickable, indentado) -->
-        <div class="sidebar-tree">
-          <div v-for="pais in countryStore.countries" :key="pais.id" class="tree-country-group">
+        <!-- Estructura Jerárquica: Países -> Áreas -> Hoteles (filtrado por rol) -->
+        <div class="sidebar-tree" v-if="filteredCountriesTree.length > 0">
+          <div v-for="pais in filteredCountriesTree" :key="pais.id" class="tree-country-group">
             <!-- Nivel 1: País (sin bandera) -->
             <div class="tree-node node-country">
               <span class="node-text">{{ pais.nombre }}</span>

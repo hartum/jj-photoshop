@@ -1,6 +1,33 @@
 import type { FastifyInstance } from 'fastify'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../../shared/db.js'
+import {
+  getRolePermissions,
+  canEditUser,
+  canDeleteUser,
+  type RoleCode,
+} from '../../../shared/permissions.js'
+
+async function getAuthUser(request: any) {
+  try {
+    const authHeader = request.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null
+    const token = authHeader.substring(7)
+    const decoded = request.server.jwt.decode(token) as { id: string } | null
+    if (!decoded || !decoded.id) return null
+
+    return await prisma.usuario.findUnique({
+      where: { id: decoded.id },
+      include: {
+        role: true,
+        areasAsignadas: true,
+        hotelesAsignados: true,
+      },
+    })
+  } catch {
+    return null
+  }
+}
 
 export async function userRoutes(fastify: FastifyInstance) {
   // POST /api/auth/login
@@ -108,8 +135,12 @@ export async function userRoutes(fastify: FastifyInstance) {
   })
 
   // GET /api/usuarios
-  fastify.get('/api/usuarios', async (_request, reply) => {
+  fastify.get('/api/usuarios', async (request, reply) => {
     try {
+      const executor = await getAuthUser(request)
+      const roleCode = executor?.role.codigo.toUpperCase() as RoleCode | undefined
+      const perm = getRolePermissions(roleCode)
+
       const usuarios = await prisma.usuario.findMany({
         where: { deletedAt: null },
         include: {
@@ -120,7 +151,33 @@ export async function userRoutes(fastify: FastifyInstance) {
         orderBy: { createdAt: 'desc' },
       })
 
-      const mapped = usuarios.map((u) => ({
+      let filtered = usuarios
+
+      if (executor) {
+        filtered = usuarios.filter((u) => {
+          const targetRoleCode = u.role.codigo.toUpperCase() as RoleCode
+          if (!perm.visibleTargetRoles.includes(targetRoleCode)) return false
+          if (perm.scopeType === 'GLOBAL') return true
+
+          if (perm.scopeType === 'AREAS') {
+            const myAreaIds = new Set(executor.areasAsignadas.map((a) => a.areaId))
+            if (u.id === executor.id) return true
+            if (u.areasAsignadas.some((a) => myAreaIds.has(a.areaId))) return true
+            return true
+          }
+
+          if (perm.scopeType === 'HOTELS') {
+            const myHotelIds = new Set(executor.hotelesAsignados.map((h) => h.hotelId))
+            if (u.id === executor.id) return true
+            if (u.hotelesAsignados.some((h) => myHotelIds.has(h.hotelId))) return true
+            return false
+          }
+
+          return false
+        })
+      }
+
+      const mapped = filtered.map((u) => ({
         id: u.id,
         nombre: u.nombre,
         apellidos: u.apellidos,
@@ -162,6 +219,22 @@ export async function userRoutes(fastify: FastifyInstance) {
         return reply
           .status(400)
           .send({ error: 'Faltan campos obligatorios (nombre, email, profileId)' })
+      }
+
+      const executor = await getAuthUser(request)
+      if (executor) {
+        const execRoleCode = executor.role.codigo.toUpperCase() as RoleCode
+        const perm = getRolePermissions(execRoleCode)
+        const targetRole = await prisma.role.findUnique({
+          where: { id: Number(body.profileId) },
+        })
+        const targetRoleCode = targetRole?.codigo.toUpperCase() as RoleCode
+
+        if (!perm.assignableTargetRoles.includes(targetRoleCode)) {
+          return reply.status(403).send({
+            error: `No tienes permisos para dar de alta usuarios con el perfil ${targetRole?.nombre || targetRoleCode}`,
+          })
+        }
       }
 
       const normalizedEmail = body.email.trim()
@@ -295,6 +368,26 @@ export async function userRoutes(fastify: FastifyInstance) {
         hotelIds?: number[]
       }
 
+      const executor = await getAuthUser(request)
+      const currentUser = await prisma.usuario.findUnique({
+        where: { id },
+        include: { role: true },
+      })
+
+      if (executor && currentUser) {
+        const isAllowed = canEditUser(
+          executor.role.codigo,
+          currentUser.role.codigo,
+          executor.id,
+          currentUser.id,
+        )
+        if (!isAllowed) {
+          return reply.status(403).send({
+            error: 'No tienes permisos para modificar a este usuario',
+          })
+        }
+      }
+
       if (body.email) {
         const normalizedEmail = body.email.trim()
         const existingUser = await prisma.usuario.findUnique({
@@ -311,11 +404,6 @@ export async function userRoutes(fastify: FastifyInstance) {
       if (body.password && body.password.trim() !== '') {
         passwordHash = await bcrypt.hash(body.password, 10)
       }
-
-      const currentUser = await prisma.usuario.findUnique({
-        where: { id },
-        include: { role: true },
-      })
 
       const targetRoleId = body.profileId !== undefined ? Number(body.profileId) : currentUser?.roleId
       const targetRole = targetRoleId
@@ -429,6 +517,26 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.delete('/api/usuarios/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
+      const executor = await getAuthUser(request)
+
+      const targetUser = await prisma.usuario.findUnique({
+        where: { id },
+        include: { role: true },
+      })
+
+      if (executor && targetUser) {
+        const isAllowed = canDeleteUser(
+          executor.role.codigo,
+          targetUser.role.codigo,
+          executor.id,
+          targetUser.id,
+        )
+        if (!isAllowed) {
+          return reply.status(403).send({
+            error: 'No tienes permisos para eliminar a este usuario',
+          })
+        }
+      }
 
       await prisma.usuario.update({
         where: { id },

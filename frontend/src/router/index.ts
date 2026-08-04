@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { canAccessRoute } from '@/shared/permissions'
 import LoginView from '@/features/auth/ui/LoginView.vue'
 import InicioView from '@/features/home/ui/InicioView.vue'
 import ConfiguracionView from '@/features/configuration/ui/ConfiguracionView.vue'
@@ -75,6 +76,13 @@ router.beforeEach((to, _from, next) => {
   } else if (to.path === '/login' && authStore.isAuthenticated) {
     // Si ya está autenticado e intenta ir a /login, redirige por defecto a /inicio
     next('/inicio')
+  } else if (to.meta.requiresAuth && authStore.user) {
+    // Comprobar permisos según la matriz de roles
+    if (!canAccessRoute(authStore.user.roleCode, to.path)) {
+      next('/inicio')
+    } else {
+      next()
+    }
   } else {
     next()
   }
