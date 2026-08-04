@@ -248,6 +248,29 @@ async function main() {
         data: { usuarioId: laura.id, hotelId: hrlc.id },
       })
     }
+
+    // Crear sesión de prueba para HRLC
+    const countHrlc = await prisma.sesionFotografica.count({ where: { hotelId: hrlc.id } })
+    if (countHrlc === 0) {
+      const tomorrow = new Date(Date.now() + 86400000)
+      const start = new Date(tomorrow.setHours(10, 0, 0, 0))
+      const end = new Date(tomorrow.setHours(11, 0, 0, 0))
+      await prisma.sesionFotografica.create({
+        data: {
+          hotelId: hrlc.id,
+          fotografoId: laura.id,
+          creadorId: laura.id,
+          clienteNombre: 'Familia García',
+          clienteEmail: 'garcia@ejemplo.com',
+          clienteTelefono: '+34 611 223 344',
+          fechaHoraInicio: start,
+          fechaHoraFin: end,
+          estado: 'PROGRAMADA',
+          origen: 'MANUAL',
+          notas: 'Sesión al atardecer en la playa de HRLC',
+        },
+      })
+    }
   }
 
   if (laura && nobu) {
@@ -259,10 +282,33 @@ async function main() {
         data: { usuarioId: laura.id, hotelId: nobu.id },
       })
     }
+
+    // Crear sesión de prueba para Nobu
+    const countNobu = await prisma.sesionFotografica.count({ where: { hotelId: nobu.id } })
+    if (countNobu === 0) {
+      const inTwoDays = new Date(Date.now() + 172800000)
+      const start = new Date(inTwoDays.setHours(16, 0, 0, 0))
+      const end = new Date(inTwoDays.setHours(17, 0, 0, 0))
+      await prisma.sesionFotografica.create({
+        data: {
+          hotelId: nobu.id,
+          fotografoId: laura.id,
+          creadorId: laura.id,
+          clienteNombre: 'Pareja Martínez',
+          clienteEmail: 'martinez@ejemplo.com',
+          clienteTelefono: '+34 699 887 766',
+          fechaHoraInicio: start,
+          fechaHoraFin: end,
+          estado: 'PROGRAMADA',
+          origen: 'MANUAL',
+          notas: 'Sesión romántica cerca de la piscina en Nobu',
+        },
+      })
+    }
   }
 
   console.log(
-    '✅ Seeding completed! Países, Áreas, Hoteles y Asignaciones creadas correctamente.',
+    '✅ Seeding completed! Países, Áreas, Hoteles, Asignaciones y Sesiones creadas correctamente.',
   )
 }
 

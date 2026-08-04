@@ -4,6 +4,7 @@ import jwt from '@fastify/jwt'
 import { userRoutes } from './features/users/infrastructure/user.routes.js'
 import { countryRoutes } from './features/countries/infrastructure/country.routes.js'
 import { hotelRoutes } from './features/hotels/infrastructure/hotel.routes.js'
+import { sessionRoutes } from './features/sessions/infrastructure/session.routes.js'
 
 const fastify = Fastify({
   logger: true,
@@ -23,6 +24,7 @@ await fastify.register(jwt, {
 await fastify.register(userRoutes)
 await fastify.register(countryRoutes)
 await fastify.register(hotelRoutes)
+await fastify.register(sessionRoutes)
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
