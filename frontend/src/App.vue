@@ -16,6 +16,7 @@ import {
   Location,
   OfficeBuilding,
   Menu,
+  Close,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -67,9 +68,7 @@ const filteredCountriesTree = computed(() => {
       .map((pais) => {
         const allowedAreas = (pais.areas || [])
           .map((area) => {
-            const allowedHotels = (area.hoteles || []).filter((hotel) =>
-              userHotelIds.has(hotel.id),
-            )
+            const allowedHotels = (area.hoteles || []).filter((hotel) => userHotelIds.has(hotel.id))
             return {
               ...area,
               hoteles: allowedHotels,
@@ -121,8 +120,10 @@ onMounted(async () => {
     <!-- Menú lateral izquierdo (Desktop) -->
     <aside class="sidebar desktop-sidebar">
       <div class="brand">
-        <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
-        <span class="brand-title">JJ Studio</span>
+        <div class="brand-info">
+          <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
+          <span class="brand-title">JJ Studio</span>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
@@ -159,8 +160,13 @@ onMounted(async () => {
                 <span class="node-text">{{ area.nombre }}</span>
               </div>
 
-              <!-- Nivel 3: Hoteles -->
-              <div v-for="hotel in area.hoteles" :key="hotel.id" class="tree-node node-hotel">
+              <!-- Nivel 3: Hoteles (Clicables) -->
+              <div
+                v-for="hotel in area.hoteles"
+                :key="hotel.id"
+                class="tree-node node-hotel clickable-node"
+                title="Hotel asignado"
+              >
                 <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
                 <span class="node-text">{{ hotel.nombre }}</span>
               </div>
@@ -174,14 +180,23 @@ onMounted(async () => {
     <el-drawer
       v-model="isMobileDrawerOpen"
       direction="ltr"
-      size="280px"
+      size="100%"
       :with-header="false"
       class="mobile-drawer"
     >
       <div class="sidebar mobile-drawer-content">
-        <div class="brand">
-          <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
-          <span class="brand-title">JJ Studio</span>
+        <div class="brand mobile-drawer-brand">
+          <div class="brand-info">
+            <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
+            <span class="brand-title">JJ Studio</span>
+          </div>
+          <el-button
+            circle
+            class="close-drawer-btn"
+            :icon="Close"
+            @click="closeMobileDrawer"
+            aria-label="Cerrar menú de navegación"
+          />
         </div>
 
         <nav class="sidebar-nav">
@@ -190,7 +205,12 @@ onMounted(async () => {
             <span>Inicio</span>
           </RouterLink>
 
-          <RouterLink v-if="canSeeConfig" to="/configuracion" class="nav-link" @click="closeMobileDrawer">
+          <RouterLink
+            v-if="canSeeConfig"
+            to="/configuracion"
+            class="nav-link"
+            @click="closeMobileDrawer"
+          >
             <el-icon :size="18"><Setting /></el-icon>
             <span>Configuración</span>
           </RouterLink>
@@ -214,7 +234,12 @@ onMounted(async () => {
                   <span class="node-text">{{ area.nombre }}</span>
                 </div>
 
-                <div v-for="hotel in area.hoteles" :key="hotel.id" class="tree-node node-hotel">
+                <div
+                  v-for="hotel in area.hoteles"
+                  :key="hotel.id"
+                  class="tree-node node-hotel clickable-node"
+                  @click="closeMobileDrawer"
+                >
                   <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
                   <span class="node-text">{{ hotel.nombre }}</span>
                 </div>
@@ -239,18 +264,18 @@ onMounted(async () => {
             />
           </div>
 
-          <div class="toolbar-right">
-            <!-- Conmutador de tema con el-switch de Element Plus -->
-            <div class="theme-switcher">
-              <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"
-                ><Sunny
-              /></el-icon>
-              <el-switch v-model="isDark" @change="toggleTheme" />
-              <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"
-                ><Moon
-              /></el-icon>
-            </div>
+          <!-- Conmutador de tema centrado -->
+          <div class="theme-switcher">
+            <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"
+              ><Sunny
+            /></el-icon>
+            <el-switch v-model="isDark" @change="toggleTheme" />
+            <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"
+              ><Moon
+            /></el-icon>
+          </div>
 
+          <div class="toolbar-right">
             <!-- Usuario autenticado -->
             <div v-if="authStore.user" class="user-badge">
               <el-avatar :src="userAvatar" shape="circle" :size="36" class="topbar-avatar" />
@@ -319,23 +344,33 @@ onMounted(async () => {
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
   padding: 0 0.5rem 1.5rem 0.5rem;
   border-bottom: 1px solid var(--sidebar-border, #e2e8f0);
   margin-bottom: 1.5rem;
   transition: border-color 0.2s ease;
-  height: 24px;
+  min-height: 40px;
+}
+
+.brand-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.close-drawer-btn {
+  font-size: 1.1rem;
 }
 
 .brand-logo {
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
 }
 
 .brand-title {
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   background: linear-gradient(135deg, #409eff 0%, #a0cfff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -404,7 +439,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  pointer-events: none;
   line-height: 1.3;
 }
 
@@ -413,6 +447,7 @@ onMounted(async () => {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--heading-color, #0f172a);
+  pointer-events: none;
 }
 
 .node-area {
@@ -420,6 +455,7 @@ onMounted(async () => {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--nav-link-color, #475569);
+  pointer-events: none;
 }
 
 .node-hotel {
@@ -427,6 +463,22 @@ onMounted(async () => {
   font-size: 0.75rem;
   font-weight: 400;
   color: var(--nav-link-color, #64748b);
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+.clickable-node {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.clickable-node:hover {
+  background-color: var(--nav-link-hover-bg, #f1f5f9);
+  color: #409eff;
+}
+
+.clickable-node:hover .hotel-icon {
+  color: #409eff;
 }
 
 .node-icon {
@@ -472,6 +524,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
   transition: background-color 0.2s ease;
 }
 
@@ -506,8 +559,11 @@ onMounted(async () => {
   font-weight: 400;
 }
 
-/* Theme Switcher Styling */
+/* Theme Switcher Styling (Centrado universal) */
 .theme-switcher {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -564,6 +620,48 @@ onMounted(async () => {
 
   .user-badge {
     gap: 0.35rem;
+  }
+
+  /* Espaciado y fuentes ampliadas para el árbol únicamente en Móvil */
+  .sidebar-divider {
+    margin: 1rem 0;
+  }
+
+  .sidebar-tree {
+    gap: 1rem;
+  }
+
+  .tree-country-group {
+    gap: 0.5rem;
+  }
+
+  .tree-area-group {
+    gap: 0.35rem;
+  }
+
+  .tree-node {
+    gap: 0.6rem;
+    line-height: 1.4;
+  }
+
+  .node-country {
+    padding: 0.4rem 0.5rem 0.2rem 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .node-area {
+    padding: 0.35rem 0.5rem 0.15rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .node-hotel {
+    padding: 0.65rem 0.75rem 0.65rem 2.25rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--nav-link-color, #334155);
+    min-height: 44px;
   }
 }
 
