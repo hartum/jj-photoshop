@@ -4,8 +4,9 @@ Se ha diseñado e implementado con éxito el motor completo de permisos, autoriz
 
 ## Cambios Realizados
 
-### 1. Módulo Core de Permisos
+### 1. Módulo Core de Permisos y Auth Store
 - **`frontend/src/shared/permissions.ts`**: Define la matriz central de roles (`SUPERUSUARIO`, `ADMIN`, `GERENTE`, `SUPERVISOR`, `FOTOGRAFO`, `CONTABLE`), sus rutas de navegación permitidas, la matriz de visibilidad de roles, los perfiles asignables en el desplegable y las funciones auxiliares de comprobación de permisos (`canAccessRoute`, `canEditUser`, `canDeleteUser`).
+- **`frontend/src/features/auth/stores/auth.store.ts`**: Se han añadido las propiedades opcionales `areaIds?: number[]` y `hotelIds?: number[]` a la interfaz `AuthUser` para corregir los errores de compilación TypeScript al acceder al usuario en sesión.
 - **`backend/src/shared/permissions.ts`**: Replicación exacta del módulo de permisos en el backend para la autorización en servidor.
 
 ### 2. Capa de Frontend
@@ -21,8 +22,11 @@ Se ha diseñado e implementado con éxito el motor completo de permisos, autoriz
   - Filtra las filas de usuarios mostradas en la tabla combinando la matriz de roles visibles y la relación por áreas/hoteles asignados.
   - Muestra u oculta los botones de acción ("Editar" y "Eliminar") en cada fila de usuario según las reglas de permisos.
 - **Formulario de Usuario (`UsuarioFormView.vue`)**:
-  - Filtra dinámicamente el desplegable "Perfil / Rol" para mostrar únicamente las opciones autorizadas para el rol del usuario autenticado (ej. Administrador no ve Superusuario; Gerente solo ve Supervisor y Fotógrafo; Supervisor solo ve Fotógrafo).
-  - Al cargar en modo edición, valida si el usuario autenticado tiene permiso para editar al usuario seleccionado.
+  - Filtra dinámicamente el desplegable "Perfil / Rol" para mostrar únicamente las opciones autorizadas para el rol del usuario autenticado.
+  - **Restricción granular en desplegables de asignación**:
+    - **Gerente**: Al crear/editar un usuario, en el desplegable de áreas únicamente ve los países y áreas que él mismo tiene asignados.
+    - **Supervisor**: Al crear/editar un usuario, en el desplegable de hoteles únicamente ve los países, áreas y hoteles que él mismo tiene asignados.
+  - Se corrigió el tipado en las líneas 130, 156 y 169 al extender la interfaz `AuthUser`.
 
 ### 3. Capa de Backend
 - **Rutas de Usuarios (`user.routes.ts`)**:
@@ -37,22 +41,3 @@ Se ha diseñado e implementado con éxito el motor completo de permisos, autoriz
 - **Verificación Automática de Tipos**:
   - `backend`: `tsc --noEmit` completado con 0 errores.
   - `frontend`: `vue-tsc --noEmit` completado con 0 errores.
-
----
-
-## Guía de Prueba Manual de Roles
-
-1. **Superusuario**: Acceso total a todas las secciones, usuarios y la estructura completa de países, áreas y hoteles.
-2. **Admin**: Acceso completo exceptuando operaciones sobre usuarios con rol Superusuario.
-3. **Gerente**:
-   - Solo ve menú **Inicio** y **Usuarios** en la barra lateral.
-   - En el árbol de la barra lateral solo ve sus áreas asignadas y sus hoteles asociados.
-   - En el listado de usuarios solo ve gerentes de sus áreas, supervisores y fotógrafos.
-   - En el desplegable de perfiles al dar de alta usuario solo puede seleccionar **Supervisor** y **Fotógrafo**.
-4. **Supervisor**:
-   - En el árbol solo ve sus hoteles asignados.
-   - En el listado de usuarios solo ve fotógrafos asignados a sus hoteles (y su propia fila).
-   - En el formulario solo puede seleccionar **Fotógrafo** (o su propio perfil al editarse a sí mismo).
-5. **Fotógrafo**:
-   - Solo ve menú **Inicio** y sus hoteles asignados.
-   - Las rutas `/usuarios` y `/configuracion` están bloqueadas.

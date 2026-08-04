@@ -35,6 +35,7 @@ const authStore = useAuthStore()
 const currentUser = computed(() => authStore.user)
 const userId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!userId.value)
+const isSelfEditing = computed(() => isEditing.value && userId.value === currentUser.value?.id)
 
 const isSaving = ref(false)
 
@@ -92,29 +93,109 @@ const isGlobalAccess = computed(
     selectedRoleCode.value === 'CONTABLE',
 )
 
-const assignedAreaIdsByOtherGerentes = computed<Set<number>>(() => {
+// --- Helpers reutilizables ---
+
+/** IDs asignados a otros usuarios con un rol determinado, excluyendo al usuario en edición */
+function getAssignedIdsByOtherUsers(role: string, field: 'areaIds' | 'hotelIds'): Set<number> {
   const set = new Set<number>()
   for (const u of userStore.users) {
     if (u.id === userId.value) continue
-    const roleCode = profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
-    if (roleCode === 'GERENTE' && u.areaIds) {
-      u.areaIds.forEach((id) => set.add(id))
+    const code = profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+    if (code === role) {
+      u[field]?.forEach((id) => set.add(id))
     }
   }
   return set
+}
+
+/** Filtra el árbol País→Área dejando solo las áreas cuyos IDs están en el Set */
+function filterCountriesByAreas(areaIds: Set<number>) {
+  return countryStore.countries
+    .map((pais) => ({
+      ...pais,
+      areas: (pais.areas || []).filter((area) => areaIds.has(area.id)),
+    }))
+    .filter((pais) => pais.areas.length > 0)
+}
+
+/** Filtra el árbol País→Área→Hotel dejando solo los hoteles cuyos IDs están en el Set */
+function filterCountriesByHotels(hotelIds: Set<number>) {
+  return countryStore.countries
+    .map((pais) => ({
+      ...pais,
+      areas: (pais.areas || [])
+        .map((area) => ({
+          ...area,
+          hoteles: (area.hoteles || []).filter((hotel) => hotelIds.has(hotel.id)),
+        }))
+        .filter((area) => area.hoteles.length > 0),
+    }))
+    .filter((pais) => pais.areas.length > 0)
+}
+
+// --- Computed de exclusión (áreas/hoteles ya ocupados por otros usuarios) ---
+
+const assignedAreaIdsByOtherGerentes = computed<Set<number>>(() =>
+  getAssignedIdsByOtherUsers('GERENTE', 'areaIds'),
+)
+
+const assignedHotelIdsByOtherSupervisores = computed<Set<number>>(() =>
+  getAssignedIdsByOtherUsers('SUPERVISOR', 'hotelIds'),
+)
+
+// --- Países disponibles en desplegables (según rol del usuario autenticado) ---
+
+const availableCountriesForAreaSelect = computed(() => {
+  const user = currentUser.value
+  if (!user) return []
+
+  const roleCode = user.roleCode?.toUpperCase()
+  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN') return countryStore.countries
+  if (roleCode === 'GERENTE') return filterCountriesByAreas(new Set(user.areaIds || []))
+  return []
 })
 
-const assignedHotelIdsByOtherSupervisores = computed<Set<number>>(() => {
-  const set = new Set<number>()
-  for (const u of userStore.users) {
-    if (u.id === userId.value) continue
-    const roleCode = profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
-    if (roleCode === 'SUPERVISOR' && u.hotelIds) {
-      u.hotelIds.forEach((id) => set.add(id))
+const availableCountriesForHotelSelect = computed(() => {
+  const user = currentUser.value
+  if (!user) return []
+
+  const roleCode = user.roleCode?.toUpperCase()
+  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN') return countryStore.countries
+  if (roleCode === 'GERENTE') return filterCountriesByAreas(new Set(user.areaIds || []))
+  if (roleCode === 'SUPERVISOR') return filterCountriesByHotels(new Set(user.hotelIds || []))
+  return []
+})
+
+// --- Resolución de nombres para tags de autoedición (una sola pasada) ---
+
+const assignedNames = computed(() => {
+  const areaSet = new Set(formData.value.areaIds)
+  const hotelSet = new Set(formData.value.hotelIds)
+  const areas: { id: number; nombre: string; paisNombre: string }[] = []
+  const hotels: { id: number; nombre: string; areaNombre: string; paisNombre: string }[] = []
+
+  for (const pais of countryStore.countries) {
+    for (const area of pais.areas || []) {
+      if (areaSet.has(area.id)) {
+        areas.push({ id: area.id, nombre: area.nombre, paisNombre: pais.nombre })
+      }
+      for (const hotel of area.hoteles || []) {
+        if (hotelSet.has(hotel.id)) {
+          hotels.push({
+            id: hotel.id,
+            nombre: hotel.nombre,
+            areaNombre: area.nombre,
+            paisNombre: pais.nombre,
+          })
+        }
+      }
     }
   }
-  return set
+  return { areas, hotels }
 })
+
+const assignedAreaNames = computed(() => assignedNames.value.areas)
+const assignedHotelNames = computed(() => assignedNames.value.hotels)
 
 const isActivo = computed({
   get: () => formData.value.status === 'Activo',
@@ -380,7 +461,24 @@ async function handleSave() {
       <!-- Asignaciones de accesos por Rol -->
       <template v-if="isGerente">
         <el-form-item label="Áreas asignadas">
+          <div v-if="isSelfEditing" class="assigned-tags-container">
+            <el-tag
+              v-for="area in assignedAreaNames"
+              :key="area.id"
+              type="warning"
+              effect="light"
+              size="large"
+            >
+              <el-icon style="margin-right: 4px; vertical-align: middle"><Location /></el-icon>
+              <span>{{ area.nombre }} ({{ area.paisNombre }})</span>
+            </el-tag>
+            <span v-if="assignedAreaNames.length === 0" class="empty-hint"
+              >Sin áreas asignadas</span
+            >
+          </div>
+
           <el-select
+            v-else
             v-model="formData.areaIds"
             multiple
             filterable
@@ -389,7 +487,7 @@ async function handleSave() {
             popper-class="custom-group-select-dropdown"
           >
             <el-option-group
-              v-for="pais in countryStore.countries"
+              v-for="pais in availableCountriesForAreaSelect"
               :key="pais.id"
               :label="`${pais.nombre} (${pais.codigo})`"
             >
@@ -403,10 +501,7 @@ async function handleSave() {
                 <div class="option-item-content">
                   <el-icon class="area-option-icon"><Location /></el-icon>
                   <span>{{ area.nombre }}</span>
-                  <small
-                    v-if="assignedAreaIdsByOtherGerentes.has(area.id)"
-                    class="disabled-label"
-                  >
+                  <small v-if="assignedAreaIdsByOtherGerentes.has(area.id)" class="disabled-label">
                     (Asignada a otro gerente)
                   </small>
                 </div>
@@ -422,7 +517,34 @@ async function handleSave() {
 
       <template v-else-if="isSupervisorOrFotografo">
         <el-form-item label="Hoteles asignados">
+          <small class="assignment-hint">
+            Indica los hoteles sobre los que este
+            {{ selectedRoleCode === 'SUPERVISOR' ? 'supervisor' : 'fotógrafo' }} podrá gestionar u
+            operar.
+          </small>
+          <div
+            v-if="isSelfEditing && selectedRoleCode === 'SUPERVISOR'"
+            class="assigned-tags-container"
+          >
+            <el-tag
+              v-for="hotel in assignedHotelNames"
+              :key="hotel.id"
+              type="info"
+              effect="light"
+              size="large"
+            >
+              <el-icon style="margin-right: 4px; vertical-align: middle"
+                ><OfficeBuilding
+              /></el-icon>
+              <span>{{ hotel.nombre }} ({{ hotel.paisNombre }} — {{ hotel.areaNombre }})</span>
+            </el-tag>
+            <span v-if="assignedHotelNames.length === 0" class="empty-hint"
+              >Sin hoteles asignados</span
+            >
+          </div>
+
           <el-select
+            v-else
             v-model="formData.hotelIds"
             multiple
             filterable
@@ -430,7 +552,7 @@ async function handleSave() {
             style="width: 100%"
             popper-class="custom-group-select-dropdown"
           >
-            <template v-for="pais in countryStore.countries" :key="pais.id">
+            <template v-for="pais in availableCountriesForHotelSelect" :key="pais.id">
               <el-option-group
                 v-for="area in pais.areas || []"
                 :key="area.id"
@@ -463,11 +585,6 @@ async function handleSave() {
               </el-option-group>
             </template>
           </el-select>
-          <small class="assignment-hint">
-            Indica los hoteles sobre los que este
-            {{ selectedRoleCode === 'SUPERVISOR' ? 'supervisor' : 'fotógrafo' }} podrá gestionar u
-            operar.
-          </small>
         </el-form-item>
       </template>
 
@@ -601,7 +718,8 @@ async function handleSave() {
   display: block;
   font-size: 0.8rem;
   color: var(--nav-link-color, #64748b);
-  margin-top: 0.25rem;
+  margin-top: 0.55rem;
+  margin-bottom: 0.55rem;
   line-height: 1.3;
 }
 
@@ -666,6 +784,20 @@ async function handleSave() {
 .hotel-option-icon {
   color: #94a3b8;
   font-size: 1.1rem;
+}
+
+.assigned-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.empty-hint {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 :deep(.el-select-group__title) {
