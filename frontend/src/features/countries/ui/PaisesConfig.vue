@@ -4,7 +4,15 @@ import { useCountryStore } from '../stores/country.store'
 import { WORLD_COUNTRIES } from '../domain/world-countries.data'
 import type { Pais, AreaItem, HotelItem } from '../domain/country.model'
 import { getFlagEmoji } from '@/components/flagEmoji'
-import { Plus, Delete, Warning, Location, OfficeBuilding, Check, Close } from '@element-plus/icons-vue'
+import {
+  Plus,
+  Delete,
+  Warning,
+  Location,
+  OfficeBuilding,
+  Check,
+  Close,
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 interface TreeNode {
@@ -231,7 +239,7 @@ async function handleDeleteArea() {
             <!-- Nodo País (Raíz) -->
             <template v-if="data.type === 'pais' && data.rawPais">
               <span class="node-flag">{{ getFlagEmoji(data.rawPais.codigo) }}</span>
-              <strong class="node-title country-title">{{ data.rawPais.nombre }}</strong>
+              <span class="node-title country-title">{{ data.rawPais.nombre }}</span>
 
               <!-- Botones de Acción / Formulario de Área Inline -->
               <div class="node-actions" @click.stop>
@@ -272,11 +280,7 @@ async function handleDeleteArea() {
                     :loading="isCreatingArea"
                     @click.stop="handleCreateArea(data.rawPais.id)"
                   />
-                  <el-button
-                    size="small"
-                    :icon="Close"
-                    @click.stop="cancelAddAreaForm"
-                  />
+                  <el-button size="small" :icon="Close" @click.stop="cancelAddAreaForm" />
                 </div>
               </div>
             </template>
@@ -332,12 +336,17 @@ async function handleDeleteArea() {
     </el-dialog>
 
     <!-- Modal Confirmar Eliminación de Área (Soft delete) -->
-    <el-dialog v-model="deleteAreaDialogVisible" title="Confirmar Eliminación de Área" width="420px">
+    <el-dialog
+      v-model="deleteAreaDialogVisible"
+      title="Confirmar Eliminación de Área"
+      width="420px"
+    >
       <div class="confirm-dialog-content">
         <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
         <p v-if="areaToDelete">
           ¿Estás seguro de que deseas eliminar el área
-          <strong>{{ areaToDelete.nombre }}</strong>? Esta acción la retirará del sistema.
+          <strong>{{ areaToDelete.nombre }}</strong
+          >? Esta acción la retirará del sistema.
         </p>
       </div>
 
@@ -433,17 +442,15 @@ async function handleDeleteArea() {
 }
 
 .node-title {
-  font-weight: 500;
   color: var(--heading-color, #0f172a);
 }
 
 .country-title {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 450;
 }
 
 .area-title {
-  font-weight: 600;
+  /*font-weight: 600;*/
 }
 
 .hotel-title {
