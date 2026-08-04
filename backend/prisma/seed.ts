@@ -234,8 +234,35 @@ async function main() {
     }
   }
 
+  // Asignar a Laura Fernández (Fotógrafo) los hoteles HRLC y Nobu en Los Cabos
+  const laura = await prisma.usuario.findUnique({ where: { email: 'laura.foto@jjphotoshop.es' } })
+  const hrlc = await prisma.hotel.findFirst({ where: { nombre: 'HRLC' } })
+  const nobu = await prisma.hotel.findFirst({ where: { nombre: 'Nobu' } })
+
+  if (laura && hrlc) {
+    const existing = await prisma.usuarioHotel.findFirst({
+      where: { usuarioId: laura.id, hotelId: hrlc.id },
+    })
+    if (!existing) {
+      await prisma.usuarioHotel.create({
+        data: { usuarioId: laura.id, hotelId: hrlc.id },
+      })
+    }
+  }
+
+  if (laura && nobu) {
+    const existing = await prisma.usuarioHotel.findFirst({
+      where: { usuarioId: laura.id, hotelId: nobu.id },
+    })
+    if (!existing) {
+      await prisma.usuarioHotel.create({
+        data: { usuarioId: laura.id, hotelId: nobu.id },
+      })
+    }
+  }
+
   console.log(
-    '✅ Seeding completed! Países, Áreas y Hoteles creados correctamente.',
+    '✅ Seeding completed! Países, Áreas, Hoteles y Asignaciones creadas correctamente.',
   )
 }
 

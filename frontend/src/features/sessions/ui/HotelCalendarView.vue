@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -91,7 +91,7 @@ const calendarEvents = computed(() => {
   let list = sessionStore.sessions
 
   if (selectedHotelId.value) {
-    list = list.filter((s) => s.hotelId === selectedHotelId.value)
+    list = list.filter((s) => Number(s.hotelId) === Number(selectedHotelId.value))
   }
 
   return list.map((session) => {
@@ -116,8 +116,8 @@ const calendarEvents = computed(() => {
   })
 })
 
-// FullCalendar Configuration
-const calendarOptions = ref({
+// FullCalendar Configuration computed so reactivity works seamlessly
+const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
   initialView: window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek',
   locale: esLocale,
@@ -133,7 +133,24 @@ const calendarOptions = ref({
   height: 'auto',
   select: handleDateSelect,
   eventClick: handleEventClick,
-})
+  events: calendarEvents.value,
+}))
+
+function initSelectedHotel() {
+  const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : null
+  if (queryHotelId && hotelStore.hotels.some((h) => h.id === queryHotelId)) {
+    selectedHotelId.value = queryHotelId
+  } else if (selectedHotelId.value === null && userHotels.value.length > 0) {
+    selectedHotelId.value = userHotels.value[0]?.id ?? null
+  }
+}
+
+watch(
+  () => route.query.hotelId,
+  () => {
+    initSelectedHotel()
+  },
+)
 
 onMounted(async () => {
   await Promise.all([
@@ -141,14 +158,7 @@ onMounted(async () => {
     userStore.fetchUsers(),
     sessionStore.fetchSessions(),
   ])
-
-  // Initialize selected hotel from query param or user's first hotel
-  const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : null
-  if (queryHotelId && hotelStore.hotels.some((h) => h.id === queryHotelId)) {
-    selectedHotelId.value = queryHotelId
-  } else if (userHotels.value.length > 0) {
-    selectedHotelId.value = userHotels.value[0]?.id ?? null
-  }
+  initSelectedHotel()
 })
 
 function openNewSessionModal(defaultStartIso?: string, defaultEndIso?: string) {
@@ -254,7 +264,7 @@ async function handleSaveSession() {
 
     <!-- Calendario de FullCalendar -->
     <div class="calendar-card">
-      <FullCalendar :options="{ ...calendarOptions, events: calendarEvents }" />
+      <FullCalendar :options="calendarOptions" :events="calendarEvents" />
     </div>
 
     <!-- Botón Flotante para Móvil (+ Agendar) -->

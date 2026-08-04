@@ -74,25 +74,27 @@ const router = createRouter({
 })
 
 // Guards de navegación del router
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to) => {
   const authStore = useAuthStore()
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // Si no está registrado/autenticado, redirige al login
-    next('/login')
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
-    // Si ya está autenticado e intenta ir a /login, redirige por defecto a /inicio
-    next('/inicio')
-  } else if (to.meta.requiresAuth && authStore.user) {
+    return '/login'
+  }
+
+  if (to.path === '/login' && authStore.isAuthenticated) {
+    // Si ya está autenticado e intenta ir a /inicio, redirige por defecto a /inicio
+    return '/inicio'
+  }
+
+  if (to.meta.requiresAuth && authStore.user) {
     // Comprobar permisos según la matriz de roles
     if (!canAccessRoute(authStore.user.roleCode, to.path)) {
-      next('/inicio')
-    } else {
-      next()
+      return '/inicio'
     }
-  } else {
-    next()
   }
+
+  return true
 })
 
 export default router
