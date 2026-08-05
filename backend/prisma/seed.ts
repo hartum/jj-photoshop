@@ -27,7 +27,7 @@ async function main() {
     },
   })
 
-  await prisma.role.upsert({
+  const gerenteRole = await prisma.role.upsert({
     where: { codigo: 'GERENTE' },
     update: {},
     create: {
@@ -57,7 +57,7 @@ async function main() {
     },
   })
 
-  await prisma.role.upsert({
+  const contableRole = await prisma.role.upsert({
     where: { codigo: 'CONTABLE' },
     update: {},
     create: {
@@ -67,72 +67,100 @@ async function main() {
     },
   })
 
-  // Encriptar contraseña del SuperUsuario "fardaka"
-  const superuserPassword = await bcrypt.hash('fardaka', 10)
-  const defaultPassword = await bcrypt.hash('123456', 10)
+  // Encriptar contraseñas simplificadas por rol
+  const passSuperuser = await bcrypt.hash('fardaka', 10)
+  const passAdmin = await bcrypt.hash('admin', 10)
+  const passGerente = await bcrypt.hash('gerente', 10)
+  const passSupervisor = await bcrypt.hash('supervisor', 10)
+  const passFotografo = await bcrypt.hash('fotografo', 10)
+  const passContable = await bcrypt.hash('contable', 10)
 
   // SuperUsuario principal
   await prisma.usuario.upsert({
     where: { email: 'hartum@gmail.com' },
-    update: {
-      nombre: 'Ivan',
-      apellidos: 'Gascon',
-      telefono: '+34 645 584 470',
-      passwordHash: superuserPassword,
-      roleId: superuserRole.id,
-      activo: true,
-      deletedAt: null,
-    },
+    update: { passwordHash: passSuperuser },
     create: {
       nombre: 'Ivan',
-      apellidos: 'Gascon',
+      apellidos: 'Gascón',
       email: 'hartum@gmail.com',
       telefono: '+34 645 584 470',
-      passwordHash: superuserPassword,
+      passwordHash: passSuperuser,
       roleId: superuserRole.id,
       activo: true,
     },
   })
 
-  // Usuarios adicionales de ejemplo
+  // Admin
   await prisma.usuario.upsert({
-    where: { email: 'carlos.mendoza@jjphotoshop.es' },
-    update: { passwordHash: defaultPassword },
+    where: { email: 'admin@admin.com' },
+    update: { passwordHash: passAdmin },
     create: {
       nombre: 'Carlos',
-      apellidos: 'Mendoza García',
-      email: 'carlos.mendoza@jjphotoshop.es',
+      apellidos: 'Mendoza',
+      email: 'admin@admin.com',
       telefono: '+34 612 345 678',
-      passwordHash: defaultPassword,
+      passwordHash: passAdmin,
       roleId: adminRole.id,
       activo: true,
     },
   })
 
+  // Gerente
   await prisma.usuario.upsert({
-    where: { email: 'laura.foto@jjphotoshop.es' },
-    update: { passwordHash: defaultPassword },
+    where: { email: 'gerente@gerente.com' },
+    update: { passwordHash: passGerente },
+    create: {
+      nombre: 'Alberto',
+      apellidos: 'Morales',
+      email: 'gerente@gerente.com',
+      telefono: '+34 644 332 211',
+      passwordHash: passGerente,
+      roleId: gerenteRole.id,
+      activo: true,
+    },
+  })
+
+  // Supervisor
+  await prisma.usuario.upsert({
+    where: { email: 'supervisor@supervisor.com' },
+    update: { passwordHash: passSupervisor },
+    create: {
+      nombre: 'María',
+      apellidos: 'Ruiz',
+      email: 'supervisor@supervisor.com',
+      telefono: '+34 655 443 322',
+      passwordHash: passSupervisor,
+      roleId: supervisorRole.id,
+      activo: true,
+    },
+  })
+
+  // Fotógrafo
+  const fotografoUser = await prisma.usuario.upsert({
+    where: { email: 'fotografo@fotografo.com' },
+    update: { passwordHash: passFotografo },
     create: {
       nombre: 'Laura',
-      apellidos: 'Fernández Perea',
-      email: 'laura.foto@jjphotoshop.es',
+      apellidos: 'Fernández',
+      email: 'fotografo@fotografo.com',
       telefono: '+34 699 887 766',
-      passwordHash: defaultPassword,
+      passwordHash: passFotografo,
       roleId: fotografoRole.id,
       activo: true,
     },
   })
 
+  // Contable
   await prisma.usuario.upsert({
-    where: { email: 'maria.ruiz@jjphotoshop.es' },
-    update: { passwordHash: defaultPassword },
+    where: { email: 'contable@contable.com' },
+    update: { passwordHash: passContable },
     create: {
-      nombre: 'María',
-      apellidos: 'Ruiz Gómez',
-      email: 'maria.ruiz@jjphotoshop.es',
-      telefono: '+34 655 443 322',
-      passwordHash: defaultPassword,
-      roleId: supervisorRole.id,
+      nombre: 'Pedro',
+      apellidos: 'Sánchez',
+      email: 'contable@contable.com',
+      telefono: '+34 633 221 100',
+      passwordHash: passContable,
+      roleId: contableRole.id,
       activo: true,
     },
   })
@@ -207,9 +235,9 @@ async function main() {
 
   // Seeding de Hoteles por Área
   const hotelesMap: Record<string, string[]> = {
-    'Cancún': ['Ziva', 'Zilara', 'HRC', 'AVA'],
+    Cancún: ['Ziva', 'Zilara', 'HRC', 'AVA'],
     'Riviera Maya': ['Único', 'HRRM'],
-    'Vallarta': ['HRV', 'Único'],
+    Vallarta: ['HRV', 'Único'],
     'Los Cabos': ['HRLC', 'Nobu'],
     'Costa Norte': ['Bahía Principe', 'Único'],
     'Punta Cana': ['HRC', 'PC'],
@@ -234,22 +262,33 @@ async function main() {
     }
   }
 
-  // Asignar a Laura Fernández (Fotógrafo) los hoteles HRLC y Nobu en Los Cabos
-  const laura = await prisma.usuario.findUnique({ where: { email: 'laura.foto@jjphotoshop.es' } })
+  // Asignar a fotógrafo los hoteles HRLC y Nobu en Los Cabos
   const hrlc = await prisma.hotel.findFirst({ where: { nombre: 'HRLC' } })
   const nobu = await prisma.hotel.findFirst({ where: { nombre: 'Nobu' } })
 
-  if (laura && hrlc) {
+  if (hrlc) {
     const existing = await prisma.usuarioHotel.findFirst({
-      where: { usuarioId: laura.id, hotelId: hrlc.id },
+      where: { usuarioId: fotografoUser.id, hotelId: hrlc.id },
     })
     if (!existing) {
       await prisma.usuarioHotel.create({
-        data: { usuarioId: laura.id, hotelId: hrlc.id },
+        data: { usuarioId: fotografoUser.id, hotelId: hrlc.id },
       })
     }
+  }
 
-    // Crear sesión de prueba para HRLC
+  if (nobu) {
+    const existing = await prisma.usuarioHotel.findFirst({
+      where: { usuarioId: fotografoUser.id, hotelId: nobu.id },
+    })
+    if (!existing) {
+      await prisma.usuarioHotel.create({
+        data: { usuarioId: fotografoUser.id, hotelId: nobu.id },
+      })
+    }
+  }
+
+  if (hrlc) {
     const countHrlc = await prisma.sesionFotografica.count({ where: { hotelId: hrlc.id } })
     if (countHrlc === 0) {
       const tomorrow = new Date(Date.now() + 86400000)
@@ -258,8 +297,8 @@ async function main() {
       await prisma.sesionFotografica.create({
         data: {
           hotelId: hrlc.id,
-          fotografoId: laura.id,
-          creadorId: laura.id,
+          fotografoId: fotografoUser.id,
+          creadorId: fotografoUser.id,
           clienteNombre: 'Familia García',
           clienteEmail: 'garcia@ejemplo.com',
           clienteTelefono: '+34 611 223 344',
@@ -273,17 +312,7 @@ async function main() {
     }
   }
 
-  if (laura && nobu) {
-    const existing = await prisma.usuarioHotel.findFirst({
-      where: { usuarioId: laura.id, hotelId: nobu.id },
-    })
-    if (!existing) {
-      await prisma.usuarioHotel.create({
-        data: { usuarioId: laura.id, hotelId: nobu.id },
-      })
-    }
-
-    // Crear sesión de prueba para Nobu
+  if (nobu) {
     const countNobu = await prisma.sesionFotografica.count({ where: { hotelId: nobu.id } })
     if (countNobu === 0) {
       const inTwoDays = new Date(Date.now() + 172800000)
@@ -292,8 +321,8 @@ async function main() {
       await prisma.sesionFotografica.create({
         data: {
           hotelId: nobu.id,
-          fotografoId: laura.id,
-          creadorId: laura.id,
+          fotografoId: fotografoUser.id,
+          creadorId: fotografoUser.id,
           clienteNombre: 'Pareja Martínez',
           clienteEmail: 'martinez@ejemplo.com',
           clienteTelefono: '+34 699 887 766',

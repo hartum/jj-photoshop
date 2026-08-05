@@ -12,28 +12,28 @@ model Role {
   codigo      String    @unique
   nombre      String
   descripcion String    @db.Text
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
   usuarios    Usuario[]
 
   @@map("roles")
 }
 
 model Usuario {
-  id               String         @id @default(uuid())
-  nombre           String
-  apellidos        String
-  email            String         @unique
-  telefono         String?
-  passwordHash     String?
-  imagen           String?        @db.LongText
-  activo           Boolean        @default(true)
-  roleId           Int
-  role             Role           @relation(fields: [roleId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  deletedAt        DateTime?
+  id                    String              @id @default(uuid())
+  nombre                String
+  apellidos             String
+  email                 String              @unique
+  telefono              String?
+  passwordHash          String?             @map("password_hash")
+  imagen                String?             @db.LongText
+  activo                Boolean             @default(true)
+  roleId                Int                 @map("role_id")
+  role                  Role                @relation(fields: [roleId], references: [id])
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  deletedAt             DateTime?           @map("deleted_at")
   areasAsignadas        UsuarioArea[]
   hotelesAsignados      UsuarioHotel[]
   sesionesComoFotografo SesionFotografica[] @relation("FotografoSesiones")
@@ -46,10 +46,10 @@ model Pais {
   id             Int       @id @default(autoincrement())
   codigo         String    @unique
   nombre         String
-  codigoTelefono String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
+  codigoTelefono String?   @map("codigo_telefono")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
   areas          Area[]
 
   @@map("paises")
@@ -59,9 +59,9 @@ model Area {
   id                Int           @id @default(autoincrement())
   paisId            Int           @map("id_pais")
   nombre            String
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  deletedAt         DateTime?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  deletedAt         DateTime?     @map("deleted_at")
   pais              Pais          @relation(fields: [paisId], references: [id])
   hoteles           Hotel[]
   usuariosAsignados UsuarioArea[]
@@ -77,13 +77,13 @@ model Hotel {
   estrellas         Int?
   latitud           Float?
   longitud          Float?
-  cadenaHotelera    String?
-  personaContacto   String?
+  cadenaHotelera    String?             @map("cadena_hotelera")
+  personaContacto   String?             @map("persona_contacto")
   email             String?
   telefono          String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  deletedAt         DateTime?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  deletedAt         DateTime?           @map("deleted_at")
   area              Area                @relation(fields: [areaId], references: [id])
   usuariosAsignados UsuarioHotel[]
   sesiones          SesionFotografica[]
@@ -95,7 +95,7 @@ model UsuarioArea {
   id        Int      @id @default(autoincrement())
   usuarioId String   @map("usuario_id")
   areaId    Int      @map("area_id")
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   area    Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
@@ -108,7 +108,7 @@ model UsuarioHotel {
   id        Int      @id @default(autoincrement())
   usuarioId String   @map("usuario_id")
   hotelId   Int      @map("hotel_id")
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
@@ -141,4 +141,3 @@ model SesionFotografica {
 
   @@map("sesiones_fotograficas")
 }
-
