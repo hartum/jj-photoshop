@@ -225,7 +225,7 @@ async function handleSaveSession() {
         <div class="pax-box">
           <div class="pax-title">
             <span>Nº de Personas</span>
-            <el-tag type="primary" effect="dark" class="pax-badge">{{ paxDisplay }}</el-tag>
+            <el-tag type="info" effect="dark" class="pax-badge">{{ paxDisplay }}</el-tag>
           </div>
           <div class="form-row-2">
             <el-form-item label="Adultos">
