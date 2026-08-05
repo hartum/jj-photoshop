@@ -38,8 +38,22 @@ model Usuario {
   hotelesAsignados      UsuarioHotel[]
   sesionesComoFotografo SesionFotografica[] @relation("FotografoSesiones")
   sesionesComoCreador   SesionFotografica[] @relation("CreadorSesiones")
+  colorAsignado         UsuarioColor?
 
   @@map("usuarios")
+}
+
+model UsuarioColor {
+  id        Int      @id @default(autoincrement())
+  usuarioId String   @map("usuario_id")
+  color     String   @map("color")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId])
+  @@map("usuario_color")
 }
 
 model Pais {

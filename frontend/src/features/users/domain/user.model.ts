@@ -12,6 +12,7 @@ export interface User {
   status: UserStatus
   password?: string
   imagen?: string | null
+  color?: string | null
   areaIds?: number[]
   hotelIds?: number[]
   createdAt: string

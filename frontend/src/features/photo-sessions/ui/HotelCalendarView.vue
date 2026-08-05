@@ -78,12 +78,15 @@ const calendarEvents = computed(() => {
   }
 
   return list.map((session) => {
-    const isCompleted = session.estado === 'COMPLETADA'
-    const isCancelled = session.estado === 'CANCELADA'
-
-    let color = '#3b82f6' // Programada (Azul)
-    if (isCompleted) color = '#10b981' // Completada (Verde)
-    if (isCancelled) color = '#ef4444' // Cancelada (Rojo)
+    let color = '#9ca3af' // Gris si no hay fotógrafo asignado
+    if (session.fotografoId) {
+      const fotografo = userStore.users.find((u) => String(u.id) === String(session.fotografoId))
+      if (fotografo && fotografo.color) {
+        color = fotografo.color
+      } else if (fotografo) {
+        color = '#3b82f6' // Azul por defecto si tiene fotógrafo asignado pero sin color personalizado
+      }
+    }
 
     const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
     const roomStr = session.numeroHabitacion ? ` (Hab ${session.numeroHabitacion})` : ''

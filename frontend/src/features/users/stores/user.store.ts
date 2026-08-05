@@ -107,6 +107,31 @@ export const useUserStore = defineStore('users', () => {
     }
   }
 
+  async function updateUserColor(id: string, color: string | null) {
+    try {
+      const token = localStorage.getItem('token')
+      const authHeader = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch(`${API_URL}/usuarios/${id}/color`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ color }),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${res.status}: Error al actualizar el color`)
+      }
+      const data = await res.json()
+      const user = users.value.find((u) => u.id === id)
+      if (user) {
+        user.color = data.color
+      }
+      return data
+    } catch (err) {
+      console.error('Error updating user color:', err)
+      throw err
+    }
+  }
+
   return {
     users,
     usersWithProfile,
@@ -114,6 +139,7 @@ export const useUserStore = defineStore('users', () => {
     fetchUsers,
     addUser,
     updateUser,
+    updateUserColor,
     deleteUser,
   }
 })

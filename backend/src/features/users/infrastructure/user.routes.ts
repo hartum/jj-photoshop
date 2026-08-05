@@ -22,6 +22,7 @@ async function getAuthUser(request: any) {
         role: true,
         areasAsignadas: true,
         hotelesAsignados: true,
+        colorAsignado: true,
       },
     })
   } catch {
@@ -45,6 +46,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           role: true,
           areasAsignadas: true,
           hotelesAsignados: true,
+          colorAsignado: true,
         },
       })
 
@@ -89,6 +91,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           roleCode: user.role.codigo,
           roleName: user.role.nombre,
           imagen: user.imagen || null,
+          color: user.colorAsignado?.color || null,
           areaIds: user.areasAsignadas.map((a) => a.areaId),
           hotelIds: user.hotelesAsignados.map((h) => h.hotelId),
         },
@@ -148,6 +151,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           role: true,
           areasAsignadas: true,
           hotelesAsignados: true,
+          colorAsignado: true,
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -187,6 +191,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: u.roleId,
         status: u.activo ? 'Activo' : 'Inactivo',
         imagen: u.imagen || null,
+        color: u.colorAsignado?.color || null,
         areaIds: u.areasAsignadas.map((a) => a.areaId),
         hotelIds: u.hotelesAsignados.map((h) => h.hotelId),
         createdAt: u.createdAt.toISOString().split('T')[0],
@@ -212,6 +217,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: number | string
         status?: string
         imagen?: string | null
+        color?: string | null
         areaIds?: number[]
         hotelIds?: number[]
       }
@@ -326,6 +332,15 @@ export async function userRoutes(fastify: FastifyInstance) {
         },
       })
 
+      if (body.color) {
+        await prisma.usuarioColor.create({
+          data: {
+            usuarioId: nuevo.id,
+            color: body.color,
+          },
+        })
+      }
+
       return reply.status(201).send({
         id: nuevo.id,
         nombre: nuevo.nombre,
@@ -335,6 +350,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: nuevo.roleId,
         status: nuevo.activo ? 'Activo' : 'Inactivo',
         imagen: nuevo.imagen || null,
+        color: body.color || null,
         areaIds: nuevo.areasAsignadas.map((a) => a.areaId),
         hotelIds: nuevo.hotelesAsignados.map((h) => h.hotelId),
         createdAt: nuevo.createdAt.toISOString().split('T')[0],
@@ -365,6 +381,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId?: number | string
         status?: string
         imagen?: string | null
+        color?: string | null
         areaIds?: number[]
         hotelIds?: number[]
       }
@@ -469,6 +486,20 @@ export async function userRoutes(fastify: FastifyInstance) {
         }
       }
 
+      if (body.color !== undefined) {
+        if (body.color) {
+          await prisma.usuarioColor.upsert({
+            where: { usuarioId: id },
+            update: { color: body.color },
+            create: { usuarioId: id, color: body.color },
+          })
+        } else {
+          await prisma.usuarioColor.deleteMany({
+            where: { usuarioId: id },
+          })
+        }
+      }
+
       const actualizado = await prisma.usuario.update({
         where: { id },
         data: {
@@ -485,6 +516,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           role: true,
           areasAsignadas: true,
           hotelesAsignados: true,
+          colorAsignado: true,
         },
       })
 
@@ -497,6 +529,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         profileId: actualizado.roleId,
         status: actualizado.activo ? 'Activo' : 'Inactivo',
         imagen: actualizado.imagen || null,
+        color: actualizado.colorAsignado?.color || null,
         areaIds: actualizado.areasAsignadas.map((a) => a.areaId),
         hotelIds: actualizado.hotelesAsignados.map((h) => h.hotelId),
         createdAt: actualizado.createdAt.toISOString().split('T')[0],
@@ -511,6 +544,47 @@ export async function userRoutes(fastify: FastifyInstance) {
       return reply
         .status(400)
         .send({ error: err.message || 'Error al actualizar el usuario en MySQL' })
+    }
+  })
+
+  // PUT /api/usuarios/:id/color
+  fastify.put('/api/usuarios/:id/color', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { color } = request.body as { color?: string | null }
+
+      const executor = await getAuthUser(request)
+      if (!executor) {
+        return reply.status(401).send({ error: 'No autorizado' })
+      }
+
+      const roleCode = executor.role.codigo.toUpperCase()
+      const isSelf = executor.id === id
+      const isAllowedRole = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR'].includes(roleCode)
+
+      if (!isSelf && !isAllowedRole) {
+        return reply.status(403).send({ error: 'No tienes permisos para cambiar el color de este usuario' })
+      }
+
+      let updatedColor: string | null = null
+
+      if (color) {
+        const res = await prisma.usuarioColor.upsert({
+          where: { usuarioId: id },
+          update: { color },
+          create: { usuarioId: id, color },
+        })
+        updatedColor = res.color
+      } else {
+        await prisma.usuarioColor.deleteMany({
+          where: { usuarioId: id },
+        })
+      }
+
+      return reply.send({ success: true, id, color: updatedColor })
+    } catch (err: any) {
+      fastify.log.error(err)
+      return reply.status(500).send({ error: err.message || 'Error al actualizar el color del usuario' })
     }
   })
 

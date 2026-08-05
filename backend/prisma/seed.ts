@@ -161,6 +161,12 @@ async function main() {
     },
   })
 
+  await prisma.usuarioColor.upsert({
+    where: { usuarioId: fotografoUser.id },
+    update: { color: '#8b5cf6' },
+    create: { usuarioId: fotografoUser.id, color: '#8b5cf6' },
+  })
+
   // Agendador
   const agendadorUser = await prisma.usuario.upsert({
     where: { email: 'agendador@agendador.com' },

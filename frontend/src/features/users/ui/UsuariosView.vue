@@ -219,6 +219,19 @@ async function handleDeleteUser() {
           </template>
         </el-table-column>
 
+        <el-table-column label="Color" width="90" align="center">
+          <template #default="{ row }">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span
+                v-if="row.color"
+                :style="{ backgroundColor: row.color, width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #ffffff', boxShadow: '0 0 0 1px #cbd5e1', display: 'inline-block' }"
+                :title="`Color: ${row.color}`"
+              />
+              <span v-else style="color: #94a3b8; font-size: 0.8rem;">—</span>
+            </div>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="createdAt" label="Fecha Alta" sortable width="130" />
 
         <el-table-column label="Acciones" width="100" align="center" fixed="right">

@@ -54,6 +54,7 @@ const formData = ref({
   profileId: null as number | null,
   status: 'Activo' as UserStatus,
   imagen: null as string | null,
+  color: '#3b82f6' as string | null,
   areaIds: [] as number[],
   hotelIds: [] as number[],
 })
@@ -259,6 +260,7 @@ onMounted(async () => {
         profileId: existing.profileId,
         status: existing.status,
         imagen: existing.imagen || null,
+        color: existing.color || '#3b82f6',
         areaIds: existing.areaIds ? [...existing.areaIds] : [],
         hotelIds: existing.hotelIds ? [...existing.hotelIds] : [],
       }
@@ -475,6 +477,21 @@ async function handleSave() {
             </div>
           </el-option>
         </el-select>
+      </el-form-item>
+
+      <el-form-item label="Color asignado">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <el-color-picker v-model="formData.color" />
+          <span
+            v-if="formData.color"
+            style="font-size: 0.9rem; font-weight: 500; font-family: monospace"
+          >
+            {{ formData.color }}
+          </span>
+          <span v-else style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
+            Sin color asignado
+          </span>
+        </div>
       </el-form-item>
 
       <!-- Asignaciones de accesos por Rol -->
