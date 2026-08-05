@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHotelStore } from '../stores/hotel.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
@@ -20,6 +20,12 @@ const hotelId = computed(() => {
 const isEditing = computed(() => !!hotelId.value)
 const isSaving = ref(false)
 
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
 const formData = ref({
   areaId: null as number | null,
   nombre: '',
@@ -34,6 +40,9 @@ const formData = ref({
 })
 
 onMounted(async () => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
   await countryStore.fetchCountries()
   await hotelStore.fetchHotels()
 
@@ -63,6 +72,10 @@ onMounted(async () => {
       formData.value.areaId = firstArea.id
     }
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 
 // Lista plana de todas las áreas activas con su país para el selector
@@ -154,8 +167,9 @@ async function handleSave() {
     <!-- Formulario alineado -->
     <el-form
       :model="formData"
-      label-width="170px"
-      label-position="left"
+      :label-width="isMobile ? 'auto' : '170px'"
+      :label-position="isMobile ? 'top' : 'left'"
+      :size="isMobile ? 'large' : 'default'"
       class="hotel-form"
       @submit.prevent="handleSave"
     >
@@ -210,10 +224,22 @@ async function handleSave() {
       </el-form-item>
 
       <el-form-item class="form-actions-item">
-        <el-button type="primary" :icon="Check" :loading="isSaving" @click="handleSave">
+        <el-button
+          type="primary"
+          :size="isMobile ? 'large' : 'default'"
+          :icon="Check"
+          :loading="isSaving"
+          @click="handleSave"
+        >
           {{ isEditing ? 'Guardar Cambios' : 'Crear Hotel' }}
         </el-button>
-        <el-button :icon="Close" @click="handleCancel">Cancelar</el-button>
+        <el-button
+          :size="isMobile ? 'large' : 'default'"
+          :icon="Close"
+          @click="handleCancel"
+        >
+          Cancelar
+        </el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -272,12 +298,24 @@ async function handleSave() {
   :deep(.hotel-form .el-form-item) {
     flex-direction: column;
     align-items: flex-start;
+    width: 100%;
   }
 
   :deep(.hotel-form .el-form-item__label) {
     width: 100% !important;
     text-align: left !important;
     margin-bottom: 0.25rem;
+  }
+
+  :deep(.hotel-form .el-form-item__content) {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  :deep(.hotel-form .el-input),
+  :deep(.hotel-form .el-select),
+  :deep(.hotel-form .el-textarea) {
+    width: 100% !important;
   }
 
   :deep(.form-actions-item .el-form-item__content) {

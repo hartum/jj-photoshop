@@ -6,7 +6,15 @@ import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
 import type { CreateSesionPayload } from '../domain/session.model'
-import { User, Message, Phone, Check, ArrowLeft, OfficeBuilding } from '@element-plus/icons-vue'
+import {
+  User,
+  Message,
+  Phone,
+  Check,
+  ArrowLeft,
+  OfficeBuilding,
+  Close,
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { IosDatepicker } from 'vue-ios-style-datepicker'
 
@@ -30,14 +38,14 @@ const formData = ref<CreateSesionPayload>({
   hotelId: 0,
   fotografoId: '',
   clienteNombre: '',
+  numeroHabitacion: '',
   clienteEmail: '',
   clienteTelefono: '',
-  numeroHabitacion: '',
   numAdultos: 2,
   numNinos: 0,
+  fechaHoraInicio: '',
   fechaSalida: '',
   concepto: '',
-  fechaHoraInicio: '',
   notas: '',
 })
 
@@ -53,11 +61,10 @@ const paxDisplay = computed(() => {
 
 // Hotels list accessible by current user
 const userHotels = computed(() => {
-  const user = currentUser.value
-  if (!user) return hotelStore.hotels
+  const user = authStore.user
+  if (!user) return []
 
-  const roleCode = user.roleCode?.toUpperCase()
-  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN') {
+  if (user.roleCode?.toUpperCase() === 'ADMIN' || user.roleCode?.toUpperCase() === 'GERENTE') {
     return hotelStore.hotels
   }
 
@@ -189,18 +196,24 @@ async function handleSaveSession() {
 
 <template>
   <div class="session-form-container">
-    <!-- Header con botón Volver -->
-    <div class="form-header">
-      <el-button class="back-btn" @click="handleGoBack">
-        <el-icon><ArrowLeft /></el-icon>
-        Volver a la Agenda
-      </el-button>
-      <h1 class="page-title">Agendar Nueva Sesión Fotográfica</h1>
+    <!-- Header con botón Volver y Título -->
+    <div class="page-header">
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" circle class="back-btn" @click="handleGoBack" />
+        <div>
+          <h1 class="page-title">Agendar Nueva Sesión Fotográfica</h1>
+        </div>
+      </div>
     </div>
 
     <!-- Card Principal del Formulario -->
     <el-card class="form-card" shadow="never">
-      <el-form :model="formData" label-position="top" class="session-form">
+      <el-form
+        :model="formData"
+        label-position="top"
+        :size="isMobile ? 'large' : 'default'"
+        class="session-form"
+      >
         <!-- Fila 1: Hotel y Fotógrafo -->
         <div class="form-row-2">
           <el-form-item label="Hotel *" required>
@@ -324,11 +337,7 @@ async function handleSaveSession() {
           <el-form-item label="Fecha de Salida (Hotel)">
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->
             <div v-if="isMobile" class="ios-datepicker-container">
-              <IosDatepicker
-                v-model="mobileFechaSalidaValue"
-                mode="date"
-                locale="es"
-              />
+              <IosDatepicker v-model="mobileFechaSalidaValue" mode="date" locale="es" />
             </div>
 
             <!-- Selector para Desktop (Element Plus) -->
@@ -370,15 +379,21 @@ async function handleSaveSession() {
 
         <!-- Botones de Acción -->
         <div class="form-actions">
-          <el-button size="large" @click="handleGoBack">Cancelar</el-button>
           <el-button
             type="primary"
-            size="large"
+            :size="isMobile ? 'large' : 'default'"
             :icon="Check"
             :loading="isSaving"
             @click="handleSaveSession"
           >
             Agendar Sesión
+          </el-button>
+          <el-button
+            :size="isMobile ? 'large' : 'default'"
+            :icon="Close"
+            @click="handleGoBack"
+          >
+            Cancelar
           </el-button>
         </div>
       </el-form>
@@ -393,12 +408,21 @@ async function handleSaveSession() {
   margin: 0 auto;
 }
 
-.form-header {
-  margin-bottom: 1.5rem;
+.page-header {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-btn {
+  font-size: 1.1rem;
 }
 
 .page-title {
@@ -457,11 +481,8 @@ async function handleSaveSession() {
 
 .form-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--toolbar-border, #f1f5f9);
 }
 
 .ios-datepicker-container {
@@ -493,10 +514,12 @@ async function handleSaveSession() {
 
   .form-actions {
     flex-direction: column-reverse;
+    gap: 0.75rem;
   }
 
   .form-actions .el-button {
     width: 100%;
+    margin-left: 0 !important;
   }
 }
 </style>
