@@ -5,6 +5,8 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
+import es from 'element-plus/es/locale/lang/es'
+import 'dayjs/locale/es'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
@@ -14,7 +16,9 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-app.use(ElementPlus)
+app.use(ElementPlus, {
+  locale: es,
+})
 
 // Register all Element Plus icons globally
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

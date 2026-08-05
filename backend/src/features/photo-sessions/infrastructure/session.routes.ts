@@ -30,8 +30,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         clienteNombre: s.clienteNombre,
         clienteEmail: s.clienteEmail || '',
         clienteTelefono: s.clienteTelefono || '',
+        numeroHabitacion: s.numeroHabitacion || '',
+        numAdultos: s.numAdultos ?? 1,
+        numNinos: s.numNinos ?? 0,
+        fechaSalida: s.fechaSalida ? s.fechaSalida.toISOString().slice(0, 10) : '',
+        concepto: s.concepto || '',
         fechaHoraInicio: s.fechaHoraInicio.toISOString().slice(0, 16),
-        fechaHoraFin: s.fechaHoraFin.toISOString().slice(0, 16),
         estado: s.estado,
         origen: s.origen,
         notas: s.notas || '',
@@ -58,8 +62,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         clienteNombre: string
         clienteEmail?: string
         clienteTelefono?: string
+        numeroHabitacion?: string
+        numAdultos?: number
+        numNinos?: number
+        fechaSalida?: string
+        concepto?: string
         fechaHoraInicio: string
-        fechaHoraFin: string
         notas?: string
       }
 
@@ -67,12 +75,11 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         !body.hotelId ||
         !body.fotografoId ||
         !body.clienteNombre ||
-        !body.fechaHoraInicio ||
-        !body.fechaHoraFin
+        !body.fechaHoraInicio
       ) {
         return reply
           .status(400)
-          .send({ error: 'Faltan campos obligatorios (hotelId, fotografoId, clienteNombre, fechaHoraInicio, fechaHoraFin)' })
+          .send({ error: 'Faltan campos obligatorios (hotelId, fotografoId, clienteNombre, fechaHoraInicio)' })
       }
 
       const creadorId = body.creadorId || body.fotografoId
@@ -85,8 +92,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           clienteNombre: body.clienteNombre.trim(),
           clienteEmail: body.clienteEmail ? body.clienteEmail.trim() : null,
           clienteTelefono: body.clienteTelefono ? body.clienteTelefono.trim() : null,
+          numeroHabitacion: body.numeroHabitacion ? body.numeroHabitacion.trim() : null,
+          numAdultos: body.numAdultos !== undefined ? Number(body.numAdultos) : 1,
+          numNinos: body.numNinos !== undefined ? Number(body.numNinos) : 0,
+          fechaSalida: body.fechaSalida ? new Date(body.fechaSalida) : null,
+          concepto: body.concepto ? body.concepto.trim() : null,
           fechaHoraInicio: new Date(body.fechaHoraInicio),
-          fechaHoraFin: new Date(body.fechaHoraFin),
           estado: 'PROGRAMADA',
           origen: 'MANUAL',
           notas: body.notas ? body.notas.trim() : null,
@@ -101,8 +112,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         clienteNombre: nueva.clienteNombre,
         clienteEmail: nueva.clienteEmail || '',
         clienteTelefono: nueva.clienteTelefono || '',
+        numeroHabitacion: nueva.numeroHabitacion || '',
+        numAdultos: nueva.numAdultos ?? 1,
+        numNinos: nueva.numNinos ?? 0,
+        fechaSalida: nueva.fechaSalida ? nueva.fechaSalida.toISOString().slice(0, 10) : '',
+        concepto: nueva.concepto || '',
         fechaHoraInicio: nueva.fechaHoraInicio.toISOString().slice(0, 16),
-        fechaHoraFin: nueva.fechaHoraFin.toISOString().slice(0, 16),
         estado: nueva.estado,
         origen: nueva.origen,
         notas: nueva.notas || '',
@@ -127,8 +142,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         clienteNombre?: string
         clienteEmail?: string
         clienteTelefono?: string
+        numeroHabitacion?: string
+        numAdultos?: number
+        numNinos?: number
+        fechaSalida?: string
+        concepto?: string
         fechaHoraInicio?: string
-        fechaHoraFin?: string
         estado?: string
         notas?: string
       }
@@ -141,8 +160,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           ...(body.clienteNombre && { clienteNombre: body.clienteNombre.trim() }),
           ...(body.clienteEmail !== undefined && { clienteEmail: body.clienteEmail ? body.clienteEmail.trim() : null }),
           ...(body.clienteTelefono !== undefined && { clienteTelefono: body.clienteTelefono ? body.clienteTelefono.trim() : null }),
+          ...(body.numeroHabitacion !== undefined && { numeroHabitacion: body.numeroHabitacion ? body.numeroHabitacion.trim() : null }),
+          ...(body.numAdultos !== undefined && { numAdultos: Number(body.numAdultos) }),
+          ...(body.numNinos !== undefined && { numNinos: Number(body.numNinos) }),
+          ...(body.fechaSalida !== undefined && { fechaSalida: body.fechaSalida ? new Date(body.fechaSalida) : null }),
+          ...(body.concepto !== undefined && { concepto: body.concepto ? body.concepto.trim() : null }),
           ...(body.fechaHoraInicio && { fechaHoraInicio: new Date(body.fechaHoraInicio) }),
-          ...(body.fechaHoraFin && { fechaHoraFin: new Date(body.fechaHoraFin) }),
           ...(body.estado && { estado: body.estado }),
           ...(body.notas !== undefined && { notas: body.notas ? body.notas.trim() : null }),
         },
@@ -156,8 +179,12 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         clienteNombre: actualizada.clienteNombre,
         clienteEmail: actualizada.clienteEmail || '',
         clienteTelefono: actualizada.clienteTelefono || '',
+        numeroHabitacion: actualizada.numeroHabitacion || '',
+        numAdultos: actualizada.numAdultos ?? 1,
+        numNinos: actualizada.numNinos ?? 0,
+        fechaSalida: actualizada.fechaSalida ? actualizada.fechaSalida.toISOString().slice(0, 10) : '',
+        concepto: actualizada.concepto || '',
         fechaHoraInicio: actualizada.fechaHoraInicio.toISOString().slice(0, 16),
-        fechaHoraFin: actualizada.fechaHoraFin.toISOString().slice(0, 16),
         estado: actualizada.estado,
         origen: actualizada.origen,
         notas: actualizada.notas || '',

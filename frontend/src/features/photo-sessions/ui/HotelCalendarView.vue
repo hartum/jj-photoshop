@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -10,11 +10,12 @@ import { useSessionStore } from '../stores/session.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
-import type { CreateSesionPayload, SesionFotografica } from '../domain/session.model'
-import { Plus, User, Message, Phone, Check } from '@element-plus/icons-vue'
+import type { SesionFotografica } from '../domain/session.model'
+import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
+const router = useRouter()
 const sessionStore = useSessionStore()
 const hotelStore = useHotelStore()
 const authStore = useAuthStore()
@@ -44,19 +45,6 @@ const esLocale = {
 
 // State
 const selectedHotelId = ref<number | null>(null)
-const sessionModalVisible = ref(false)
-const isSaving = ref(false)
-
-const formData = ref<CreateSesionPayload>({
-  hotelId: 0,
-  fotografoId: '',
-  clienteNombre: '',
-  clienteEmail: '',
-  clienteTelefono: '',
-  fechaHoraInicio: '',
-  fechaHoraFin: '',
-  notas: '',
-})
 
 // Current user context
 const currentUser = computed(() => authStore.user)
@@ -81,11 +69,6 @@ const selectedHotelName = computed(() => {
   return target ? target.nombre : 'Todos los Hoteles'
 })
 
-// Photographers list for assignment
-const photographers = computed(() => {
-  return userStore.usersWithProfile.filter((u) => u.perfil?.code?.toUpperCase() === 'FOTOGRAFO')
-})
-
 // Filtered sessions for FullCalendar
 const calendarEvents = computed(() => {
   let list = sessionStore.sessions
@@ -102,11 +85,14 @@ const calendarEvents = computed(() => {
     if (isCompleted) color = '#10b981' // Completada (Verde)
     if (isCancelled) color = '#ef4444' // Cancelada (Rojo)
 
+    const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
+    const roomStr = session.numeroHabitacion ? ` (Hab ${session.numeroHabitacion})` : ''
+    const conceptoStr = session.concepto ? ` - ${session.concepto}` : ''
+
     return {
       id: String(session.id),
-      title: `${session.clienteNombre} (${session.estado})`,
+      title: `${session.clienteNombre}${roomStr} [${paxStr}]${conceptoStr}`,
       start: session.fechaHoraInicio,
-      end: session.fechaHoraFin,
       backgroundColor: color,
       borderColor: color,
       extendedProps: {
@@ -161,32 +147,17 @@ onMounted(async () => {
   initSelectedHotel()
 })
 
-function openNewSessionModal(defaultStartIso?: string, defaultEndIso?: string) {
-  const defaultHotel = selectedHotelId.value || (userHotels.value[0]?.id ?? 0)
-  const defaultPhotographer = currentUser.value?.id || (photographers.value[0]?.id ?? '')
+function navigateToNewSessionForm(startIso?: string) {
+  const query: Record<string, string> = {}
+  if (selectedHotelId.value) query.hotelId = String(selectedHotelId.value)
+  if (startIso) query.start = startIso
 
-  const now = new Date()
-  const start = defaultStartIso || new Date(now.getTime() + 3600000).toISOString().slice(0, 16)
-  const end = defaultEndIso || new Date(now.getTime() + 7200000).toISOString().slice(0, 16)
-
-  formData.value = {
-    hotelId: defaultHotel,
-    fotografoId: defaultPhotographer,
-    clienteNombre: '',
-    clienteEmail: '',
-    clienteTelefono: '',
-    fechaHoraInicio: start,
-    fechaHoraFin: end,
-    notas: '',
-  }
-
-  sessionModalVisible.value = true
+  router.push({ path: '/agenda/nueva', query })
 }
 
-function handleDateSelect(selectInfo: { startStr: string; endStr: string }) {
+function handleDateSelect(selectInfo: { startStr: string }) {
   const startIso = new Date(selectInfo.startStr).toISOString().slice(0, 16)
-  const endIso = new Date(selectInfo.endStr).toISOString().slice(0, 16)
-  openNewSessionModal(startIso, endIso)
+  navigateToNewSessionForm(startIso)
 }
 
 function handleEventClick(clickInfo: {
@@ -194,36 +165,14 @@ function handleEventClick(clickInfo: {
 }) {
   const session = clickInfo.event.extendedProps.rawSession
   if (session) {
-    ElMessage.info(`Sesión de ${session.clienteNombre} - Estado: ${session.estado}`)
-  }
-}
-
-async function handleSaveSession() {
-  if (!formData.value.clienteNombre.trim()) {
-    ElMessage.warning('El nombre del cliente es obligatorio')
-    return
-  }
-
-  if (!formData.value.hotelId) {
-    ElMessage.warning('Debes seleccionar un hotel')
-    return
-  }
-
-  if (!formData.value.fechaHoraInicio || !formData.value.fechaHoraFin) {
-    ElMessage.warning('Debes seleccionar las fechas de inicio y fin')
-    return
-  }
-
-  isSaving.value = true
-  try {
-    await sessionStore.addSession(formData.value)
-    ElMessage.success('Sesión fotográfica agendada correctamente')
-    sessionModalVisible.value = false
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error al guardar la sesión'
-    ElMessage.error(msg)
-  } finally {
-    isSaving.value = false
+    const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
+    const room = session.numeroHabitacion ? ` | Hab: ${session.numeroHabitacion}` : ''
+    const concepto = session.concepto ? ` | Concepto: ${session.concepto}` : ''
+    const salida = session.fechaSalida ? ` | Salida: ${session.fechaSalida}` : ''
+    ElMessage.info({
+      message: `Cliente: ${session.clienteNombre} (${paxStr}${room}${concepto}${salida}) - Estado: ${session.estado}`,
+      duration: 5000,
+    })
   }
 }
 </script>
@@ -255,8 +204,8 @@ async function handleSaveSession() {
           />
         </el-select>
 
-        <!-- Botón Nueva Sesión -->
-        <el-button type="primary" :icon="Plus" size="large" @click="openNewSessionModal()">
+        <!-- Botón Nueva Sesión (Navega a /agenda/nueva) -->
+        <el-button type="primary" :icon="Plus" size="large" @click="navigateToNewSessionForm()">
           Agendar Sesión
         </el-button>
       </div>
@@ -274,103 +223,9 @@ async function handleSaveSession() {
       size="large"
       class="fab-btn"
       :icon="Plus"
-      @click="openNewSessionModal()"
+      @click="navigateToNewSessionForm()"
       aria-label="Agendar nueva sesión"
     />
-
-    <!-- Modal Formulario: Agendar Sesión Fotográfica -->
-    <el-dialog
-      v-model="sessionModalVisible"
-      title="Agendar Nueva Sesión Fotográfica"
-      width="560px"
-      class="session-modal"
-    >
-      <el-form :model="formData" label-position="top" class="session-form">
-        <el-form-item label="Hotel *" required>
-          <el-select v-model="formData.hotelId" style="width: 100%">
-            <el-option
-              v-for="hotel in userHotels"
-              :key="hotel.id"
-              :label="hotel.nombre"
-              :value="hotel.id"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Fotógrafo Asignado *" required>
-          <el-select v-model="formData.fotografoId" style="width: 100%">
-            <el-option
-              v-for="photographer in photographers"
-              :key="photographer.id"
-              :label="`${photographer.nombre} ${photographer.apellidos}`"
-              :value="photographer.id"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Nombre del Cliente *" required>
-          <el-input
-            v-model="formData.clienteNombre"
-            placeholder="Ej. Familia López / Pareja Smith"
-            :prefix-icon="User"
-          />
-        </el-form-item>
-
-        <div class="form-row-2">
-          <el-form-item label="Email del Cliente">
-            <el-input
-              v-model="formData.clienteEmail"
-              placeholder="cliente@ejemplo.com"
-              :prefix-icon="Message"
-            />
-          </el-form-item>
-
-          <el-form-item label="Teléfono del Cliente">
-            <el-input
-              v-model="formData.clienteTelefono"
-              placeholder="+34 600 000 000"
-              :prefix-icon="Phone"
-            />
-          </el-form-item>
-        </div>
-
-        <div class="form-row-2">
-          <el-form-item label="Fecha y Hora Inicio *" required>
-            <el-input
-              v-model="formData.fechaHoraInicio"
-              type="datetime-local"
-              class="datetime-input"
-            />
-          </el-form-item>
-
-          <el-form-item label="Fecha y Hora Fin *" required>
-            <el-input
-              v-model="formData.fechaHoraFin"
-              type="datetime-local"
-              class="datetime-input"
-            />
-          </el-form-item>
-        </div>
-
-        <el-form-item label="Notas Adicionales">
-          <el-input
-            v-model="formData.notas"
-            type="textarea"
-            :rows="3"
-            placeholder="Ej. Fotos en la playa al atardecer, vestidos de blanco."
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="sessionModalVisible = false">Cancelar</el-button>
-          <el-button type="primary" :icon="Check" :loading="isSaving" @click="handleSaveSession">
-            Agendar Sesión
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -479,34 +334,25 @@ async function handleSaveSession() {
   gap: 2px;
 }
 
-/*--------------------------------_*/
-
 /* Estilo base para todos los botones del grupo */
 :deep(.fc-button-group .fc-button) {
-  border-radius: 0 !important; /* Quita el redondeado por defecto */
+  border-radius: 0 !important;
 }
 
-/* Redondea solo el primer botón (Mes en tu imagen) */
+/* Redondea solo el primer botón (Mes) */
 :deep(.fc-button-group .fc-button:first-child) {
   border-top-left-radius: 4px !important;
   border-bottom-left-radius: 4px !important;
 }
 
-/* Redondea solo el último botón (Agenda en tu imagen) */
+/* Redondea solo el último botón (Agenda) */
 :deep(.fc-button-group .fc-button:last-child) {
   border-top-right-radius: 4px !important;
   border-bottom-right-radius: 4px !important;
 }
-/*--------------------------------_*/
 
 :deep(.fc-button-group > .fc-button) {
   margin-right: 0;
-}
-
-.form-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
 }
 
 .fab-btn {
@@ -518,12 +364,6 @@ async function handleSaveSession() {
   height: 56px;
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
   z-index: 99;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
 }
 
 @media (max-width: 768px) {
@@ -547,15 +387,6 @@ async function handleSaveSession() {
 
   .fab-btn {
     display: inline-flex;
-  }
-
-  .form-row-2 {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  :deep(.session-modal .el-dialog) {
-    width: 92% !important;
   }
 }
 </style>

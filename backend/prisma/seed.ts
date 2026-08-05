@@ -323,7 +323,7 @@ async function main() {
     if (countHrlc === 0) {
       const tomorrow = new Date(Date.now() + 86400000)
       const start = new Date(tomorrow.setHours(10, 0, 0, 0))
-      const end = new Date(tomorrow.setHours(11, 0, 0, 0))
+      const departure = new Date(tomorrow.getTime() + 86400000 * 3)
       await prisma.sesionFotografica.create({
         data: {
           hotelId: hrlc.id,
@@ -332,8 +332,12 @@ async function main() {
           clienteNombre: 'Familia García',
           clienteEmail: 'garcia@ejemplo.com',
           clienteTelefono: '+34 611 223 344',
+          numeroHabitacion: '304B',
+          numAdultos: 2,
+          numNinos: 2,
+          fechaSalida: departure,
+          concepto: 'Foto familiar',
           fechaHoraInicio: start,
-          fechaHoraFin: end,
           estado: 'PROGRAMADA',
           origen: 'MANUAL',
           notas: 'Sesión al atardecer en la playa de HRLC',
@@ -347,7 +351,7 @@ async function main() {
     if (countNobu === 0) {
       const inTwoDays = new Date(Date.now() + 172800000)
       const start = new Date(inTwoDays.setHours(16, 0, 0, 0))
-      const end = new Date(inTwoDays.setHours(17, 0, 0, 0))
+      const departure = new Date(inTwoDays.getTime() + 86400000 * 2)
       await prisma.sesionFotografica.create({
         data: {
           hotelId: nobu.id,
@@ -356,8 +360,12 @@ async function main() {
           clienteNombre: 'Pareja Martínez',
           clienteEmail: 'martinez@ejemplo.com',
           clienteTelefono: '+34 699 887 766',
+          numeroHabitacion: 'Villa 12',
+          numAdultos: 2,
+          numNinos: 0,
+          fechaSalida: departure,
+          concepto: 'Pedida de matrimonio',
           fechaHoraInicio: start,
-          fechaHoraFin: end,
           estado: 'PROGRAMADA',
           origen: 'MANUAL',
           notas: 'Sesión romántica cerca de la piscina en Nobu',

@@ -6,6 +6,7 @@ import { useCountryStore } from '@/features/countries/stores/country.store'
 import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
 import { canAccessRoute, getRolePermissions } from '@/shared/permissions'
 import logoJJ from '@/assets/logoJJ.png'
+import es from 'element-plus/es/locale/lang/es'
 import {
   House,
   Setting,
@@ -117,150 +118,68 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- Vista de Login sin Sidebar/Toolbar -->
-  <div v-if="isLoginPage" class="full-screen-wrapper">
-    <RouterView />
-  </div>
+  <el-config-provider :locale="es">
+    <!-- Vista de Login sin Sidebar/Toolbar -->
+    <div v-if="isLoginPage" class="full-screen-wrapper">
+      <RouterView />
+    </div>
 
-  <!-- Vista Principal de la App con Sidebar y Toolbar -->
-  <div v-else class="app-container">
-    <!-- Menú lateral izquierdo (Desktop) -->
-    <aside class="sidebar desktop-sidebar">
-      <div class="brand">
-        <div class="brand-info">
-          <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
-          <span class="brand-title">JJ Studio</span>
-        </div>
-      </div>
-
-      <nav class="sidebar-nav">
-        <RouterLink to="/inicio" class="nav-link">
-          <el-icon :size="18"><House /></el-icon>
-          <span>Inicio</span>
-        </RouterLink>
-
-        <RouterLink v-if="canSeeAgenda" to="/agenda" class="nav-link">
-          <el-icon :size="18"><Calendar /></el-icon>
-          <span>Agenda</span>
-        </RouterLink>
-
-        <RouterLink v-if="canSeeConfig" to="/configuracion" class="nav-link">
-          <el-icon :size="18"><Setting /></el-icon>
-          <span>Configuración</span>
-        </RouterLink>
-
-        <RouterLink v-if="canSeeUsers" to="/usuarios" class="nav-link">
-          <el-icon :size="18"><User /></el-icon>
-          <span>Usuarios</span>
-        </RouterLink>
-
-        <!-- Línea de separación -->
-        <div class="sidebar-divider" v-if="filteredCountriesTree.length > 0"></div>
-
-        <!-- Estructura Jerárquica: Países -> Áreas -> Hoteles (filtrado por rol) -->
-        <div class="sidebar-tree" v-if="filteredCountriesTree.length > 0">
-          <div v-for="pais in filteredCountriesTree" :key="pais.id" class="tree-country-group">
-            <!-- Nivel 1: País (sin bandera) -->
-            <div class="tree-node node-country">
-              <span class="node-text">{{ pais.nombre }}</span>
-            </div>
-
-            <!-- Nivel 2: Áreas -->
-            <div v-for="area in pais.areas" :key="area.id" class="tree-area-group">
-              <div class="tree-node node-area">
-                <el-icon :size="18" class="node-icon area-icon"><Location /></el-icon>
-                <span class="node-text">{{ area.nombre }}</span>
-              </div>
-
-              <!-- Nivel 3: Hoteles (Clicables) -->
-              <div
-                v-for="hotel in area.hoteles"
-                :key="hotel.id"
-                class="tree-node node-hotel clickable-node"
-                title="Ver agenda del hotel"
-                @click="handleSelectHotelNode(hotel.id)"
-              >
-                <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
-                <span class="node-text">{{ hotel.nombre }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Drawer Lateral de Navegación (Móvil) -->
-    <el-drawer
-      v-model="isMobileDrawerOpen"
-      direction="ltr"
-      size="100%"
-      :with-header="false"
-      class="mobile-drawer"
-    >
-      <div class="sidebar mobile-drawer-content">
-        <div class="brand mobile-drawer-brand">
+    <!-- Vista Principal de la App con Sidebar y Toolbar -->
+    <div v-else class="app-container">
+      <!-- Menú lateral izquierdo (Desktop) -->
+      <aside class="sidebar desktop-sidebar">
+        <div class="brand">
           <div class="brand-info">
             <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
             <span class="brand-title">JJ Studio</span>
           </div>
-          <el-button
-            circle
-            class="close-drawer-btn"
-            :icon="Close"
-            @click="closeMobileDrawer"
-            aria-label="Cerrar menú de navegación"
-          />
         </div>
 
         <nav class="sidebar-nav">
-          <RouterLink to="/inicio" class="nav-link" @click="closeMobileDrawer">
+          <RouterLink to="/inicio" class="nav-link">
             <el-icon :size="18"><House /></el-icon>
             <span>Inicio</span>
           </RouterLink>
 
-          <RouterLink
-            v-if="canSeeAgenda"
-            to="/agenda"
-            class="nav-link"
-            @click="closeMobileDrawer"
-          >
+          <RouterLink v-if="canSeeAgenda" to="/agenda" class="nav-link">
             <el-icon :size="18"><Calendar /></el-icon>
             <span>Agenda</span>
           </RouterLink>
 
-          <RouterLink
-            v-if="canSeeConfig"
-            to="/configuracion"
-            class="nav-link"
-            @click="closeMobileDrawer"
-          >
+          <RouterLink v-if="canSeeConfig" to="/configuracion" class="nav-link">
             <el-icon :size="18"><Setting /></el-icon>
             <span>Configuración</span>
           </RouterLink>
 
-          <RouterLink v-if="canSeeUsers" to="/usuarios" class="nav-link" @click="closeMobileDrawer">
+          <RouterLink v-if="canSeeUsers" to="/usuarios" class="nav-link">
             <el-icon :size="18"><User /></el-icon>
             <span>Usuarios</span>
           </RouterLink>
 
+          <!-- Línea de separación -->
           <div class="sidebar-divider" v-if="filteredCountriesTree.length > 0"></div>
 
+          <!-- Estructura Jerárquica: Países -> Áreas -> Hoteles (filtrado por rol) -->
           <div class="sidebar-tree" v-if="filteredCountriesTree.length > 0">
             <div v-for="pais in filteredCountriesTree" :key="pais.id" class="tree-country-group">
+              <!-- Nivel 1: País (sin bandera) -->
               <div class="tree-node node-country">
                 <span class="node-text">{{ pais.nombre }}</span>
               </div>
 
+              <!-- Nivel 2: Áreas -->
               <div v-for="area in pais.areas" :key="area.id" class="tree-area-group">
                 <div class="tree-node node-area">
                   <el-icon :size="18" class="node-icon area-icon"><Location /></el-icon>
                   <span class="node-text">{{ area.nombre }}</span>
                 </div>
 
+                <!-- Nivel 3: Hoteles (Clicables) -->
                 <div
                   v-for="hotel in area.hoteles"
                   :key="hotel.id"
                   class="tree-node node-hotel clickable-node"
+                  title="Ver agenda del hotel"
                   @click="handleSelectHotelNode(hotel.id)"
                 >
                   <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
@@ -270,66 +189,150 @@ onMounted(async () => {
             </div>
           </div>
         </nav>
-      </div>
-    </el-drawer>
+      </aside>
 
-    <!-- Área principal con Toolbar superior + Contenido -->
-    <div class="main-wrapper">
-      <header class="app-toolbar-container">
-        <div class="app-toolbar">
-          <div class="toolbar-left">
+      <!-- Drawer Lateral de Navegación (Móvil) -->
+      <el-drawer
+        v-model="isMobileDrawerOpen"
+        direction="ltr"
+        size="100%"
+        :with-header="false"
+        class="mobile-drawer"
+      >
+        <div class="sidebar mobile-drawer-content">
+          <div class="brand mobile-drawer-brand">
+            <div class="brand-info">
+              <img :src="logoJJ" alt="Logo JJ Studio" class="brand-logo" />
+              <span class="brand-title">JJ Studio</span>
+            </div>
             <el-button
-              class="mobile-menu-btn"
               circle
-              :icon="Menu"
-              @click="isMobileDrawerOpen = true"
-              aria-label="Abrir menú de navegación"
+              class="close-drawer-btn"
+              :icon="Close"
+              @click="closeMobileDrawer"
+              aria-label="Cerrar menú de navegación"
             />
           </div>
 
-          <!-- Conmutador de tema centrado -->
-          <div class="theme-switcher">
-            <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"
-              ><Sunny
-            /></el-icon>
-            <el-switch v-model="isDark" @change="toggleTheme" />
-            <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"
-              ><Moon
-            /></el-icon>
-          </div>
+          <nav class="sidebar-nav">
+            <RouterLink to="/inicio" class="nav-link" @click="closeMobileDrawer">
+              <el-icon :size="18"><House /></el-icon>
+              <span>Inicio</span>
+            </RouterLink>
 
-          <div class="toolbar-right">
-            <!-- Usuario autenticado -->
-            <div v-if="authStore.user" class="user-badge">
-              <el-avatar :src="userAvatar" shape="circle" :size="36" class="topbar-avatar" />
-              <div class="user-info">
-                <span class="user-name"
-                  >{{ authStore.user.nombre }} {{ authStore.user.apellidos }}</span
-                >
-                <span class="user-role">{{ authStore.user.roleName }}</span>
+            <RouterLink
+              v-if="canSeeAgenda"
+              to="/agenda"
+              class="nav-link"
+              @click="closeMobileDrawer"
+            >
+              <el-icon :size="18"><Calendar /></el-icon>
+              <span>Agenda</span>
+            </RouterLink>
+
+            <RouterLink
+              v-if="canSeeConfig"
+              to="/configuracion"
+              class="nav-link"
+              @click="closeMobileDrawer"
+            >
+              <el-icon :size="18"><Setting /></el-icon>
+              <span>Configuración</span>
+            </RouterLink>
+
+            <RouterLink v-if="canSeeUsers" to="/usuarios" class="nav-link" @click="closeMobileDrawer">
+              <el-icon :size="18"><User /></el-icon>
+              <span>Usuarios</span>
+            </RouterLink>
+
+            <div class="sidebar-divider" v-if="filteredCountriesTree.length > 0"></div>
+
+            <div class="sidebar-tree" v-if="filteredCountriesTree.length > 0">
+              <div v-for="pais in filteredCountriesTree" :key="pais.id" class="tree-country-group">
+                <div class="tree-node node-country">
+                  <span class="node-text">{{ pais.nombre }}</span>
+                </div>
+
+                <div v-for="area in pais.areas" :key="area.id" class="tree-area-group">
+                  <div class="tree-node node-area">
+                    <el-icon :size="18" class="node-icon area-icon"><Location /></el-icon>
+                    <span class="node-text">{{ area.nombre }}</span>
+                  </div>
+
+                  <div
+                    v-for="hotel in area.hoteles"
+                    :key="hotel.id"
+                    class="tree-node node-hotel clickable-node"
+                    @click="handleSelectHotelNode(hotel.id)"
+                  >
+                    <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+                    <span class="node-text">{{ hotel.nombre }}</span>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <!-- Botón Cerrar Sesión -->
-            <el-button
-              type="danger"
-              link
-              :icon="SwitchButton"
-              title="Cerrar sesión"
-              @click="handleLogout"
-              class="logout-btn"
-            >
-              <span class="logout-text">Salir</span>
-            </el-button>
-          </div>
+          </nav>
         </div>
-      </header>
+      </el-drawer>
 
-      <main class="main-content">
-        <RouterView />
-      </main>
+      <!-- Área principal con Toolbar superior + Contenido -->
+      <div class="main-wrapper">
+        <header class="app-toolbar-container">
+          <div class="app-toolbar">
+            <div class="toolbar-left">
+              <el-button
+                class="mobile-menu-btn"
+                circle
+                :icon="Menu"
+                @click="isMobileDrawerOpen = true"
+                aria-label="Abrir menú de navegación"
+              />
+            </div>
+
+            <!-- Conmutador de tema centrado -->
+            <div class="theme-switcher">
+              <el-icon class="theme-icon sun-icon" :class="{ active: !isDark }" :size="18"
+                ><Sunny
+              /></el-icon>
+              <el-switch v-model="isDark" @change="toggleTheme" />
+              <el-icon class="theme-icon moon-icon" :class="{ active: isDark }" :size="18"
+                ><Moon
+              /></el-icon>
+            </div>
+
+            <div class="toolbar-right">
+              <!-- Usuario autenticado -->
+              <div v-if="authStore.user" class="user-badge">
+                <el-avatar :src="userAvatar" shape="circle" :size="36" class="topbar-avatar" />
+                <div class="user-info">
+                  <span class="user-name"
+                    >{{ authStore.user.nombre }} {{ authStore.user.apellidos }}</span
+                  >
+                  <span class="user-role">{{ authStore.user.roleName }}</span>
+                </div>
+              </div>
+
+              <!-- Botón Cerrar Sesión -->
+              <el-button
+                type="danger"
+                link
+                :icon="SwitchButton"
+                title="Cerrar sesión"
+                @click="handleLogout"
+                class="logout-btn"
+              >
+                <span class="logout-text">Salir</span>
+              </el-button>
+            </div>
+          </div>
+        </header>
+
+        <main class="main-content">
+          <RouterView />
+        </main>
+      </div>
     </div>
-  </div>
+  </el-config-provider>
 </template>
 
 <style scoped>

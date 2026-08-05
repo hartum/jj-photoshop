@@ -8,6 +8,7 @@ import UsuariosView from '@/features/users/ui/UsuariosView.vue'
 import UsuarioFormView from '@/features/users/ui/UsuarioFormView.vue'
 import HotelFormView from '@/features/hotels/ui/HotelFormView.vue'
 import HotelCalendarView from '@/features/photo-sessions/ui/HotelCalendarView.vue'
+import PhotoSessionFormView from '@/features/photo-sessions/ui/PhotoSessionFormView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +33,12 @@ const router = createRouter({
       path: '/agenda',
       name: 'agenda',
       component: HotelCalendarView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/agenda/nueva',
+      name: 'sesion-nueva',
+      component: PhotoSessionFormView,
       meta: { requiresAuth: true },
     },
     {

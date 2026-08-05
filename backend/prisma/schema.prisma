@@ -125,8 +125,12 @@ model SesionFotografica {
   clienteNombre         String    @map("cliente_nombre")
   clienteEmail          String?   @map("cliente_email")
   clienteTelefono       String?   @map("cliente_telefono")
+  numeroHabitacion      String?   @map("numero_habitacion")
+  numAdultos            Int       @default(1) @map("num_adultos")
+  numNinos              Int       @default(0) @map("num_ninos")
+  fechaSalida           DateTime? @map("fecha_salida")
+  concepto              String?   @map("concepto")
   fechaHoraInicio       DateTime  @map("fecha_hora_inicio")
-  fechaHoraFin          DateTime  @map("fecha_hora_fin")
   estado                String    @default("PROGRAMADA")
   origen                String    @default("MANUAL")
   notas                 String?   @db.Text

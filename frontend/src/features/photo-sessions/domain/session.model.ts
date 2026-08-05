@@ -9,8 +9,12 @@ export interface SesionFotografica {
   clienteNombre: string
   clienteEmail?: string
   clienteTelefono?: string
+  numeroHabitacion?: string
+  numAdultos?: number
+  numNinos?: number
+  fechaSalida?: string
+  concepto?: string
   fechaHoraInicio: string // ISO string
-  fechaHoraFin: string // ISO string
   estado: EstadoSesion
   origen: OrigenSesion
   notas?: string
@@ -25,7 +29,11 @@ export interface CreateSesionPayload {
   clienteNombre: string
   clienteEmail?: string
   clienteTelefono?: string
+  numeroHabitacion?: string
+  numAdultos?: number
+  numNinos?: number
+  fechaSalida?: string
+  concepto?: string
   fechaHoraInicio: string
-  fechaHoraFin: string
   notas?: string
 }
