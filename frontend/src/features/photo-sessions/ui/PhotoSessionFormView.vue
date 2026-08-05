@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
@@ -8,6 +8,7 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import type { CreateSesionPayload } from '../domain/session.model'
 import { User, Message, Phone, Check, ArrowLeft, OfficeBuilding } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { IosDatepicker } from 'vue-ios-style-datepicker'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,7 +70,53 @@ const photographers = computed(() => {
   return userStore.usersWithProfile.filter((u) => u.perfil?.code?.toUpperCase() === 'FOTOGRAFO')
 })
 
+// Mobile detection state
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+// Computed Date object adapter for IosDatepicker (for mobile)
+const mobileDateValue = computed<Date>({
+  get() {
+    if (!formData.value.fechaHoraInicio) return new Date()
+    const d = new Date(formData.value.fechaHoraInicio)
+    return isNaN(d.getTime()) ? new Date() : d
+  },
+  set(val: Date | null | undefined) {
+    if (val && val instanceof Date && !isNaN(val.getTime())) {
+      const year = val.getFullYear()
+      const month = String(val.getMonth() + 1).padStart(2, '0')
+      const day = String(val.getDate()).padStart(2, '0')
+      const hours = String(val.getHours()).padStart(2, '0')
+      const minutes = String(val.getMinutes()).padStart(2, '0')
+      formData.value.fechaHoraInicio = `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+  },
+})
+
+// Computed Date object adapter for IosDatepicker (fechaSalida for mobile)
+const mobileFechaSalidaValue = computed<Date>({
+  get() {
+    if (!formData.value.fechaSalida) return new Date()
+    const d = new Date(formData.value.fechaSalida)
+    return isNaN(d.getTime()) ? new Date() : d
+  },
+  set(val: Date | null | undefined) {
+    if (val && val instanceof Date && !isNaN(val.getTime())) {
+      const year = val.getFullYear()
+      const month = String(val.getMonth() + 1).padStart(2, '0')
+      const day = String(val.getDate()).padStart(2, '0')
+      formData.value.fechaSalida = `${year}-${month}-${day}`
+    }
+  },
+})
+
 onMounted(async () => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
   await Promise.all([hotelStore.fetchHotels(), userStore.fetchUsers()])
 
   // Prefill hotelId from route query or default to user's first hotel
@@ -94,6 +141,10 @@ onMounted(async () => {
   const now = new Date()
   formData.value.fechaHoraInicio =
     queryStart || new Date(now.getTime() + 3600000).toISOString().slice(0, 16)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 
 function handleGoBack() {
@@ -246,7 +297,21 @@ async function handleSaveSession() {
         <!-- Fila 5: Fechas (Inicio, Salida) -->
         <div class="form-row-2">
           <el-form-item label="Fecha y Hora Inicio *" required>
+            <!-- Selector para Móvil (vue-ios-style-datepicker) -->
+            <div v-if="isMobile" class="ios-datepicker-container">
+              <IosDatepicker
+                v-model="mobileDateValue"
+                mode="datetime"
+                locale="es"
+                :use24-hour="true"
+                confirm-text="Confirmar"
+                cancel-text="Cancelar"
+              />
+            </div>
+
+            <!-- Selector para Desktop (Element Plus) -->
             <el-date-picker
+              v-else
               v-model="formData.fechaHoraInicio"
               type="datetime"
               format="YYYY-MM-DD HH:mm"
@@ -257,7 +322,18 @@ async function handleSaveSession() {
           </el-form-item>
 
           <el-form-item label="Fecha de Salida (Hotel)">
+            <!-- Selector para Móvil (vue-ios-style-datepicker) -->
+            <div v-if="isMobile" class="ios-datepicker-container">
+              <IosDatepicker
+                v-model="mobileFechaSalidaValue"
+                mode="date"
+                locale="es"
+              />
+            </div>
+
+            <!-- Selector para Desktop (Element Plus) -->
             <el-date-picker
+              v-else
               v-model="formData.fechaSalida"
               type="date"
               value-format="YYYY-MM-DD"
@@ -386,6 +462,22 @@ async function handleSaveSession() {
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--toolbar-border, #f1f5f9);
+}
+
+.ios-datepicker-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  background-color: var(--el-fill-color-blank, #ffffff);
+}
+:deep(.ios-selector-option) {
+  color: unset !important;
+}
+.ios-datepicker-container :deep(.ios-datepicker__actions) {
+  display: none !important;
 }
 
 @media (max-width: 768px) {
