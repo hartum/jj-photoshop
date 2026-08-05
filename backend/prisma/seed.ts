@@ -106,8 +106,8 @@ async function main() {
     where: { email: 'admin@admin.com' },
     update: { passwordHash: passAdmin },
     create: {
-      nombre: 'Carlos',
-      apellidos: 'Mendoza',
+      nombre: 'Joaquín',
+      apellidos: 'Rodriguez',
       email: 'admin@admin.com',
       telefono: '+34 612 345 678',
       passwordHash: passAdmin,
