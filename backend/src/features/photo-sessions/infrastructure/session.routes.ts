@@ -1,6 +1,18 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../../shared/db.js'
 
+function getAuthUserId(request: any): string | null {
+  try {
+    const authHeader = request.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null
+    const token = authHeader.substring(7)
+    const decoded = request.server.jwt.decode(token) as { id: string } | null
+    return decoded?.id || null
+  } catch {
+    return null
+  }
+}
+
 export async function sessionRoutes(fastify: FastifyInstance) {
   // GET /api/sesiones (Obtiene las sesiones fotográficas activas)
   fastify.get('/api/sesiones', async (request, reply) => {
@@ -25,7 +37,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       const mapped = sesiones.map((s) => ({
         id: s.id,
         hotelId: s.hotelId,
-        fotografoId: s.fotografoId,
+        fotografoId: s.fotografoId || null,
         creadorId: s.creadorId,
         clienteNombre: s.clienteNombre,
         clienteEmail: s.clienteEmail || '',
@@ -57,8 +69,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     try {
       const body = request.body as {
         hotelId: number
-        fotografoId: string
-        creadorId?: string
+        fotografoId?: string | null
+        creadorId?: string | null
         clienteNombre: string
         clienteEmail?: string
         clienteTelefono?: string
@@ -73,21 +85,27 @@ export async function sessionRoutes(fastify: FastifyInstance) {
 
       if (
         !body.hotelId ||
-        !body.fotografoId ||
         !body.clienteNombre ||
         !body.fechaHoraInicio
       ) {
         return reply
           .status(400)
-          .send({ error: 'Faltan campos obligatorios (hotelId, fotografoId, clienteNombre, fechaHoraInicio)' })
+          .send({ error: 'Faltan campos obligatorios (hotelId, clienteNombre, fechaHoraInicio)' })
       }
 
-      const creadorId = body.creadorId || body.fotografoId
+      const fotografoId = body.fotografoId ? body.fotografoId : null
+      const creadorId = body.creadorId || getAuthUserId(request) || fotografoId
+
+      if (!creadorId) {
+        return reply
+          .status(400)
+          .send({ error: 'Debes proporcionar un creadorId válido o token de usuario autenticado' })
+      }
 
       const nueva = await prisma.sesionFotografica.create({
         data: {
           hotelId: Number(body.hotelId),
-          fotografoId: body.fotografoId,
+          fotografoId: fotografoId,
           creadorId: creadorId,
           clienteNombre: body.clienteNombre.trim(),
           clienteEmail: body.clienteEmail ? body.clienteEmail.trim() : null,
@@ -107,7 +125,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       return reply.status(201).send({
         id: nueva.id,
         hotelId: nueva.hotelId,
-        fotografoId: nueva.fotografoId,
+        fotografoId: nueva.fotografoId || null,
         creadorId: nueva.creadorId,
         clienteNombre: nueva.clienteNombre,
         clienteEmail: nueva.clienteEmail || '',
@@ -138,7 +156,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       const id = Number(request.params && (request.params as any).id)
       const body = request.body as {
         hotelId?: number
-        fotografoId?: string
+        fotografoId?: string | null
         clienteNombre?: string
         clienteEmail?: string
         clienteTelefono?: string
@@ -156,7 +174,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         where: { id },
         data: {
           ...(body.hotelId !== undefined && { hotelId: Number(body.hotelId) }),
-          ...(body.fotografoId && { fotografoId: body.fotografoId }),
+          ...(body.fotografoId !== undefined && { fotografoId: body.fotografoId ? body.fotografoId : null }),
           ...(body.clienteNombre && { clienteNombre: body.clienteNombre.trim() }),
           ...(body.clienteEmail !== undefined && { clienteEmail: body.clienteEmail ? body.clienteEmail.trim() : null }),
           ...(body.clienteTelefono !== undefined && { clienteTelefono: body.clienteTelefono ? body.clienteTelefono.trim() : null }),
@@ -174,8 +192,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       return reply.send({
         id: actualizada.id,
         hotelId: actualizada.hotelId,
-        fotografoId: actualizada.fotografoId,
-        creadorId: actualizada.creadorId,
+        fotografoId: actualizada.fotografoId || null,
+        creadorId: actualizada.creadorId || null,
         clienteNombre: actualizada.clienteNombre,
         clienteEmail: actualizada.clienteEmail || '',
         clienteTelefono: actualizada.clienteTelefono || '',

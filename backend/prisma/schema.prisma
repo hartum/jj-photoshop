@@ -134,7 +134,7 @@ model UsuarioHotel {
 model SesionFotografica {
   id                    Int       @id @default(autoincrement())
   hotelId               Int       @map("hotel_id")
-  fotografoId           String    @map("fotografo_id")
+  fotografoId           String?   @map("fotografo_id")
   creadorId             String    @map("creador_id")
   clienteNombre         String    @map("cliente_nombre")
   clienteEmail          String?   @map("cliente_email")
@@ -153,9 +153,9 @@ model SesionFotografica {
   updatedAt             DateTime  @updatedAt @map("updated_at")
   deletedAt             DateTime? @map("deleted_at")
 
-  hotel     Hotel   @relation(fields: [hotelId], references: [id])
-  fotografo Usuario @relation("FotografoSesiones", fields: [fotografoId], references: [id])
-  creador   Usuario @relation("CreadorSesiones", fields: [creadorId], references: [id])
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  fotografo Usuario? @relation("FotografoSesiones", fields: [fotografoId], references: [id])
+  creador   Usuario  @relation("CreadorSesiones", fields: [creadorId], references: [id])
 
   @@map("sesiones_fotograficas")
 }

@@ -64,7 +64,8 @@ const userHotels = computed(() => {
   const user = authStore.user
   if (!user) return []
 
-  if (user.roleCode?.toUpperCase() === 'ADMIN' || user.roleCode?.toUpperCase() === 'GERENTE') {
+  const roleCode = user.roleCode?.toUpperCase()
+  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'GERENTE') {
     return hotelStore.hotels
   }
 
@@ -134,12 +135,10 @@ onMounted(async () => {
     formData.value.hotelId = userHotels.value[0]?.id ?? 0
   }
 
-  // Prefill photographer (current user if photographer, or first photographer in list)
+  // Prefill photographer (current user if photographer)
   const isPhotographer = currentUser.value?.roleCode?.toUpperCase() === 'FOTOGRAFO'
   if (isPhotographer && currentUser.value) {
     formData.value.fotografoId = currentUser.value.id
-  } else if (photographers.value.length > 0) {
-    formData.value.fotografoId = photographers.value[0]?.id ?? ''
   }
 
   // Prefill start date/time if provided in query
@@ -170,11 +169,6 @@ async function handleSaveSession() {
     return
   }
 
-  if (!formData.value.fotografoId) {
-    ElMessage.warning('Debes asignar un fotógrafo')
-    return
-  }
-
   if (!formData.value.fechaHoraInicio) {
     ElMessage.warning('Debes seleccionar la fecha y hora de inicio')
     return
@@ -182,7 +176,10 @@ async function handleSaveSession() {
 
   isSaving.value = true
   try {
-    await sessionStore.addSession(formData.value)
+    await sessionStore.addSession({
+      ...formData.value,
+      creadorId: currentUser.value?.id,
+    })
     ElMessage.success('Sesión fotográfica agendada correctamente')
     handleGoBack()
   } catch (err: unknown) {
@@ -231,12 +228,14 @@ async function handleSaveSession() {
             </el-select>
           </el-form-item>
 
-          <el-form-item label="Fotógrafo Asignado *" required>
+          <el-form-item label="Fotógrafo Asignado">
             <el-select
               v-model="formData.fotografoId"
               style="width: 100%"
-              placeholder="Selecciona fotógrafo"
+              placeholder="Sin fotógrafo asignado (opcional)"
+              clearable
             >
+              <el-option label="Sin fotógrafo asignado" value="" />
               <el-option
                 v-for="photographer in photographers"
                 :key="photographer.id"

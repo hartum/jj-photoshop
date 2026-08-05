@@ -4,7 +4,7 @@ export type OrigenSesion = 'MANUAL' | 'BOT'
 export interface SesionFotografica {
   id: number
   hotelId: number
-  fotografoId: string
+  fotografoId?: string | null
   creadorId: string
   clienteNombre: string
   clienteEmail?: string
@@ -25,7 +25,8 @@ export interface SesionFotografica {
 
 export interface CreateSesionPayload {
   hotelId: number
-  fotografoId: string
+  fotografoId?: string | null
+  creadorId?: string
   clienteNombre: string
   clienteEmail?: string
   clienteTelefono?: string
