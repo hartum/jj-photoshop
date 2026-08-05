@@ -57,6 +57,16 @@ async function main() {
     },
   })
 
+  const agendadorRole = await prisma.role.upsert({
+    where: { codigo: 'AGENDADOR' },
+    update: {},
+    create: {
+      codigo: 'AGENDADOR',
+      nombre: 'Agendador / Captador',
+      descripcion: 'Captación y reserva de citas para sesiones fotográficas',
+    },
+  })
+
   const contableRole = await prisma.role.upsert({
     where: { codigo: 'CONTABLE' },
     update: {},
@@ -73,6 +83,7 @@ async function main() {
   const passGerente = await bcrypt.hash('gerente', 10)
   const passSupervisor = await bcrypt.hash('supervisor', 10)
   const passFotografo = await bcrypt.hash('fotografo', 10)
+  const passAgendador = await bcrypt.hash('agendador', 10)
   const passContable = await bcrypt.hash('contable', 10)
 
   // SuperUsuario principal
@@ -150,13 +161,28 @@ async function main() {
     },
   })
 
+  // Agendador
+  const agendadorUser = await prisma.usuario.upsert({
+    where: { email: 'agendador@agendador.com' },
+    update: { passwordHash: passAgendador },
+    create: {
+      nombre: 'David',
+      apellidos: 'López',
+      email: 'agendador@agendador.com',
+      telefono: '+34 688 776 655',
+      passwordHash: passAgendador,
+      roleId: agendadorRole.id,
+      activo: true,
+    },
+  })
+
   // Contable
   await prisma.usuario.upsert({
     where: { email: 'contable@contable.com' },
     update: { passwordHash: passContable },
     create: {
       nombre: 'Pedro',
-      apellidos: 'Sánchez',
+      apellidos: 'Escalona',
       email: 'contable@contable.com',
       telefono: '+34 633 221 100',
       passwordHash: passContable,
@@ -262,29 +288,33 @@ async function main() {
     }
   }
 
-  // Asignar a fotógrafo los hoteles HRLC y Nobu en Los Cabos
+  // Asignar a fotógrafo y agendador los hoteles HRLC y Nobu en Los Cabos
   const hrlc = await prisma.hotel.findFirst({ where: { nombre: 'HRLC' } })
   const nobu = await prisma.hotel.findFirst({ where: { nombre: 'Nobu' } })
 
-  if (hrlc) {
-    const existing = await prisma.usuarioHotel.findFirst({
-      where: { usuarioId: fotografoUser.id, hotelId: hrlc.id },
-    })
-    if (!existing) {
-      await prisma.usuarioHotel.create({
-        data: { usuarioId: fotografoUser.id, hotelId: hrlc.id },
-      })
-    }
-  }
+  const staff = [fotografoUser, agendadorUser]
 
-  if (nobu) {
-    const existing = await prisma.usuarioHotel.findFirst({
-      where: { usuarioId: fotografoUser.id, hotelId: nobu.id },
-    })
-    if (!existing) {
-      await prisma.usuarioHotel.create({
-        data: { usuarioId: fotografoUser.id, hotelId: nobu.id },
+  for (const u of staff) {
+    if (hrlc) {
+      const existing = await prisma.usuarioHotel.findFirst({
+        where: { usuarioId: u.id, hotelId: hrlc.id },
       })
+      if (!existing) {
+        await prisma.usuarioHotel.create({
+          data: { usuarioId: u.id, hotelId: hrlc.id },
+        })
+      }
+    }
+
+    if (nobu) {
+      const existing = await prisma.usuarioHotel.findFirst({
+        where: { usuarioId: u.id, hotelId: nobu.id },
+      })
+      if (!existing) {
+        await prisma.usuarioHotel.create({
+          data: { usuarioId: u.id, hotelId: nobu.id },
+        })
+      }
     }
   }
 
@@ -298,7 +328,7 @@ async function main() {
         data: {
           hotelId: hrlc.id,
           fotografoId: fotografoUser.id,
-          creadorId: fotografoUser.id,
+          creadorId: agendadorUser.id,
           clienteNombre: 'Familia García',
           clienteEmail: 'garcia@ejemplo.com',
           clienteTelefono: '+34 611 223 344',
@@ -322,7 +352,7 @@ async function main() {
         data: {
           hotelId: nobu.id,
           fotografoId: fotografoUser.id,
-          creadorId: fotografoUser.id,
+          creadorId: agendadorUser.id,
           clienteNombre: 'Pareja Martínez',
           clienteEmail: 'martinez@ejemplo.com',
           clienteTelefono: '+34 699 887 766',

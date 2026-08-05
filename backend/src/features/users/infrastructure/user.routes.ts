@@ -115,6 +115,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         GERENTE: 'warning',
         SUPERVISOR: 'info',
         FOTOGRAFO: 'success',
+        AGENDADOR: 'success',
         CONTABLE: 'info',
       }
 

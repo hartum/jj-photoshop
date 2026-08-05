@@ -84,7 +84,10 @@ const selectedRoleCode = computed(() => {
 
 const isGerente = computed(() => selectedRoleCode.value === 'GERENTE')
 const isSupervisorOrFotografo = computed(
-  () => selectedRoleCode.value === 'SUPERVISOR' || selectedRoleCode.value === 'FOTOGRAFO',
+  () =>
+    selectedRoleCode.value === 'SUPERVISOR' ||
+    selectedRoleCode.value === 'FOTOGRAFO' ||
+    selectedRoleCode.value === 'AGENDADOR',
 )
 const isGlobalAccess = computed(
   () =>

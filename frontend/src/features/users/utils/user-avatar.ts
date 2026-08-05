@@ -1,5 +1,6 @@
 import userImg from '@/assets/users/user.png'
 import adminSvg from '@/assets/users/admin.svg'
+import agendadorSvg from '@/assets/users/agendador.svg'
 import contableSvg from '@/assets/users/contable.svg'
 import fotografoSvg from '@/assets/users/fotografo.svg'
 import gerenteSvg from '@/assets/users/gerente.svg'
@@ -12,6 +13,7 @@ const svgMap: Record<string, string> = {
   GERENTE: gerenteSvg,
   SUPERVISOR: supervisorSvg,
   FOTOGRAFO: fotografoSvg,
+  AGENDADOR: agendadorSvg,
   CONTABLE: contableSvg,
 }
 
