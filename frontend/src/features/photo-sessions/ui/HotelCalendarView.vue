@@ -388,5 +388,35 @@ function handleEventClick(clickInfo: {
   .fab-btn {
     display: inline-flex;
   }
+
+  /* ── FullCalendar toolbar: stack sections vertically on mobile ── */
+  :deep(.fc .fc-toolbar.fc-header-toolbar) {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  :deep(.fc-toolbar.fc-header-toolbar .fc-toolbar-chunk) {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Compact buttons on narrow viewports so all 4 views fit cleanly */
+  :deep(.fc-button-primary) {
+    padding: 14px 18px !important;
+    font-size: 0.75rem !important;
+    height: 28px !important;
+  }
+
+  :deep(.fc-toolbar-title) {
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .calendar-card {
+    padding: 0.75rem 0 0;
+  }
 }
 </style>
