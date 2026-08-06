@@ -360,7 +360,7 @@ async function handleSaveSession() {
             />
           </el-form-item>
 
-          <el-form-item label="Fecha de Salida (Hotel)">
+          <el-form-item label="Fecha de checkout">
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->
             <div v-if="isMobile" class="ios-datepicker-container">
               <IosDatepicker v-model="mobileFechaSalidaValue" mode="date" locale="es" />
