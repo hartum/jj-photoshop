@@ -28,7 +28,52 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       const { hotelId } = request.query as { hotelId?: string }
 
       const where: any = { deletedAt: null }
-      if (hotelId) {
+      const userId = getAuthUserId(request)
+
+      if (userId) {
+        const user = await prisma.usuario.findUnique({
+          where: { id: userId },
+          include: {
+            role: true,
+            hotelesAsignados: true,
+            areasAsignadas: true,
+          },
+        })
+
+        if (user) {
+          const roleCode = user.role.codigo.toUpperCase()
+          const isGlobalAccess = ['SUPERUSUARIO', 'ADMIN', 'CONTABLE'].includes(roleCode)
+
+          if (!isGlobalAccess) {
+            let allowedHotelIds: number[] = []
+
+            if (roleCode === 'GERENTE') {
+              const areaIds = user.areasAsignadas.map((a) => a.areaId)
+              const hotelsInAreas = await prisma.hotel.findMany({
+                where: { areaId: { in: areaIds }, deletedAt: null },
+                select: { id: true },
+              })
+              allowedHotelIds = hotelsInAreas.map((h) => h.id)
+            } else {
+              allowedHotelIds = user.hotelesAsignados.map((h) => h.hotelId)
+            }
+
+            if (hotelId) {
+              const reqHotelId = Number(hotelId)
+              if (!allowedHotelIds.includes(reqHotelId)) {
+                return reply.send([])
+              }
+              where.hotelId = reqHotelId
+            } else {
+              where.hotelId = { in: allowedHotelIds }
+            }
+          } else if (hotelId) {
+            where.hotelId = Number(hotelId)
+          }
+        } else if (hotelId) {
+          where.hotelId = Number(hotelId)
+        }
+      } else if (hotelId) {
         where.hotelId = Number(hotelId)
       }
 

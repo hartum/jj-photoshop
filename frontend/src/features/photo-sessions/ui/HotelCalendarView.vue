@@ -49,16 +49,24 @@ const selectedHotelId = ref<number | null>(null)
 // Current user context
 const currentUser = computed(() => authStore.user)
 
-// Hotels list accessible by current user
+// Hotels list accessible by current user based on role matrix
 const userHotels = computed(() => {
   const user = currentUser.value
   if (!user) return hotelStore.hotels
 
   const roleCode = user.roleCode?.toUpperCase()
-  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN') {
+  // SUPERUSUARIO, ADMIN, CONTABLE have global access to all hotels
+  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'CONTABLE') {
     return hotelStore.hotels
   }
 
+  // GERENTE has access to all hotels within their assigned area(s)
+  if (roleCode === 'GERENTE') {
+    const areaIds = new Set(user.areaIds || [])
+    return hotelStore.hotels.filter((h) => areaIds.has(h.areaId))
+  }
+
+  // SUPERVISOR, FOTOGRAFO, AGENDADOR have access only to explicitly assigned hotels
   const userHotelIds = new Set(user.hotelIds || [])
   return hotelStore.hotels.filter((h) => userHotelIds.has(h.id))
 })
@@ -75,6 +83,11 @@ const calendarEvents = computed(() => {
 
   if (selectedHotelId.value) {
     list = list.filter((s) => Number(s.hotelId) === Number(selectedHotelId.value))
+  } else {
+    // SECURITY FIX: When no specific hotel filter is selected ("Todos los Hoteles"),
+    // restrict sessions strictly to the hotels accessible by the current user!
+    const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+    list = list.filter((s) => allowedHotelIds.has(Number(s.hotelId)))
   }
 
   return list.map((session) => {
@@ -127,7 +140,7 @@ const calendarOptions = computed(() => ({
 
 function initSelectedHotel() {
   const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : null
-  if (queryHotelId && hotelStore.hotels.some((h) => h.id === queryHotelId)) {
+  if (queryHotelId && userHotels.value.some((h) => h.id === queryHotelId)) {
     selectedHotelId.value = queryHotelId
   } else if (selectedHotelId.value === null && userHotels.value.length > 0) {
     selectedHotelId.value = userHotels.value[0]?.id ?? null
