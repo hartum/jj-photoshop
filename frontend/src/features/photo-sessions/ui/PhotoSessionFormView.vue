@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
@@ -73,10 +73,32 @@ const userHotels = computed(() => {
   return hotelStore.hotels.filter((h) => userHotelIds.has(h.id))
 })
 
-// Photographers list for assignment
+// Photographers list for assignment (filtered by selected hotel)
 const photographers = computed(() => {
-  return userStore.usersWithProfile.filter((u) => u.perfil?.code?.toUpperCase() === 'FOTOGRAFO')
+  const selectedHotelId = Number(formData.value.hotelId)
+  if (!selectedHotelId) return []
+
+  return userStore.usersWithProfile.filter((u) => {
+    const isFotografo = u.perfil?.code?.toUpperCase() === 'FOTOGRAFO'
+    if (!isFotografo) return false
+    const assignedHotelIds = u.hotelIds || []
+    return assignedHotelIds.some((hId) => Number(hId) === selectedHotelId)
+  })
 })
+
+// Reset photographer selection when hotel changes if selected photographer is not in the new hotel
+watch(
+  () => formData.value.hotelId,
+  () => {
+    if (!formData.value.fotografoId) return
+    const isAvailable = photographers.value.some(
+      (p) => String(p.id) === String(formData.value.fotografoId),
+    )
+    if (!isAvailable) {
+      formData.value.fotografoId = ''
+    }
+  },
+)
 
 // Mobile detection state
 const isMobile = ref(false)
@@ -135,10 +157,15 @@ onMounted(async () => {
     formData.value.hotelId = userHotels.value[0]?.id ?? 0
   }
 
-  // Prefill photographer (current user if photographer)
+  // Prefill photographer (current user if photographer and assigned to selected hotel)
   const isPhotographer = currentUser.value?.roleCode?.toUpperCase() === 'FOTOGRAFO'
   if (isPhotographer && currentUser.value) {
-    formData.value.fotografoId = currentUser.value.id
+    const isAssigned = currentUser.value.hotelIds?.some(
+      (hId) => Number(hId) === Number(formData.value.hotelId),
+    )
+    if (isAssigned) {
+      formData.value.fotografoId = currentUser.value.id
+    }
   }
 
   // Prefill start date/time if provided in query
