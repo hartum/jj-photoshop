@@ -121,7 +121,7 @@ const calendarEvents = computed(() => {
   const now = new Date()
 
   // 1. Photo Session events
-  let sessionList = sessionStore.sessions.filter((s) => {
+  const sessionList = sessionStore.sessions.filter((s) => {
     if (selectedHotelId.value) {
       return Number(s.hotelId) === Number(selectedHotelId.value)
     }
@@ -166,8 +166,48 @@ const calendarEvents = computed(() => {
     }
   })
 
-  // 2. Sales Appointment events
-  let salesList = saleStore.citasVenta.filter((c) => {
+  // 2. Sales Appointment events (merged from saleStore and sessionStore)
+  const salesMap = new Map<
+    number,
+    {
+      id: number
+      hotelId: number
+      fechaHoraCita: string
+      estado: string
+      clienteNombre: string
+      numeroHabitacion?: string
+    }
+  >()
+
+  // Add from saleStore
+  saleStore.citasVenta.forEach((c) => {
+    salesMap.set(c.id, {
+      id: c.id,
+      hotelId: Number(c.hotelId),
+      fechaHoraCita: c.fechaHoraCita,
+      estado: c.estado,
+      clienteNombre: c.clienteNombre || 'Cliente',
+      numeroHabitacion: c.numeroHabitacion || undefined,
+    })
+  })
+
+  // Add from embedded session citaVenta
+  sessionStore.sessions.forEach((s) => {
+    if (s.citaVenta && s.citaVenta.id) {
+      if (!salesMap.has(s.citaVenta.id)) {
+        salesMap.set(s.citaVenta.id, {
+          id: s.citaVenta.id,
+          hotelId: Number(s.hotelId),
+          fechaHoraCita: s.citaVenta.fechaHoraCita,
+          estado: s.citaVenta.estado,
+          clienteNombre: s.clienteNombre || 'Cliente',
+          numeroHabitacion: s.numeroHabitacion || undefined,
+        })
+      }
+    }
+  })
+
+  const salesList = Array.from(salesMap.values()).filter((c) => {
     if (selectedHotelId.value) {
       return Number(c.hotelId) === Number(selectedHotelId.value)
     }
@@ -176,8 +216,10 @@ const calendarEvents = computed(() => {
 
   const salesEvents = salesList.map((sale) => {
     let color = '#10b981' // Verde para ventas completadas/programadas
-    if (sale.estado === 'NO_SHOW') color = '#ef4444' // Rojo para no-show
-    else if (sale.estado === 'CANCELADA') color = '#6b7280' // Gris para canceladas
+    if (sale.estado === 'NO_SHOW')
+      color = '#ef4444' // Rojo para no-show
+    else if (sale.estado === 'CANCELADA')
+      color = '#6b7280' // Gris para canceladas
     else if (sale.estado === 'PROGRAMADA') color = '#f59e0b' // Ámbar para programadas
 
     const roomStr = sale.numeroHabitacion ? ` (Hab ${sale.numeroHabitacion})` : ''
@@ -231,6 +273,17 @@ watch(
   () => route.query.hotelId,
   () => {
     initSelectedHotel()
+  },
+)
+
+watch(
+  () => selectedHotelId.value,
+  (newHotelId) => {
+    if (newHotelId) {
+      saleStore.fetchCitasVenta(Number(newHotelId))
+    } else {
+      saleStore.fetchCitasVenta()
+    }
   },
 )
 
@@ -306,6 +359,7 @@ function handleEventClick(clickInfo: {
           v-model="selectedHotelId"
           placeholder="Filtrar por Hotel"
           class="hotel-selector"
+          filterable
           clearable
         >
           <el-option
@@ -342,9 +396,16 @@ function handleEventClick(clickInfo: {
                 <div v-for="s in overdueSessions" :key="s.id" class="alert-item-card">
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
-                    <span class="item-sub">{{ s.fechaHoraInicio }} — {{ s.numeroHabitacion ? `Hab ${s.numeroHabitacion}` : '' }}</span>
+                    <span class="item-sub"
+                      >{{ s.fechaHoraInicio }} —
+                      {{ s.numeroHabitacion ? `Hab ${s.numeroHabitacion}` : '' }}</span
+                    >
                   </div>
-                  <el-button type="warning" size="small" @click="router.push(`/agenda/${s.id}/editar`)">
+                  <el-button
+                    type="warning"
+                    size="small"
+                    @click="router.push(`/agenda/${s.id}/editar`)"
+                  >
                     Cambiar Estado
                   </el-button>
                 </div>
@@ -360,7 +421,11 @@ function handleEventClick(clickInfo: {
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub">Completada el {{ s.fechaHoraInicio }}</span>
                   </div>
-                  <el-button type="primary" size="small" @click="router.push(`/ventas/nueva?sesionId=${s.id}`)">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="router.push(`/ventas/nueva?sesionId=${s.id}`)"
+                  >
                     Agendar Venta
                   </el-button>
                 </div>
@@ -376,7 +441,11 @@ function handleEventClick(clickInfo: {
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub">Cita: {{ s.citaVenta?.fechaHoraCita }}</span>
                   </div>
-                  <el-button type="danger" size="small" @click="router.push(`/ventas/${s.citaVenta?.id}/editar`)">
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="router.push(`/ventas/${s.citaVenta?.id}/editar`)"
+                  >
                     Reprogramar
                   </el-button>
                 </div>

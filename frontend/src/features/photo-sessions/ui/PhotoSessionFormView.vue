@@ -374,6 +374,7 @@ async function handleSaveSession() {
       }
     }
 
+    await Promise.all([sessionStore.fetchSessions(), saleStore.fetchCitasVenta()])
     handleGoBack()
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error al guardar la sesión'

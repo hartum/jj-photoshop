@@ -255,6 +255,7 @@ async function handleSave() {
         ElMessage.success('Cita de venta agendada correctamente')
       }
     }
+    await Promise.all([sessionStore.fetchSessions(), saleStore.fetchCitasVenta()])
     handleGoBack()
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error al guardar la cita de venta'
