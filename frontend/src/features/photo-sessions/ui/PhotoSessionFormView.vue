@@ -259,7 +259,7 @@ async function handleSaveSession() {
             <el-select
               v-model="formData.fotografoId"
               style="width: 100%"
-              placeholder="Sin fotógrafo asignado (opcional)"
+              placeholder="Sin fotógrafo asignado"
               clearable
             >
               <el-option label="Sin fotógrafo asignado" value="" />
@@ -372,7 +372,7 @@ async function handleSaveSession() {
               v-model="formData.fechaSalida"
               type="date"
               value-format="YYYY-MM-DD"
-              placeholder="yyyy-mm-dd"
+              placeholder="aaaa-mm-dd"
               style="width: 100%"
             />
           </el-form-item>
