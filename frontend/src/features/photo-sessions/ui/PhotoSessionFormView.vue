@@ -213,7 +213,7 @@ async function handleSaveSession() {
       >
         <!-- Fila 1: Hotel y Fotógrafo -->
         <div class="form-row-2">
-          <el-form-item label="Hotel *" required>
+          <el-form-item label="Hotel" required>
             <el-select
               v-model="formData.hotelId"
               style="width: 100%"
@@ -308,7 +308,7 @@ async function handleSaveSession() {
 
         <!-- Fila 5: Fechas (Inicio, Salida) -->
         <div class="form-row-2">
-          <el-form-item label="Fecha y Hora Inicio *" required>
+          <el-form-item label="Inicio de sesión" required>
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->
             <div v-if="isMobile" class="ios-datepicker-container">
               <IosDatepicker
@@ -387,11 +387,7 @@ async function handleSaveSession() {
           >
             Agendar Sesión
           </el-button>
-          <el-button
-            :size="isMobile ? 'large' : 'default'"
-            :icon="Close"
-            @click="handleGoBack"
-          >
+          <el-button :size="isMobile ? 'large' : 'default'" :icon="Close" @click="handleGoBack">
             Cancelar
           </el-button>
         </div>
