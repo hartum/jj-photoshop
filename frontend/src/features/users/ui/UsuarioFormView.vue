@@ -83,6 +83,7 @@ const selectedRoleCode = computed(() => {
   return selectedProfile.value?.code?.toUpperCase() || ''
 })
 
+const isFotografo = computed(() => selectedRoleCode.value === 'FOTOGRAFO')
 const isGerente = computed(() => selectedRoleCode.value === 'GERENTE')
 const isSupervisorOrFotografo = computed(
   () =>
@@ -342,6 +343,7 @@ async function handleSave() {
   try {
     const payload = {
       ...formData.value,
+      color: isFotografo.value ? formData.value.color : null,
       profileId: formData.value.profileId,
       areaIds: isGerente.value ? formData.value.areaIds : [],
       hotelIds: isSupervisorOrFotografo.value ? formData.value.hotelIds : [],
@@ -479,7 +481,7 @@ async function handleSave() {
         </el-select>
       </el-form-item>
 
-      <el-form-item label="Color asignado">
+      <el-form-item v-if="isFotografo" label="Color asignado">
         <div style="display: flex; align-items: center; gap: 12px">
           <el-color-picker v-model="formData.color" />
           <span

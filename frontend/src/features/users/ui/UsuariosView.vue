@@ -221,7 +221,10 @@ async function handleDeleteUser() {
 
         <el-table-column label="Color" width="90" align="center">
           <template #default="{ row }">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <div
+              v-if="row.perfil?.code?.toUpperCase() === 'FOTOGRAFO'"
+              style="display: flex; align-items: center; justify-content: center; gap: 6px;"
+            >
               <span
                 v-if="row.color"
                 :style="{ backgroundColor: row.color, width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #ffffff', boxShadow: '0 0 0 1px #cbd5e1', display: 'inline-block' }"
@@ -229,6 +232,7 @@ async function handleDeleteUser() {
               />
               <span v-else style="color: #94a3b8; font-size: 0.8rem;">—</span>
             </div>
+            <span v-else style="color: #cbd5e1; font-size: 0.8rem;">—</span>
           </template>
         </el-table-column>
 
