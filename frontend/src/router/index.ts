@@ -42,6 +42,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/agenda/:id/editar',
+      name: 'sesion-editar',
+      component: PhotoSessionFormView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/configuracion',
       name: 'configuracion',
       component: ConfiguracionView,

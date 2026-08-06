@@ -25,6 +25,9 @@ const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 
+const sessionId = computed(() => route.params.id as string | undefined)
+const isEditing = computed(() => !!sessionId.value)
+
 const isSaving = ref(false)
 
 const defaultConceptos = [
@@ -147,33 +150,65 @@ onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
-  await Promise.all([hotelStore.fetchHotels(), userStore.fetchUsers()])
+  await Promise.all([hotelStore.fetchHotels(), userStore.fetchUsers(), sessionStore.fetchSessions()])
 
-  // Prefill hotelId from route query or default to user's first hotel
-  const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : 0
-  if (queryHotelId && userHotels.value.some((h) => h.id === queryHotelId)) {
-    formData.value.hotelId = queryHotelId
-  } else if (userHotels.value.length > 0) {
-    formData.value.hotelId = userHotels.value[0]?.id ?? 0
-  }
+  if (isEditing.value && sessionId.value) {
+    const existing = sessionStore.sessions.find((s) => String(s.id) === String(sessionId.value))
+    if (existing) {
+      const ALLOWED_PAST_EDIT_ROLES = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'CONTABLE']
+      const isPast = new Date(existing.fechaHoraInicio) < new Date()
+      const role = currentUser.value?.roleCode?.toUpperCase() || ''
+      if (isPast && !ALLOWED_PAST_EDIT_ROLES.includes(role)) {
+        ElMessage.warning('No tienes permisos para editar sesiones cuya fecha ya ha pasado')
+        handleGoBack()
+        return
+      }
 
-  // Prefill photographer (current user if photographer and assigned to selected hotel)
-  const isPhotographer = currentUser.value?.roleCode?.toUpperCase() === 'FOTOGRAFO'
-  if (isPhotographer && currentUser.value) {
-    const isAssigned = currentUser.value.hotelIds?.some(
-      (hId) => Number(hId) === Number(formData.value.hotelId),
-    )
-    if (isAssigned) {
-      formData.value.fotografoId = currentUser.value.id
+      formData.value = {
+        hotelId: existing.hotelId,
+        fotografoId: existing.fotografoId || '',
+        clienteNombre: existing.clienteNombre,
+        numeroHabitacion: existing.numeroHabitacion || '',
+        clienteEmail: existing.clienteEmail || '',
+        clienteTelefono: existing.clienteTelefono || '',
+        numAdultos: existing.numAdultos ?? 1,
+        numNinos: existing.numNinos ?? 0,
+        fechaHoraInicio: existing.fechaHoraInicio,
+        fechaSalida: existing.fechaSalida || '',
+        concepto: existing.concepto || '',
+        notas: existing.notas || '',
+      }
+    } else {
+      ElMessage.error('Sesión fotográfica no encontrada')
+      handleGoBack()
     }
+  } else {
+    // Prefill hotelId from route query or default to user's first hotel
+    const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : 0
+    if (queryHotelId && userHotels.value.some((h) => h.id === queryHotelId)) {
+      formData.value.hotelId = queryHotelId
+    } else if (userHotels.value.length > 0) {
+      formData.value.hotelId = userHotels.value[0]?.id ?? 0
+    }
+
+    // Prefill photographer (current user if photographer and assigned to selected hotel)
+    const isPhotographer = currentUser.value?.roleCode?.toUpperCase() === 'FOTOGRAFO'
+    if (isPhotographer && currentUser.value) {
+      const isAssigned = currentUser.value.hotelIds?.some(
+        (hId) => Number(hId) === Number(formData.value.hotelId),
+      )
+      if (isAssigned) {
+        formData.value.fotografoId = currentUser.value.id
+      }
+    }
+
+    // Prefill start date/time if provided in query
+    const queryStart = route.query.start ? String(route.query.start) : ''
+
+    const now = new Date()
+    formData.value.fechaHoraInicio =
+      queryStart || new Date(now.getTime() + 3600000).toISOString().slice(0, 16)
   }
-
-  // Prefill start date/time if provided in query
-  const queryStart = route.query.start ? String(route.query.start) : ''
-
-  const now = new Date()
-  formData.value.fechaHoraInicio =
-    queryStart || new Date(now.getTime() + 3600000).toISOString().slice(0, 16)
 })
 
 onUnmounted(() => {
@@ -203,11 +238,29 @@ async function handleSaveSession() {
 
   isSaving.value = true
   try {
-    await sessionStore.addSession({
-      ...formData.value,
-      creadorId: currentUser.value?.id,
-    })
-    ElMessage.success('Sesión fotográfica agendada correctamente')
+    if (isEditing.value && sessionId.value) {
+      await sessionStore.updateSession(Number(sessionId.value), {
+        hotelId: formData.value.hotelId,
+        fotografoId: formData.value.fotografoId || null,
+        clienteNombre: formData.value.clienteNombre.trim(),
+        clienteEmail: formData.value.clienteEmail ? formData.value.clienteEmail.trim() : null,
+        clienteTelefono: formData.value.clienteTelefono ? formData.value.clienteTelefono.trim() : null,
+        numeroHabitacion: formData.value.numeroHabitacion ? formData.value.numeroHabitacion.trim() : null,
+        numAdultos: formData.value.numAdultos,
+        numNinos: formData.value.numNinos,
+        fechaSalida: formData.value.fechaSalida ? formData.value.fechaSalida : null,
+        concepto: formData.value.concepto ? formData.value.concepto.trim() : null,
+        fechaHoraInicio: formData.value.fechaHoraInicio,
+        notas: formData.value.notas ? formData.value.notas.trim() : null,
+      })
+      ElMessage.success('Sesión fotográfica actualizada correctamente')
+    } else {
+      await sessionStore.addSession({
+        ...formData.value,
+        creadorId: currentUser.value?.id,
+      })
+      ElMessage.success('Sesión fotográfica agendada correctamente')
+    }
     handleGoBack()
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error al guardar la sesión'
@@ -225,7 +278,9 @@ async function handleSaveSession() {
       <div class="header-left">
         <el-button :icon="ArrowLeft" circle class="back-btn" @click="handleGoBack" />
         <div>
-          <h1 class="page-title">Agendar Nueva Sesión Fotográfica</h1>
+          <h1 class="page-title">
+            {{ isEditing ? 'Editar Sesión Fotográfica' : 'Agendar Nueva Sesión Fotográfica' }}
+          </h1>
         </div>
       </div>
     </div>
@@ -412,7 +467,7 @@ async function handleSaveSession() {
             :loading="isSaving"
             @click="handleSaveSession"
           >
-            Agendar Sesión
+            {{ isEditing ? 'Guardar Cambios' : 'Agendar Sesión' }}
           </el-button>
           <el-button :size="isMobile ? 'large' : 'default'" :icon="Close" @click="handleGoBack">
             Cancelar

@@ -158,6 +158,17 @@ function navigateToNewSessionForm(startIso?: string) {
   router.push({ path: '/agenda/nueva', query })
 }
 
+const ALLOWED_PAST_EDIT_ROLES = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'CONTABLE']
+
+function canEditPastSession(session: SesionFotografica, userRoleCode?: string): boolean {
+  const sessionDate = new Date(session.fechaHoraInicio)
+  const isPast = sessionDate < new Date()
+  if (!isPast) return true
+
+  const role = userRoleCode?.toUpperCase() || ''
+  return ALLOWED_PAST_EDIT_ROLES.includes(role)
+}
+
 function handleDateSelect(selectInfo: { startStr: string }) {
   const startIso = new Date(selectInfo.startStr).toISOString().slice(0, 16)
   navigateToNewSessionForm(startIso)
@@ -167,16 +178,15 @@ function handleEventClick(clickInfo: {
   event: { extendedProps: { rawSession?: SesionFotografica } }
 }) {
   const session = clickInfo.event.extendedProps.rawSession
-  if (session) {
-    const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
-    const room = session.numeroHabitacion ? ` | Hab: ${session.numeroHabitacion}` : ''
-    const concepto = session.concepto ? ` | Concepto: ${session.concepto}` : ''
-    const salida = session.fechaSalida ? ` | Salida: ${session.fechaSalida}` : ''
-    ElMessage.info({
-      message: `Cliente: ${session.clienteNombre} (${paxStr}${room}${concepto}${salida}) - Estado: ${session.estado}`,
-      duration: 5000,
-    })
+  if (!session) return
+
+  const roleCode = currentUser.value?.roleCode
+  if (!canEditPastSession(session, roleCode)) {
+    ElMessage.warning('No tienes permisos para editar sesiones cuya fecha ya ha pasado')
+    return
   }
+
+  router.push(`/agenda/${session.id}/editar`)
 }
 </script>
 
