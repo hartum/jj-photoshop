@@ -19,6 +19,13 @@ export interface SesionFotografica {
   origen: OrigenSesion
   notas?: string | null
   googleCalendarEventId?: string | null
+  citaVenta?: {
+    id: number
+    fechaHoraCita: string
+    estado: string
+    numFotosVendidas?: number | null
+    totalVentaUsd?: number | null
+  } | null
   createdAt?: string
   updatedAt?: string
 }
@@ -36,5 +43,6 @@ export interface CreateSesionPayload {
   fechaSalida?: string | null
   concepto?: string | null
   fechaHoraInicio: string
+  estado?: EstadoSesion
   notas?: string | null
 }

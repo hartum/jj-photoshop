@@ -2,10 +2,12 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session.store'
+import { useSaleStore } from '@/features/sales/stores/sale.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
-import type { CreateSesionPayload } from '../domain/session.model'
+import type { CreateSesionPayload, EstadoSesion, SesionFotografica } from '../domain/session.model'
+import type { ConflictoCitaVenta } from '@/features/sales/domain/sale.model'
 import {
   User,
   Message,
@@ -21,12 +23,42 @@ import { IosDatepicker } from 'vue-ios-style-datepicker'
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
+const saleStore = useSaleStore()
 const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 
 const sessionId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!sessionId.value)
+const loadedSession = ref<SesionFotografica | null>(null)
+
+const fechaHoraCitaVenta = ref('')
+const conflictsCitaVenta = ref<ConflictoCitaVenta[]>([])
+
+const estadoSesionOptions: { value: EstadoSesion; label: string; color: string }[] = [
+  { value: 'PROGRAMADA', label: 'Programada', color: '#409eff' },
+  { value: 'COMPLETADA', label: 'Completada', color: '#67c23a' },
+  { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c' },
+  { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c' },
+]
+
+const alertOverdue = computed(() => {
+  if (!isEditing.value || !loadedSession.value) return false
+  const s = loadedSession.value
+  return s.estado === 'PROGRAMADA' && new Date(s.fechaHoraInicio) < new Date()
+})
+
+const alertNoSaleAppointment = computed(() => {
+  if (!isEditing.value || !loadedSession.value) return false
+  const s = loadedSession.value
+  return s.estado === 'COMPLETADA' && !s.citaVenta
+})
+
+const alertSaleNoShow = computed(() => {
+  if (!isEditing.value || !loadedSession.value) return false
+  const s = loadedSession.value
+  return s.citaVenta?.estado === 'NO_SHOW'
+})
 
 const isSaving = ref(false)
 
@@ -49,8 +81,26 @@ const formData = ref<CreateSesionPayload>({
   fechaHoraInicio: '',
   fechaSalida: '',
   concepto: '',
+  estado: 'PROGRAMADA',
   notas: '',
 })
+
+// Watch sales appointment date for conflict check
+watch(
+  () => fechaHoraCitaVenta.value,
+  async (newVal) => {
+    if (!newVal || !formData.value.hotelId) {
+      conflictsCitaVenta.value = []
+      return
+    }
+    const existingCitaId = loadedSession.value?.citaVenta?.id
+    conflictsCitaVenta.value = await saleStore.checkConflictos(
+      formData.value.hotelId,
+      newVal,
+      existingCitaId,
+    )
+  },
+)
 
 // Current user context
 const currentUser = computed(() => authStore.user)
@@ -146,15 +196,40 @@ const mobileFechaSalidaValue = computed<Date>({
   },
 })
 
+// Computed Date object adapter for IosDatepicker (fechaHoraCitaVenta for mobile)
+const mobileCitaVentaValue = computed<Date>({
+  get() {
+    if (!fechaHoraCitaVenta.value) return new Date()
+    const d = new Date(fechaHoraCitaVenta.value)
+    return isNaN(d.getTime()) ? new Date() : d
+  },
+  set(val: Date | null | undefined) {
+    if (val && val instanceof Date && !isNaN(val.getTime())) {
+      const year = val.getFullYear()
+      const month = String(val.getMonth() + 1).padStart(2, '0')
+      const day = String(val.getDate()).padStart(2, '0')
+      const hours = String(val.getHours()).padStart(2, '0')
+      const minutes = String(val.getMinutes()).padStart(2, '0')
+      fechaHoraCitaVenta.value = `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+  },
+})
+
 onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
-  await Promise.all([hotelStore.fetchHotels(), userStore.fetchUsers(), sessionStore.fetchSessions()])
+  await Promise.all([
+    hotelStore.fetchHotels(),
+    userStore.fetchUsers(),
+    sessionStore.fetchSessions(),
+    saleStore.fetchCitasVenta(),
+  ])
 
   if (isEditing.value && sessionId.value) {
     const existing = sessionStore.sessions.find((s) => String(s.id) === String(sessionId.value))
     if (existing) {
+      loadedSession.value = existing
       const ALLOWED_PAST_EDIT_ROLES = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'CONTABLE']
       const isPast = new Date(existing.fechaHoraInicio) < new Date()
       const role = currentUser.value?.roleCode?.toUpperCase() || ''
@@ -176,7 +251,12 @@ onMounted(async () => {
         fechaHoraInicio: existing.fechaHoraInicio,
         fechaSalida: existing.fechaSalida || '',
         concepto: existing.concepto || '',
+        estado: (existing.estado as EstadoSesion) || 'PROGRAMADA',
         notas: existing.notas || '',
+      }
+
+      if (existing.citaVenta) {
+        fechaHoraCitaVenta.value = existing.citaVenta.fechaHoraCita || ''
       }
     } else {
       ElMessage.error('Sesión fotográfica no encontrada')
@@ -214,8 +294,7 @@ onMounted(async () => {
       return `${year}-${month}-${day}T${hours}:${minutes}`
     }
 
-    formData.value.fechaHoraInicio =
-      queryStart || getLocalIsoString(new Date(Date.now() + 3600000))
+    formData.value.fechaHoraInicio = queryStart || getLocalIsoString(new Date(Date.now() + 3600000))
   }
 })
 
@@ -246,29 +325,55 @@ async function handleSaveSession() {
 
   isSaving.value = true
   try {
+    let savedSessionId: number
+
     if (isEditing.value && sessionId.value) {
-      await sessionStore.updateSession(Number(sessionId.value), {
+      savedSessionId = Number(sessionId.value)
+      await sessionStore.updateSession(savedSessionId, {
         hotelId: formData.value.hotelId,
         fotografoId: formData.value.fotografoId || null,
         clienteNombre: formData.value.clienteNombre.trim(),
         clienteEmail: formData.value.clienteEmail ? formData.value.clienteEmail.trim() : null,
-        clienteTelefono: formData.value.clienteTelefono ? formData.value.clienteTelefono.trim() : null,
-        numeroHabitacion: formData.value.numeroHabitacion ? formData.value.numeroHabitacion.trim() : null,
+        clienteTelefono: formData.value.clienteTelefono
+          ? formData.value.clienteTelefono.trim()
+          : null,
+        numeroHabitacion: formData.value.numeroHabitacion
+          ? formData.value.numeroHabitacion.trim()
+          : null,
         numAdultos: formData.value.numAdultos,
         numNinos: formData.value.numNinos,
         fechaSalida: formData.value.fechaSalida ? formData.value.fechaSalida : null,
         concepto: formData.value.concepto ? formData.value.concepto.trim() : null,
         fechaHoraInicio: formData.value.fechaHoraInicio,
+        estado: formData.value.estado,
         notas: formData.value.notas ? formData.value.notas.trim() : null,
       })
       ElMessage.success('Sesión fotográfica actualizada correctamente')
     } else {
-      await sessionStore.addSession({
+      const created = await sessionStore.addSession({
         ...formData.value,
         creadorId: currentUser.value?.id,
       })
+      savedSessionId = created.id
       ElMessage.success('Sesión fotográfica agendada correctamente')
     }
+
+    // Process Cita de Venta if fechaHoraCitaVenta is provided
+    if (fechaHoraCitaVenta.value) {
+      const existingCitaId = loadedSession.value?.citaVenta?.id
+      if (existingCitaId) {
+        await saleStore.updateCitaVenta(existingCitaId, {
+          fechaHoraCita: fechaHoraCitaVenta.value,
+        })
+      } else {
+        await saleStore.addCitaVenta({
+          sesionId: savedSessionId,
+          hotelId: formData.value.hotelId,
+          fechaHoraCita: fechaHoraCitaVenta.value,
+        })
+      }
+    }
+
     handleGoBack()
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Error al guardar la sesión'
@@ -293,6 +398,69 @@ async function handleSaveSession() {
       </div>
     </div>
 
+    <!-- Banner de Alertas -->
+    <div v-if="alertOverdue || alertNoSaleAppointment || alertSaleNoShow" class="alerts-container">
+      <el-alert
+        v-if="alertOverdue"
+        type="warning"
+        show-icon
+        :closable="false"
+        class="form-alert-banner"
+      >
+        <template #title>
+          ⏰ Sesión Vencida — Esta sesión estaba programada para la fecha elegida y ya ha pasado.
+          Por favor actualiza su estado.
+        </template>
+      </el-alert>
+
+      <el-alert
+        v-if="alertNoSaleAppointment"
+        type="info"
+        show-icon
+        :closable="false"
+        class="form-alert-banner"
+      >
+        <template #title>
+          📸 Sin Cita de Venta — Esta sesión está completada pero aún no tiene una cita de venta
+          programada.
+        </template>
+        <template #default>
+          <div style="margin-top: 0.5rem">
+            <el-button
+              type="primary"
+              size="small"
+              @click="router.push(`/ventas/nueva?sesionId=${loadedSession?.id}`)"
+            >
+              Agendar Cita de Venta
+            </el-button>
+          </div>
+        </template>
+      </el-alert>
+
+      <el-alert
+        v-if="alertSaleNoShow"
+        type="error"
+        show-icon
+        :closable="false"
+        class="form-alert-banner"
+      >
+        <template #title>
+          🚫 No Show en Venta — El cliente no se presentó a la cita de venta. Puedes reprogramarla.
+        </template>
+        <template #default>
+          <div style="margin-top: 0.5rem">
+            <el-button
+              type="danger"
+              size="small"
+              @click="router.push(`/ventas/${loadedSession?.citaVenta?.id}/editar`)"
+            >
+              Reprogramar Cita de Venta
+            </el-button>
+          </div>
+        </template>
+      </el-alert>
+    </div>
+
     <!-- Card Principal del Formulario -->
     <el-card class="form-card" shadow="never">
       <el-form
@@ -301,6 +469,23 @@ async function handleSaveSession() {
         :size="isMobile ? 'large' : 'default'"
         class="session-form"
       >
+        <!-- Fila 0: Estado de la Sesión (Al principio, radio buttons normales con color por estado) -->
+        <el-form-item label="Estado de la Sesión" class="status-form-item">
+          <el-radio-group v-model="formData.estado" class="status-radio-group">
+            <el-radio
+              v-for="opt in estadoSesionOptions"
+              :key="opt.value"
+              :value="opt.value"
+              size="large"
+              :class="['status-radio', `status-radio--${opt.value.toLowerCase()}`]"
+            >
+              <span class="status-radio-label" :style="{ color: opt.color }">
+                {{ opt.label }}
+              </span>
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+
         <!-- Fila 1: Hotel y Fotógrafo -->
         <div class="form-row-2">
           <el-form-item label="Hotel" required>
@@ -398,7 +583,7 @@ async function handleSaveSession() {
 
         <!-- Fila 5: Fechas (Inicio, Salida) -->
         <div class="form-row-2">
-          <el-form-item label="Inicio de sesión" required>
+          <el-form-item label="Fecha/Hora sesión de fotos" required>
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->
             <div v-if="isMobile" class="ios-datepicker-container">
               <IosDatepicker
@@ -441,20 +626,52 @@ async function handleSaveSession() {
           </el-form-item>
         </div>
 
-        <!-- Fila 6: Concepto -->
-        <el-form-item label="Concepto / Motivo de la Sesión">
-          <el-select
-            v-model="formData.concepto"
-            filterable
-            allow-create
-            default-first-option
-            placeholder="Selecciona o escribe un concepto personalizado"
-            style="width: 100%"
-            clearable
-          >
-            <el-option v-for="item in defaultConceptos" :key="item" :label="item" :value="item" />
-          </el-select>
-        </el-form-item>
+        <!-- Fila 6: Cita de Ventas y Concepto -->
+        <div class="form-row-2">
+          <el-form-item label="Fecha/Hora Cita de Ventas (opcional)">
+            <!-- Selector para Móvil (vue-ios-style-datepicker) -->
+            <div v-if="isMobile" class="ios-datepicker-container">
+              <IosDatepicker
+                v-model="mobileCitaVentaValue"
+                mode="datetime"
+                locale="es"
+                :use24-hour="true"
+                confirm-text="Confirmar"
+                cancel-text="Cancelar"
+              />
+            </div>
+
+            <!-- Selector para Desktop (Element Plus) -->
+            <el-date-picker
+              v-else
+              v-model="fechaHoraCitaVenta"
+              type="datetime"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DDTHH:mm"
+              placeholder="Selecciona fecha y hora para la venta"
+              style="width: 100%"
+              clearable
+            />
+            <div v-if="conflictsCitaVenta.length > 0" class="conflict-inline-warning">
+              ⚠️ {{ conflictsCitaVenta.length }} cita(s) de venta en el mismo hotel en esta franja
+              (±1h)
+            </div>
+          </el-form-item>
+
+          <el-form-item label="Concepto / Motivo de la Sesión">
+            <el-select
+              v-model="formData.concepto"
+              filterable
+              allow-create
+              default-first-option
+              placeholder="Selecciona o escribe un concepto personalizado"
+              style="width: 100%"
+              clearable
+            >
+              <el-option v-for="item in defaultConceptos" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+        </div>
 
         <!-- Fila 7: Notas Adicionales -->
         <el-form-item label="Notas Adicionales">
@@ -584,6 +801,59 @@ async function handleSaveSession() {
 }
 .ios-datepicker-container :deep(.ios-datepicker__actions) {
   display: none !important;
+}
+
+.alerts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-alert-banner {
+  border-radius: var(--el-border-radius-base, 6px);
+}
+
+.conflict-inline-warning {
+  font-size: 0.78rem;
+  color: var(--el-color-warning-dark-2, #b45309);
+  margin-top: 0.35rem;
+  line-height: 1.25;
+}
+
+.status-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.status-radio {
+  margin-right: 0 !important;
+}
+
+.status-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+:deep(.status-radio--programada.is-checked .el-radio__inner) {
+  border-color: #409eff !important;
+  background: #409eff !important;
+}
+:deep(.status-radio--completada.is-checked .el-radio__inner) {
+  border-color: #67c23a !important;
+  background: #67c23a !important;
+}
+:deep(.status-radio--no_show.is-checked .el-radio__inner) {
+  border-color: #e6a23c !important;
+  background: #e6a23c !important;
+}
+:deep(.status-radio--cancelada.is-checked .el-radio__inner) {
+  border-color: #f56c6c !important;
+  background: #f56c6c !important;
 }
 
 @media (max-width: 768px) {

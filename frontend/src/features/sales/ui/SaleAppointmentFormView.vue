@@ -1,0 +1,603 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useSaleStore } from '../stores/sale.store'
+import { useSessionStore } from '@/features/photo-sessions/stores/session.store'
+import { useHotelStore } from '@/features/hotels/stores/hotel.store'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { useUserStore } from '@/features/users/stores/user.store'
+import type { UpdateCitaVentaPayload, ConflictoCitaVenta } from '../domain/sale.model'
+import type { EstadoCitaVenta } from '../domain/sale.model'
+import {
+  ArrowLeft,
+  Check,
+  Close,
+  Warning,
+  User,
+  OfficeBuilding,
+} from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+
+const route = useRoute()
+const router = useRouter()
+const saleStore = useSaleStore()
+const sessionStore = useSessionStore()
+const hotelStore = useHotelStore()
+const authStore = useAuthStore()
+const userStore = useUserStore()
+
+const citaId = computed(() => route.params.id ? Number(route.params.id) : null)
+const isEditing = computed(() => !!citaId.value)
+const isSaving = ref(false)
+const isMobile = ref(false)
+const conflicts = ref<ConflictoCitaVenta[]>([])
+
+// Form data
+const formData = ref({
+  sesionId: 0,
+  hotelId: 0,
+  fechaHoraCita: '',
+  estado: 'PROGRAMADA' as EstadoCitaVenta,
+  numFotosVendidas: null as number | null,
+  totalVentaUsd: null as number | null,
+  notas: '',
+})
+
+// Session info (read-only context)
+const sessionInfo = ref({
+  clienteNombre: '',
+  clienteEmail: '',
+  clienteTelefono: '',
+  numeroHabitacion: '',
+  fotografoId: '',
+  numAdultos: 1,
+  numNinos: 0,
+  concepto: '',
+  fechaHoraInicio: '',
+  hotelNombre: '',
+})
+
+const currentUser = computed(() => authStore.user)
+
+// Role-based edit lock
+const isReadOnly = computed(() => {
+  if (!isEditing.value) return false
+  const estado = formData.value.estado
+  if (estado !== 'COMPLETADA') return false
+  const role = currentUser.value?.roleCode?.toUpperCase() || ''
+  return !['GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role)
+})
+
+// Available completed sessions without a sales appointment (for session selector)
+const availableSessions = computed(() => {
+  return sessionStore.sessions.filter((s) => {
+    if (s.estado !== 'COMPLETADA') return false
+    if (s.citaVenta && s.citaVenta.id) return false
+    return true
+  })
+})
+
+// Photographer name for display
+const photographerName = computed(() => {
+  if (!sessionInfo.value.fotografoId) return 'Sin asignar'
+  const user = userStore.users.find((u) => String(u.id) === String(sessionInfo.value.fotografoId))
+  return user ? `${user.nombre} ${user.apellidos}` : 'Desconocido'
+})
+
+// PAX display
+const paxDisplay = computed(() => {
+  return `${sessionInfo.value.numAdultos}.${sessionInfo.value.numNinos} PAX`
+})
+
+// Shows sales fields only when completing
+const showSalesFields = computed(() => {
+  return formData.value.estado === 'COMPLETADA'
+})
+
+const estadoOptions: { value: EstadoCitaVenta; label: string }[] = [
+  { value: 'PROGRAMADA', label: 'Programada' },
+  { value: 'COMPLETADA', label: 'Completada' },
+  { value: 'NO_SHOW', label: 'No se presentó' },
+  { value: 'CANCELADA', label: 'Cancelada' },
+]
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+// Conflict check on date change
+watch(
+  () => formData.value.fechaHoraCita,
+  async (newVal) => {
+    if (!newVal || !formData.value.hotelId) {
+      conflicts.value = []
+      return
+    }
+    conflicts.value = await saleStore.checkConflictos(
+      formData.value.hotelId,
+      newVal,
+      citaId.value ?? undefined,
+    )
+    if (conflicts.value.length > 0) {
+      ElMessage.warning(
+        `⚠️ Hay ${conflicts.value.length} cita(s) de venta en el mismo hotel dentro de la franja de 1 hora`,
+      )
+    }
+  },
+)
+
+// Load session info when sesionId changes
+watch(
+  () => formData.value.sesionId,
+  (newVal) => {
+    if (!newVal) return
+    const session = sessionStore.sessions.find((s) => s.id === newVal)
+    if (session) {
+      formData.value.hotelId = session.hotelId
+      sessionInfo.value = {
+        clienteNombre: session.clienteNombre,
+        clienteEmail: session.clienteEmail || '',
+        clienteTelefono: session.clienteTelefono || '',
+        numeroHabitacion: session.numeroHabitacion || '',
+        fotografoId: session.fotografoId || '',
+        numAdultos: session.numAdultos ?? 1,
+        numNinos: session.numNinos ?? 0,
+        concepto: session.concepto || '',
+        fechaHoraInicio: session.fechaHoraInicio,
+        hotelNombre: hotelStore.hotels.find((h) => h.id === session.hotelId)?.nombre || '',
+      }
+    }
+  },
+)
+
+onMounted(async () => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
+  await Promise.all([
+    hotelStore.fetchHotels(),
+    userStore.fetchUsers(),
+    sessionStore.fetchSessions(),
+  ])
+
+  if (isEditing.value && citaId.value) {
+    const existing = await saleStore.fetchCitaVenta(citaId.value)
+    if (existing) {
+      formData.value = {
+        sesionId: existing.sesionId,
+        hotelId: existing.hotelId,
+        fechaHoraCita: existing.fechaHoraCita,
+        estado: existing.estado,
+        numFotosVendidas: existing.numFotosVendidas ?? null,
+        totalVentaUsd: existing.totalVentaUsd ?? null,
+        notas: existing.notas || '',
+      }
+      sessionInfo.value = {
+        clienteNombre: existing.clienteNombre || '',
+        clienteEmail: existing.clienteEmail || '',
+        clienteTelefono: existing.clienteTelefono || '',
+        numeroHabitacion: existing.numeroHabitacion || '',
+        fotografoId: existing.fotografoId || '',
+        numAdultos: existing.numAdultos ?? 1,
+        numNinos: existing.numNinos ?? 0,
+        concepto: existing.concepto || '',
+        fechaHoraInicio: existing.sesionFechaHoraInicio || '',
+        hotelNombre: existing.hotelNombre || '',
+      }
+    } else {
+      ElMessage.error('Cita de venta no encontrada')
+      handleGoBack()
+    }
+  } else {
+    // Creating new: check for sesionId query param
+    const querySesionId = route.query.sesionId ? Number(route.query.sesionId) : 0
+    if (querySesionId) {
+      formData.value.sesionId = querySesionId
+    }
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
+function handleGoBack() {
+  router.push('/agenda')
+}
+
+async function handleSave() {
+  if (!formData.value.sesionId) {
+    ElMessage.warning('Debes seleccionar una sesión fotográfica')
+    return
+  }
+  if (!formData.value.fechaHoraCita) {
+    ElMessage.warning('Debes seleccionar la fecha y hora de la cita')
+    return
+  }
+
+  if (formData.value.estado === 'COMPLETADA') {
+    if (formData.value.numFotosVendidas == null || formData.value.totalVentaUsd == null) {
+      ElMessage.warning('Para completar la cita, indica el nº de fotos vendidas y el total en USD')
+      return
+    }
+  }
+
+  isSaving.value = true
+  try {
+    if (isEditing.value && citaId.value) {
+      const payload: UpdateCitaVentaPayload = {
+        fechaHoraCita: formData.value.fechaHoraCita,
+        estado: formData.value.estado,
+        numFotosVendidas: formData.value.numFotosVendidas,
+        totalVentaUsd: formData.value.totalVentaUsd,
+        notas: formData.value.notas ? formData.value.notas.trim() : null,
+      }
+      const result = await saleStore.updateCitaVenta(citaId.value, payload)
+      if (result.conflictos && result.conflictos.length > 0) {
+        ElMessage.warning(
+          `Cita actualizada, pero hay ${result.conflictos.length} cita(s) solapada(s) en el mismo hotel`,
+        )
+      } else {
+        ElMessage.success('Cita de venta actualizada correctamente')
+      }
+    } else {
+      const result = await saleStore.addCitaVenta({
+        sesionId: formData.value.sesionId,
+        hotelId: formData.value.hotelId,
+        fechaHoraCita: formData.value.fechaHoraCita,
+        notas: formData.value.notas ? formData.value.notas.trim() : null,
+      })
+      if (result.conflictos && result.conflictos.length > 0) {
+        ElMessage.warning(
+          `Cita creada, pero hay ${result.conflictos.length} cita(s) solapada(s) en el mismo hotel`,
+        )
+      } else {
+        ElMessage.success('Cita de venta agendada correctamente')
+      }
+    }
+    handleGoBack()
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error al guardar la cita de venta'
+    ElMessage.error(msg)
+  } finally {
+    isSaving.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="sale-form-container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" circle class="back-btn" @click="handleGoBack" />
+        <div>
+          <h1 class="page-title">
+            {{ isEditing ? 'Editar Cita de Venta' : 'Nueva Cita de Venta' }}
+          </h1>
+        </div>
+      </div>
+    </div>
+
+    <!-- Read-only lock banner -->
+    <el-alert
+      v-if="isReadOnly"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="lock-banner"
+    >
+      Esta cita está completada. Solo gerentes, administradores y superusuarios pueden editarla.
+    </el-alert>
+
+    <!-- Conflict banner -->
+    <el-alert
+      v-if="conflicts.length > 0"
+      type="warning"
+      :closable="false"
+      show-icon
+      :icon="Warning"
+      class="conflict-banner"
+    >
+      <template #title>
+        ⚠️ Hay {{ conflicts.length }} cita(s) de venta en la misma franja horaria (±1h)
+      </template>
+      <div v-for="c in conflicts" :key="c.id" class="conflict-item">
+        {{ c.clienteNombre }} — {{ c.fechaHoraCita }}
+      </div>
+    </el-alert>
+
+    <!-- Session Reference Card (read-only) -->
+    <el-card v-if="sessionInfo.clienteNombre" class="session-ref-card" shadow="never">
+      <template #header>
+        <span class="ref-card-title">📸 Sesión Fotográfica Asociada</span>
+      </template>
+      <div class="ref-grid">
+        <div class="ref-item">
+          <span class="ref-label">Cliente</span>
+          <span class="ref-value">{{ sessionInfo.clienteNombre }}</span>
+        </div>
+        <div class="ref-item">
+          <span class="ref-label">Hotel</span>
+          <span class="ref-value">{{ sessionInfo.hotelNombre }}</span>
+        </div>
+        <div v-if="sessionInfo.numeroHabitacion" class="ref-item">
+          <span class="ref-label">Habitación</span>
+          <span class="ref-value">{{ sessionInfo.numeroHabitacion }}</span>
+        </div>
+        <div class="ref-item">
+          <span class="ref-label">Fotógrafo</span>
+          <span class="ref-value">{{ photographerName }}</span>
+        </div>
+        <div class="ref-item">
+          <span class="ref-label">PAX</span>
+          <span class="ref-value">{{ paxDisplay }}</span>
+        </div>
+        <div v-if="sessionInfo.concepto" class="ref-item">
+          <span class="ref-label">Concepto</span>
+          <span class="ref-value">{{ sessionInfo.concepto }}</span>
+        </div>
+        <div class="ref-item">
+          <span class="ref-label">Sesión de fotos</span>
+          <span class="ref-value">{{ sessionInfo.fechaHoraInicio }}</span>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- Main Form -->
+    <el-card class="form-card" shadow="never">
+      <el-form
+        :model="formData"
+        label-position="top"
+        :size="isMobile ? 'large' : 'default'"
+        class="sale-form"
+        :disabled="isReadOnly"
+      >
+        <!-- Session selector (only when creating new) -->
+        <el-form-item v-if="!isEditing" label="Sesión Fotográfica *" required>
+          <el-select
+            v-model="formData.sesionId"
+            style="width: 100%"
+            placeholder="Selecciona una sesión completada"
+            filterable
+          >
+            <el-option
+              v-for="session in availableSessions"
+              :key="session.id"
+              :label="`${session.clienteNombre} — ${session.fechaHoraInicio}`"
+              :value="session.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- Date/time and State -->
+        <div class="form-row-2">
+          <el-form-item label="Fecha y Hora de la Cita *" required>
+            <el-date-picker
+              v-model="formData.fechaHoraCita"
+              type="datetime"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DDTHH:mm"
+              placeholder="Selecciona fecha y hora"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="Estado">
+            <el-select
+              v-model="formData.estado"
+              style="width: 100%"
+              placeholder="Estado de la cita"
+            >
+              <el-option
+                v-for="opt in estadoOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+        </div>
+
+        <!-- Sales fields (only visible when COMPLETADA) -->
+        <div v-if="showSalesFields" class="sales-box">
+          <div class="sales-title">
+            <span>💰 Datos de la Venta</span>
+          </div>
+          <div class="form-row-2">
+            <el-form-item label="Nº de Fotos Vendidas *">
+              <el-input-number
+                v-model="formData.numFotosVendidas"
+                :min="0"
+                :step="1"
+                style="width: 100%"
+                placeholder="0"
+              />
+            </el-form-item>
+
+            <el-form-item label="Total en USD *">
+              <el-input-number
+                v-model="formData.totalVentaUsd"
+                :min="0"
+                :step="0.01"
+                :precision="2"
+                style="width: 100%"
+                placeholder="0.00"
+              />
+            </el-form-item>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <el-form-item label="Notas">
+          <el-input
+            v-model="formData.notas"
+            type="textarea"
+            :rows="3"
+            placeholder="Notas sobre la cita de venta..."
+          />
+        </el-form-item>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <el-button
+            type="primary"
+            :size="isMobile ? 'large' : 'default'"
+            :icon="Check"
+            :loading="isSaving"
+            :disabled="isReadOnly"
+            @click="handleSave"
+          >
+            {{ isEditing ? 'Guardar Cambios' : 'Agendar Cita' }}
+          </el-button>
+          <el-button :size="isMobile ? 'large' : 'default'" :icon="Close" @click="handleGoBack">
+            Cancelar
+          </el-button>
+        </div>
+      </el-form>
+    </el-card>
+  </div>
+</template>
+
+<style scoped>
+.sale-form-container {
+  padding: 1.5rem;
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-btn {
+  font-size: 1.1rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--heading-color, #0f172a);
+  margin: 0;
+}
+
+.lock-banner,
+.conflict-banner {
+  margin-bottom: 1rem;
+}
+
+.conflict-item {
+  font-size: 0.85rem;
+  color: var(--el-text-color-secondary);
+  margin-top: 0.25rem;
+}
+
+.session-ref-card {
+  margin-bottom: 1rem;
+  border-radius: var(--el-card-border-radius, 8px);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+}
+
+.ref-card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.ref-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.ref-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ref-label {
+  font-size: 0.75rem;
+  color: var(--nav-link-color, #64748b);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ref-value {
+  font-size: 0.9rem;
+  color: var(--heading-color, #0f172a);
+  font-weight: 500;
+}
+
+.form-card {
+  border-radius: var(--el-card-border-radius, 8px);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+}
+
+.sale-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.sales-box {
+  background-color: var(--el-fill-color-blank, #f8fafc);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  border-radius: 6px;
+  padding: 1rem 1rem 0.25rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sales-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--heading-color, #334155);
+  margin-bottom: 0.75rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .sale-form-container {
+    padding: 1rem;
+  }
+
+  .form-row-2 {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .ref-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  .form-actions .el-button {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+}
+</style>

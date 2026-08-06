@@ -9,6 +9,7 @@ import UsuarioFormView from '@/features/users/ui/UsuarioFormView.vue'
 import HotelFormView from '@/features/hotels/ui/HotelFormView.vue'
 import HotelCalendarView from '@/features/photo-sessions/ui/HotelCalendarView.vue'
 import PhotoSessionFormView from '@/features/photo-sessions/ui/PhotoSessionFormView.vue'
+import SaleAppointmentFormView from '@/features/sales/ui/SaleAppointmentFormView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -45,6 +46,18 @@ const router = createRouter({
       path: '/agenda/:id/editar',
       name: 'sesion-editar',
       component: PhotoSessionFormView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/ventas/nueva',
+      name: 'venta-nueva',
+      component: SaleAppointmentFormView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/ventas/:id/editar',
+      name: 'venta-editar',
+      component: SaleAppointmentFormView,
       meta: { requiresAuth: true },
     },
     {

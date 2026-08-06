@@ -83,6 +83,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           hotel: true,
           fotografo: true,
           creador: true,
+          citaVenta: true,
         },
         orderBy: { fechaHoraInicio: 'asc' },
       })
@@ -105,6 +106,15 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         origen: s.origen,
         notas: s.notas || '',
         googleCalendarEventId: s.googleCalendarEventId || null,
+        citaVenta: s.citaVenta && !s.citaVenta.deletedAt
+          ? {
+              id: s.citaVenta.id,
+              fechaHoraCita: s.citaVenta.fechaHoraCita.toISOString().slice(0, 16),
+              estado: s.citaVenta.estado,
+              numFotosVendidas: s.citaVenta.numFotosVendidas,
+              totalVentaUsd: s.citaVenta.totalVentaUsd,
+            }
+          : null,
         createdAt: s.createdAt.toISOString(),
         updatedAt: s.updatedAt.toISOString(),
       }))
@@ -133,6 +143,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         fechaSalida?: string
         concepto?: string
         fechaHoraInicio: string
+        estado?: string
         notas?: string
       }
 
@@ -169,7 +180,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           fechaSalida: body.fechaSalida ? new Date(body.fechaSalida) : null,
           concepto: body.concepto ? body.concepto.trim() : null,
           fechaHoraInicio: parseLocalDateTime(body.fechaHoraInicio),
-          estado: 'PROGRAMADA',
+          estado: body.estado || 'PROGRAMADA',
           origen: 'MANUAL',
           notas: body.notas ? body.notas.trim() : null,
         },

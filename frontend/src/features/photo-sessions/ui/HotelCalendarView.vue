@@ -7,16 +7,19 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import { useSessionStore } from '../stores/session.store'
+import { useSaleStore } from '@/features/sales/stores/sale.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
 import type { SesionFotografica } from '../domain/session.model'
-import { Plus } from '@element-plus/icons-vue'
+import type { CitaVenta } from '@/features/sales/domain/sale.model'
+import { Plus, Bell, Warning } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
+const saleStore = useSaleStore()
 const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
@@ -45,6 +48,7 @@ const esLocale = {
 
 // State
 const selectedHotelId = ref<number | null>(null)
+const activeAlertPanels = ref<string[]>([])
 
 // Current user context
 const currentUser = computed(() => authStore.user)
@@ -77,28 +81,72 @@ const selectedHotelName = computed(() => {
   return target ? target.nombre : 'Todos los Hoteles'
 })
 
-// Filtered sessions for FullCalendar
+// --- COMPUTED ALERTS FOR PHOTOGRAPHER PANEL ---
+
+const overdueSessions = computed(() => {
+  const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  const now = new Date()
+  return sessionStore.sessions.filter((s) => {
+    if (!allowedHotelIds.has(Number(s.hotelId))) return false
+    if (selectedHotelId.value && Number(s.hotelId) !== Number(selectedHotelId.value)) return false
+    return s.estado === 'PROGRAMADA' && new Date(s.fechaHoraInicio) < now
+  })
+})
+
+const missingSaleSessions = computed(() => {
+  const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  return sessionStore.sessions.filter((s) => {
+    if (!allowedHotelIds.has(Number(s.hotelId))) return false
+    if (selectedHotelId.value && Number(s.hotelId) !== Number(selectedHotelId.value)) return false
+    return s.estado === 'COMPLETADA' && !s.citaVenta
+  })
+})
+
+const noShowSales = computed(() => {
+  const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  return sessionStore.sessions.filter((s) => {
+    if (!allowedHotelIds.has(Number(s.hotelId))) return false
+    if (selectedHotelId.value && Number(s.hotelId) !== Number(selectedHotelId.value)) return false
+    return s.citaVenta?.estado === 'NO_SHOW'
+  })
+})
+
+const totalAlertsCount = computed(() => {
+  return overdueSessions.value.length + missingSaleSessions.value.length + noShowSales.value.length
+})
+
+// Filtered events for FullCalendar (Photo Sessions + Sales Appointments)
 const calendarEvents = computed(() => {
-  let list = sessionStore.sessions
+  const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  const now = new Date()
 
-  if (selectedHotelId.value) {
-    list = list.filter((s) => Number(s.hotelId) === Number(selectedHotelId.value))
-  } else {
-    // SECURITY FIX: When no specific hotel filter is selected ("Todos los Hoteles"),
-    // restrict sessions strictly to the hotels accessible by the current user!
-    const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
-    list = list.filter((s) => allowedHotelIds.has(Number(s.hotelId)))
-  }
+  // 1. Photo Session events
+  let sessionList = sessionStore.sessions.filter((s) => {
+    if (selectedHotelId.value) {
+      return Number(s.hotelId) === Number(selectedHotelId.value)
+    }
+    return allowedHotelIds.has(Number(s.hotelId))
+  })
 
-  return list.map((session) => {
-    let color = '#9ca3af' // Gris si no hay fotógrafo asignado
+  const sessionEvents = sessionList.map((session) => {
+    let color = '#9ca3af' // Gris por defecto si no hay fotógrafo asignado
     if (session.fotografoId) {
       const fotografo = userStore.users.find((u) => String(u.id) === String(session.fotografoId))
       if (fotografo && fotografo.color) {
         color = fotografo.color
       } else if (fotografo) {
-        color = '#3b82f6' // Azul por defecto si tiene fotógrafo asignado pero sin color personalizado
+        color = '#3b82f6'
       }
+    }
+
+    // Prefix emoji for alert conditions
+    let prefix = ''
+    if (session.estado === 'PROGRAMADA' && new Date(session.fechaHoraInicio) < now) {
+      prefix = '⏰ '
+    } else if (session.estado === 'COMPLETADA' && !session.citaVenta) {
+      prefix = '📸 '
+    } else if (session.citaVenta?.estado === 'NO_SHOW') {
+      prefix = '🚫 '
     }
 
     const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
@@ -106,16 +154,48 @@ const calendarEvents = computed(() => {
     const conceptoStr = session.concepto ? ` - ${session.concepto}` : ''
 
     return {
-      id: String(session.id),
-      title: `${session.clienteNombre}${roomStr} [${paxStr}]${conceptoStr}`,
+      id: `session-${session.id}`,
+      title: `${prefix}${session.clienteNombre}${roomStr} [${paxStr}]${conceptoStr}`,
       start: session.fechaHoraInicio,
       backgroundColor: color,
       borderColor: color,
       extendedProps: {
         rawSession: session,
+        type: 'session',
       },
     }
   })
+
+  // 2. Sales Appointment events
+  let salesList = saleStore.citasVenta.filter((c) => {
+    if (selectedHotelId.value) {
+      return Number(c.hotelId) === Number(selectedHotelId.value)
+    }
+    return allowedHotelIds.has(Number(c.hotelId))
+  })
+
+  const salesEvents = salesList.map((sale) => {
+    let color = '#10b981' // Verde para ventas completadas/programadas
+    if (sale.estado === 'NO_SHOW') color = '#ef4444' // Rojo para no-show
+    else if (sale.estado === 'CANCELADA') color = '#6b7280' // Gris para canceladas
+    else if (sale.estado === 'PROGRAMADA') color = '#f59e0b' // Ámbar para programadas
+
+    const roomStr = sale.numeroHabitacion ? ` (Hab ${sale.numeroHabitacion})` : ''
+
+    return {
+      id: `sale-${sale.id}`,
+      title: `💰 Cita Venta: ${sale.clienteNombre || 'Cliente'}${roomStr}`,
+      start: sale.fechaHoraCita,
+      backgroundColor: color,
+      borderColor: color,
+      extendedProps: {
+        rawSale: sale,
+        type: 'sale',
+      },
+    }
+  })
+
+  return [...sessionEvents, ...salesEvents]
 })
 
 // FullCalendar Configuration computed so reactivity works seamlessly
@@ -159,6 +239,7 @@ onMounted(async () => {
     hotelStore.fetchHotels(),
     userStore.fetchUsers(),
     sessionStore.fetchSessions(),
+    saleStore.fetchCitasVenta(),
   ])
   initSelectedHotel()
 })
@@ -188,18 +269,23 @@ function handleDateSelect(selectInfo: { startStr: string }) {
 }
 
 function handleEventClick(clickInfo: {
-  event: { extendedProps: { rawSession?: SesionFotografica } }
+  event: { extendedProps: { rawSession?: SesionFotografica; rawSale?: CitaVenta; type?: string } }
 }) {
-  const session = clickInfo.event.extendedProps.rawSession
-  if (!session) return
+  const { rawSession, rawSale, type } = clickInfo.event.extendedProps
 
-  const roleCode = currentUser.value?.roleCode
-  if (!canEditPastSession(session, roleCode)) {
-    ElMessage.warning('No tienes permisos para editar sesiones cuya fecha ya ha pasado')
+  if (type === 'sale' && rawSale) {
+    router.push(`/ventas/${rawSale.id}/editar`)
     return
   }
 
-  router.push(`/agenda/${session.id}/editar`)
+  if (rawSession) {
+    const roleCode = currentUser.value?.roleCode
+    if (!canEditPastSession(rawSession, roleCode)) {
+      ElMessage.warning('No tienes permisos para editar sesiones cuya fecha ya ha pasado')
+      return
+    }
+    router.push(`/agenda/${rawSession.id}/editar`)
+  }
 }
 </script>
 
@@ -231,10 +317,74 @@ function handleEventClick(clickInfo: {
         </el-select>
 
         <!-- Botón Nueva Sesión (Navega a /agenda/nueva) -->
-        <el-button type="primary" :icon="Plus" size="large" @click="navigateToNewSessionForm()">
-          Agendar Sesión
-        </el-button>
       </div>
+    </div>
+
+    <!-- Panel de Alertas Colapsable del Fotógrafo -->
+    <div v-if="totalAlertsCount > 0" class="alerts-panel-wrapper">
+      <el-collapse v-model="activeAlertPanels" class="alerts-collapse">
+        <el-collapse-item name="alerts">
+          <template #title>
+            <div class="alerts-panel-header">
+              <el-icon class="alerts-header-icon"><Bell /></el-icon>
+              <span class="alerts-header-title">Panel de Alertas Pendientes</span>
+              <el-tag type="danger" effect="dark" round size="small" class="alerts-count-badge">
+                {{ totalAlertsCount }}
+              </el-tag>
+            </div>
+          </template>
+
+          <div class="alerts-sections-grid">
+            <!-- 1. Sesiones Vencidas -->
+            <div v-if="overdueSessions.length > 0" class="alert-section section-overdue">
+              <h4 class="section-title">⏰ Sesiones Vencidas ({{ overdueSessions.length }})</h4>
+              <div class="section-cards">
+                <div v-for="s in overdueSessions" :key="s.id" class="alert-item-card">
+                  <div class="item-details">
+                    <span class="item-name">{{ s.clienteNombre }}</span>
+                    <span class="item-sub">{{ s.fechaHoraInicio }} — {{ s.numeroHabitacion ? `Hab ${s.numeroHabitacion}` : '' }}</span>
+                  </div>
+                  <el-button type="warning" size="small" @click="router.push(`/agenda/${s.id}/editar`)">
+                    Cambiar Estado
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Sesiones Sin Cita de Venta -->
+            <div v-if="missingSaleSessions.length > 0" class="alert-section section-missing">
+              <h4 class="section-title">📸 Sin Cita de Venta ({{ missingSaleSessions.length }})</h4>
+              <div class="section-cards">
+                <div v-for="s in missingSaleSessions" :key="s.id" class="alert-item-card">
+                  <div class="item-details">
+                    <span class="item-name">{{ s.clienteNombre }}</span>
+                    <span class="item-sub">Completada el {{ s.fechaHoraInicio }}</span>
+                  </div>
+                  <el-button type="primary" size="small" @click="router.push(`/ventas/nueva?sesionId=${s.id}`)">
+                    Agendar Venta
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. No Show en Cita de Venta -->
+            <div v-if="noShowSales.length > 0" class="alert-section section-noshow">
+              <h4 class="section-title">🚫 No Show en Venta ({{ noShowSales.length }})</h4>
+              <div class="section-cards">
+                <div v-for="s in noShowSales" :key="s.id" class="alert-item-card">
+                  <div class="item-details">
+                    <span class="item-name">{{ s.clienteNombre }}</span>
+                    <span class="item-sub">Cita: {{ s.citaVenta?.fechaHoraCita }}</span>
+                  </div>
+                  <el-button type="danger" size="small" @click="router.push(`/ventas/${s.citaVenta?.id}/editar`)">
+                    Reprogramar
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
     </div>
 
     <!-- Calendario de FullCalendar -->
@@ -261,6 +411,105 @@ function handleEventClick(clickInfo: {
   max-width: 1300px;
   margin: 0 auto;
   position: relative;
+}
+
+/* Alerts Panel Styling */
+.alerts-panel-wrapper {
+  margin-bottom: 1.25rem;
+}
+
+.alerts-collapse {
+  border: 1px solid var(--el-color-warning-light-5, #fde68a);
+  border-radius: var(--el-card-border-radius, 8px);
+  background-color: var(--el-color-warning-light-9, #fffbeb);
+  overflow: hidden;
+}
+
+:deep(.alerts-collapse .el-collapse-item__header) {
+  background-color: var(--el-color-warning-light-9, #fffbeb);
+  border-bottom: none;
+  padding: 0 1.25rem;
+  height: 48px;
+}
+
+:deep(.alerts-collapse .el-collapse-item__wrap) {
+  background-color: var(--el-color-warning-light-9, #fffbeb);
+  border-bottom: none;
+}
+
+:deep(.alerts-collapse .el-collapse-item__content) {
+  padding: 0 1.25rem 1.25rem 1.25rem;
+}
+
+.alerts-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  color: var(--el-color-warning-dark-2, #b45309);
+}
+
+.alerts-header-icon {
+  font-size: 1.1rem;
+  color: var(--el-color-warning, #e6a23c);
+}
+
+.alerts-header-title {
+  font-size: 0.95rem;
+}
+
+.alerts-sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.alert-section {
+  background-color: var(--toolbar-bg, #ffffff);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  color: var(--heading-color, #334155);
+}
+
+.section-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.alert-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--el-fill-color-blank, #f8fafc);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  border-radius: 4px;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--heading-color, #0f172a);
+}
+
+.item-sub {
+  font-size: 0.75rem;
+  color: var(--nav-link-color, #64748b);
 }
 
 .calendar-header {
