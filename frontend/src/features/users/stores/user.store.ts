@@ -110,10 +110,13 @@ export const useUserStore = defineStore('users', () => {
   async function updateUserColor(id: string, color: string | null) {
     try {
       const token = localStorage.getItem('token')
-      const authHeader = token ? { Authorization: `Bearer ${token}` } : {}
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
       const res = await fetch(`${API_URL}/usuarios/${id}/color`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
+        headers,
         body: JSON.stringify({ color }),
       })
       if (!res.ok) {

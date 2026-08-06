@@ -1,6 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../../shared/db.js'
 
+function parseLocalDateTime(dateStr: string): Date {
+  if (!dateStr) return new Date()
+  const cleanStr = dateStr.replace(' ', 'T').slice(0, 19)
+  const hasTimezone = cleanStr.includes('Z') || /[+-]\d{2}:\d{2}$/.test(cleanStr)
+  const isoStr = hasTimezone ? cleanStr : `${cleanStr}:00Z`.replace(':00:00Z', ':00Z')
+  return new Date(isoStr)
+}
+
 function getAuthUserId(request: any): string | null {
   try {
     const authHeader = request.headers.authorization
@@ -115,7 +123,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           numNinos: body.numNinos !== undefined ? Number(body.numNinos) : 0,
           fechaSalida: body.fechaSalida ? new Date(body.fechaSalida) : null,
           concepto: body.concepto ? body.concepto.trim() : null,
-          fechaHoraInicio: new Date(body.fechaHoraInicio),
+          fechaHoraInicio: parseLocalDateTime(body.fechaHoraInicio),
           estado: 'PROGRAMADA',
           origen: 'MANUAL',
           notas: body.notas ? body.notas.trim() : null,
@@ -183,7 +191,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           ...(body.numNinos !== undefined && { numNinos: Number(body.numNinos) }),
           ...(body.fechaSalida !== undefined && { fechaSalida: body.fechaSalida ? new Date(body.fechaSalida) : null }),
           ...(body.concepto !== undefined && { concepto: body.concepto ? body.concepto.trim() : null }),
-          ...(body.fechaHoraInicio && { fechaHoraInicio: new Date(body.fechaHoraInicio) }),
+          ...(body.fechaHoraInicio && { fechaHoraInicio: parseLocalDateTime(body.fechaHoraInicio) }),
           ...(body.estado && { estado: body.estado }),
           ...(body.notas !== undefined && { notas: body.notas ? body.notas.trim() : null }),
         },

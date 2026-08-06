@@ -170,7 +170,7 @@ function canEditPastSession(session: SesionFotografica, userRoleCode?: string): 
 }
 
 function handleDateSelect(selectInfo: { startStr: string }) {
-  const startIso = new Date(selectInfo.startStr).toISOString().slice(0, 16)
+  const startIso = selectInfo.startStr.slice(0, 16)
   navigateToNewSessionForm(startIso)
 }
 

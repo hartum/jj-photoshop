@@ -205,9 +205,17 @@ onMounted(async () => {
     // Prefill start date/time if provided in query
     const queryStart = route.query.start ? String(route.query.start) : ''
 
-    const now = new Date()
+    const getLocalIsoString = (d: Date) => {
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const hours = String(d.getHours()).padStart(2, '0')
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+
     formData.value.fechaHoraInicio =
-      queryStart || new Date(now.getTime() + 3600000).toISOString().slice(0, 16)
+      queryStart || getLocalIsoString(new Date(Date.now() + 3600000))
   }
 })
 

@@ -7,18 +7,18 @@ export interface SesionFotografica {
   fotografoId?: string | null
   creadorId: string
   clienteNombre: string
-  clienteEmail?: string
-  clienteTelefono?: string
-  numeroHabitacion?: string
+  clienteEmail?: string | null
+  clienteTelefono?: string | null
+  numeroHabitacion?: string | null
   numAdultos?: number
   numNinos?: number
-  fechaSalida?: string
-  concepto?: string
+  fechaSalida?: string | null
+  concepto?: string | null
   fechaHoraInicio: string // ISO string
   estado: EstadoSesion
   origen: OrigenSesion
-  notas?: string
-  googleCalendarEventId?: string
+  notas?: string | null
+  googleCalendarEventId?: string | null
   createdAt?: string
   updatedAt?: string
 }
@@ -28,13 +28,13 @@ export interface CreateSesionPayload {
   fotografoId?: string | null
   creadorId?: string
   clienteNombre: string
-  clienteEmail?: string
-  clienteTelefono?: string
-  numeroHabitacion?: string
+  clienteEmail?: string | null
+  clienteTelefono?: string | null
+  numeroHabitacion?: string | null
   numAdultos?: number
   numNinos?: number
-  fechaSalida?: string
-  concepto?: string
+  fechaSalida?: string | null
+  concepto?: string | null
   fechaHoraInicio: string
-  notas?: string
+  notas?: string | null
 }
