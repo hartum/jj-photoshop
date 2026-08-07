@@ -230,14 +230,6 @@ onMounted(async () => {
     const existing = sessionStore.sessions.find((s) => String(s.id) === String(sessionId.value))
     if (existing) {
       loadedSession.value = existing
-      const ALLOWED_PAST_EDIT_ROLES = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'CONTABLE']
-      const isPast = new Date(existing.fechaHoraInicio) < new Date()
-      const role = currentUser.value?.roleCode?.toUpperCase() || ''
-      if (isPast && !ALLOWED_PAST_EDIT_ROLES.includes(role)) {
-        ElMessage.warning('No tienes permisos para editar sesiones cuya fecha ya ha pasado')
-        handleGoBack()
-        return
-      }
 
       formData.value = {
         hotelId: existing.hotelId,

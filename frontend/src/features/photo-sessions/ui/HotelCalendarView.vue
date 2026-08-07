@@ -322,17 +322,6 @@ function navigateToNewSessionForm(startIso?: string) {
   router.push({ path: '/agenda/nueva', query })
 }
 
-const ALLOWED_PAST_EDIT_ROLES = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'CONTABLE']
-
-function canEditPastSession(session: SesionFotografica, userRoleCode?: string): boolean {
-  const sessionDate = new Date(session.fechaHoraInicio)
-  const isPast = sessionDate < new Date()
-  if (!isPast) return true
-
-  const role = userRoleCode?.toUpperCase() || ''
-  return ALLOWED_PAST_EDIT_ROLES.includes(role)
-}
-
 function handleDateSelect(selectInfo: { startStr: string }) {
   const startIso = selectInfo.startStr.slice(0, 16)
   navigateToNewSessionForm(startIso)
@@ -349,11 +338,6 @@ function handleEventClick(clickInfo: {
   }
 
   if (rawSession) {
-    const roleCode = currentUser.value?.roleCode
-    if (!canEditPastSession(rawSession, roleCode)) {
-      ElMessage.warning('No tienes permisos para editar sesiones cuya fecha ya ha pasado')
-      return
-    }
     router.push(`/agenda/${rawSession.id}/editar`)
   }
 }
