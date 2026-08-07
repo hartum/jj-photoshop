@@ -142,19 +142,20 @@ const calendarEvents = computed(() => {
       }
     }
 
-    const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
+    const paxStr = `[${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX]`
     const roomStr = session.numeroHabitacion ? ` (Hab ${session.numeroHabitacion})` : ''
     const conceptoStr = session.concepto ? ` - ${session.concepto}` : ''
 
     return {
       id: `session-${session.id}`,
-      title: `${session.clienteNombre}${roomStr} [${paxStr}]${conceptoStr}`,
+      title: `${session.clienteNombre}${roomStr}${conceptoStr}`,
       start: session.fechaHoraInicio,
       backgroundColor: color,
       borderColor: color,
       extendedProps: {
         rawSession: session,
         type: 'session',
+        paxStr,
       },
     }
   })
@@ -240,7 +241,7 @@ const calendarEvents = computed(() => {
 
     return {
       id: `sale-${sale.id}`,
-      title: `Cita Venta: ${sale.clienteNombre || 'Cliente'}${roomStr}`,
+      title: `${sale.clienteNombre || 'Cliente'}${roomStr}`,
       start: sale.fechaHoraCita,
       backgroundColor: color,
       borderColor: color,
@@ -308,6 +309,7 @@ const ICON_SVG: Record<string, string> = {
 
 function renderEventContent(arg: EventContentArg) {
   const type = arg.event.extendedProps.type
+  const paxStr = arg.event.extendedProps.paxStr
   const title: string = arg.event.title
   const timeText: string = arg.timeText ?? ''
 
@@ -315,23 +317,27 @@ function renderEventContent(arg: EventContentArg) {
 
   const container = document.createElement('div')
   container.style.display = 'flex'
-  container.style.alignItems = 'center'
-  container.style.gap = '4px'
+  container.style.flexDirection = 'column'
   container.style.width = '100%'
   container.style.overflow = 'hidden'
-  container.style.whiteSpace = 'nowrap'
+  container.style.lineHeight = '1.2'
 
-  let html = ''
-
+  let headerHtml =
+    '<div style="display:flex;align-items:center;gap:4px;font-weight:bold;flex-shrink:0;white-space:nowrap;">'
   if (iconSvg) {
-    html += iconSvg
+    headerHtml += iconSvg
   }
   if (timeText) {
-    html += `<span style="font-weight:bold;flex-shrink:0;">${timeText}</span>`
+    headerHtml += `<span>${timeText}</span>`
   }
-  html += `<span style="overflow:hidden;text-overflow:ellipsis;">${title}</span>`
+  if (paxStr) {
+    headerHtml += `<span style="font-weight:600;opacity:0.9;">${paxStr}</span>`
+  }
+  headerHtml += '</div>'
 
-  container.innerHTML = html
+  const bodyHtml = `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;margin-top:1px;">${title}</div>`
+
+  container.innerHTML = headerHtml + bodyHtml
   return { domNodes: [container] }
 }
 
