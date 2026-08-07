@@ -317,13 +317,29 @@ function renderEventContent(arg: EventContentArg) {
   return { domNodes: [container] }
 }
 
+const STORAGE_KEY = 'jj_selected_hotel_id'
+
 function initSelectedHotel() {
+  // 1. Si existe parámetro hotelId en la URL y es válido para el usuario, tiene máxima prioridad
   const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : null
-  if (queryHotelId && userHotels.value.some((h) => h.id === queryHotelId)) {
+  if (queryHotelId && userHotels.value.some((h) => Number(h.id) === queryHotelId)) {
     selectedHotelId.value = queryHotelId
-  } else if (selectedHotelId.value === null && userHotels.value.length > 0) {
-    selectedHotelId.value = userHotels.value[0]?.id ?? null
+    localStorage.setItem(STORAGE_KEY, String(queryHotelId))
+    return
   }
+
+  // 2. Si no hay parámetro en la URL, se restaura desde localStorage si existe y es válido
+  const savedHotelIdStr = localStorage.getItem(STORAGE_KEY)
+  if (savedHotelIdStr) {
+    const savedHotelId = Number(savedHotelIdStr)
+    if (!isNaN(savedHotelId) && userHotels.value.some((h) => Number(h.id) === savedHotelId)) {
+      selectedHotelId.value = savedHotelId
+      return
+    }
+  }
+
+  // 3. Por defecto permanece vacío (null)
+  selectedHotelId.value = null
 }
 
 watch(
@@ -337,8 +353,10 @@ watch(
   () => selectedHotelId.value,
   (newHotelId) => {
     if (newHotelId) {
+      localStorage.setItem(STORAGE_KEY, String(newHotelId))
       saleStore.fetchCitasVenta(Number(newHotelId))
     } else {
+      localStorage.removeItem(STORAGE_KEY)
       saleStore.fetchCitasVenta()
     }
   },
