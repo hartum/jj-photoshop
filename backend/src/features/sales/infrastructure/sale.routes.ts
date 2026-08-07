@@ -238,7 +238,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
           .send({ error: 'Faltan campos obligatorios (sesionId, hotelId, fechaHoraCita)' })
       }
 
-      // Validate session exists and is COMPLETADA
+      // Validate session exists and is eligible for a sales appointment
       const sesion = await prisma.sesionFotografica.findUnique({
         where: { id: body.sesionId },
         include: { citaVenta: true },
@@ -246,6 +246,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
       if (!sesion || sesion.deletedAt) {
         return reply.status(404).send({ error: 'Sesión fotográfica no encontrada' })
+      }
+
+      const ESTADOS_NO_PERMITIDOS = ['CANCELADA', 'NO_SHOW']
+      if (ESTADOS_NO_PERMITIDOS.includes(sesion.estado)) {
+        return reply
+          .status(400)
+          .send({ error: 'No se puede agendar una cita de venta para una sesión cancelada o donde el cliente no se presentó' })
       }
 
       if (sesion.citaVenta && !sesion.citaVenta.deletedAt) {

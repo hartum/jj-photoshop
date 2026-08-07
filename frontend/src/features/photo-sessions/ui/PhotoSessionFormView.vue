@@ -6,6 +6,7 @@ import { useSaleStore } from '@/features/sales/stores/sale.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
+import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { CreateSesionPayload, EstadoSesion, SesionFotografica } from '../domain/session.model'
 import type { ConflictoCitaVenta } from '@/features/sales/domain/sale.model'
 import {
@@ -27,6 +28,7 @@ const saleStore = useSaleStore()
 const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
+const profileStore = useProfileStore()
 
 const sessionId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!sessionId.value)
@@ -132,7 +134,10 @@ const photographers = computed(() => {
   if (!selectedHotelId) return []
 
   return userStore.usersWithProfile.filter((u) => {
-    const isFotografo = u.perfil?.code?.toUpperCase() === 'FOTOGRAFO'
+    const perfilCode =
+      u.perfil?.code?.toUpperCase() ||
+      profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+    const isFotografo = perfilCode === 'FOTOGRAFO'
     if (!isFotografo) return false
     const assignedHotelIds = u.hotelIds || []
     return assignedHotelIds.some((hId) => Number(hId) === selectedHotelId)
@@ -222,6 +227,7 @@ onMounted(async () => {
   await Promise.all([
     hotelStore.fetchHotels(),
     userStore.fetchUsers(),
+    profileStore.fetchProfiles(),
     sessionStore.fetchSessions(),
     saleStore.fetchCitasVenta(),
   ])

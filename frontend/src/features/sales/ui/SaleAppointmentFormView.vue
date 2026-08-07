@@ -6,6 +6,7 @@ import { useSessionStore } from '@/features/photo-sessions/stores/session.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
+import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { UpdateCitaVentaPayload, ConflictoCitaVenta } from '../domain/sale.model'
 import type { EstadoCitaVenta } from '../domain/sale.model'
 import {
@@ -25,6 +26,7 @@ const sessionStore = useSessionStore()
 const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
+const profileStore = useProfileStore()
 
 const citaId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEditing = computed(() => !!citaId.value)
@@ -34,7 +36,7 @@ const conflicts = ref<ConflictoCitaVenta[]>([])
 
 // Form data
 const formData = ref({
-  sesionId: 0,
+  sesionId: null as number | null,
   hotelId: 0,
   fechaHoraCita: '',
   estado: 'PROGRAMADA' as EstadoCitaVenta,
@@ -88,14 +90,26 @@ const isReadOnly = computed(() => {
 })
 
 // Available completed sessions without a sales appointment (for session selector)
+const ESTADOS_NO_PERMITIDOS = ['CANCELADA', 'NO_SHOW'] as const
+
 const availableSessions = computed(() => {
   const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
   return sessionStore.sessions.filter((s) => {
     if (!allowedHotelIds.has(Number(s.hotelId))) return false
-    if (s.estado !== 'COMPLETADA') return false
+    if ((ESTADOS_NO_PERMITIDOS as readonly string[]).includes(s.estado)) return false
     if (s.citaVenta && s.citaVenta.id) return false
     return true
   })
+})
+
+// Count of sessions in allowed hotels without sales appointment that do not meet all criteria
+const excludedSessionsCount = computed(() => {
+  const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  return sessionStore.sessions.filter((s) => {
+    if (!allowedHotelIds.has(Number(s.hotelId))) return false
+    if (s.citaVenta && s.citaVenta.id) return false
+    return (ESTADOS_NO_PERMITIDOS as readonly string[]).includes(s.estado)
+  }).length
 })
 
 // Photographer name for display
@@ -178,6 +192,7 @@ onMounted(async () => {
   await Promise.all([
     hotelStore.fetchHotels(),
     userStore.fetchUsers(),
+    profileStore.fetchProfiles(),
     sessionStore.fetchSessions(),
   ])
 
@@ -218,7 +233,7 @@ onMounted(async () => {
     }
   } else {
     // Creating new: check for sesionId query param
-    const querySesionId = route.query.sesionId ? Number(route.query.sesionId) : 0
+    const querySesionId = route.query.sesionId ? Number(route.query.sesionId) : null
     if (querySesionId) {
       formData.value.sesionId = querySesionId
     }
@@ -387,16 +402,20 @@ async function handleSave() {
           <el-select
             v-model="formData.sesionId"
             style="width: 100%"
-            placeholder="Selecciona una sesión completada"
+            placeholder="Elige la sesión para la que agendar esta venta"
             filterable
+            clearable
           >
             <el-option
               v-for="session in availableSessions"
               :key="session.id"
-              :label="`${session.clienteNombre} — ${session.fechaHoraInicio}`"
+              :label="`${session.clienteNombre} — ${session.fechaHoraInicio} (${session.estado === 'COMPLETADA' ? 'Completada' : 'Programada'})`"
               :value="session.id"
             />
           </el-select>
+          <div v-if="excludedSessionsCount > 0" class="select-helper-notice">
+            ⚠️ Hay {{ excludedSessionsCount }} sesión(es) en tus hoteles no mostrada(s) porque están canceladas o el cliente no se presentó.
+          </div>
         </el-form-item>
 
         <!-- Date/time and State -->
@@ -528,6 +547,13 @@ async function handleSave() {
   font-size: 0.85rem;
   color: var(--el-text-color-secondary);
   margin-top: 0.25rem;
+}
+
+.select-helper-notice {
+  font-size: 0.8rem;
+  color: #e6a23c;
+  margin-top: 0.35rem;
+  line-height: 1.35;
 }
 
 .session-ref-card {

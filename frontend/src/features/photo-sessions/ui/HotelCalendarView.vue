@@ -11,6 +11,7 @@ import { useSaleStore } from '@/features/sales/stores/sale.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
+import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
 import { Plus, Bell, Warning } from '@element-plus/icons-vue'
@@ -23,6 +24,7 @@ const saleStore = useSaleStore()
 const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
+const profileStore = useProfileStore()
 
 // Localización en Español para FullCalendar
 const esLocale = {
@@ -95,10 +97,11 @@ const overdueSessions = computed(() => {
 
 const missingSaleSessions = computed(() => {
   const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  const ESTADOS_NO_PERMITIDOS = ['CANCELADA', 'NO_SHOW']
   return sessionStore.sessions.filter((s) => {
     if (!allowedHotelIds.has(Number(s.hotelId))) return false
     if (selectedHotelId.value && Number(s.hotelId) !== Number(selectedHotelId.value)) return false
-    return s.estado === 'COMPLETADA' && !s.citaVenta
+    return !ESTADOS_NO_PERMITIDOS.includes(s.estado) && !s.citaVenta
   })
 })
 
@@ -313,6 +316,7 @@ onMounted(async () => {
   await Promise.all([
     hotelStore.fetchHotels(),
     userStore.fetchUsers(),
+    profileStore.fetchProfiles(),
     sessionStore.fetchSessions(),
     saleStore.fetchCitasVenta(),
   ])
@@ -325,6 +329,12 @@ function navigateToNewSessionForm(startIso?: string) {
   if (startIso) query.start = startIso
 
   router.push({ path: '/agenda/nueva', query })
+}
+
+function navigateToNewSaleForm() {
+  const query: Record<string, string> = {}
+  if (selectedHotelId.value) query.hotelId = String(selectedHotelId.value)
+  router.push({ path: '/ventas/nueva', query })
 }
 
 function handleDateSelect(selectInfo: { startStr: string }) {
@@ -376,7 +386,15 @@ function handleEventClick(clickInfo: {
           />
         </el-select>
 
-        <!-- Botón Nueva Sesión (Navega a /agenda/nueva) -->
+        <!-- Botón Nueva Sesión Fotográfica -->
+        <el-button type="primary" :icon="Plus" @click="navigateToNewSessionForm()">
+          Nueva Sesión
+        </el-button>
+
+        <!-- Botón Nueva Cita de Venta -->
+        <el-button type="success" :icon="Plus" @click="navigateToNewSaleForm()">
+          Nueva Cita de Venta
+        </el-button>
       </div>
     </div>
 
@@ -420,12 +438,12 @@ function handleEventClick(clickInfo: {
 
             <!-- 2. Sesiones Sin Cita de Venta -->
             <div v-if="missingSaleSessions.length > 0" class="alert-section section-missing">
-              <h4 class="section-title">📸 Sin Cita de Venta ({{ missingSaleSessions.length }})</h4>
+              <h4 class="section-title">📸 Sesiones Sin Cita de Venta ({{ missingSaleSessions.length }})</h4>
               <div class="section-cards">
                 <div v-for="s in missingSaleSessions" :key="s.id" class="alert-item-card">
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
-                    <span class="item-sub">Completada el {{ s.fechaHoraInicio }}</span>
+                    <span class="item-sub">{{ s.estado === 'COMPLETADA' ? 'Completada' : 'Programada' }} — {{ s.fechaHoraInicio }}</span>
                   </div>
                   <el-button
                     type="primary"
