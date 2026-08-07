@@ -171,7 +171,9 @@ const calendarEvents = computed(() => {
     number,
     {
       id: number
+      sesionId: number
       hotelId: number
+      fotografoId?: string | null
       fechaHoraCita: string
       estado: string
       clienteNombre: string
@@ -183,7 +185,9 @@ const calendarEvents = computed(() => {
   saleStore.citasVenta.forEach((c) => {
     salesMap.set(c.id, {
       id: c.id,
+      sesionId: c.sesionId,
       hotelId: Number(c.hotelId),
+      fotografoId: c.fotografoId || null,
       fechaHoraCita: c.fechaHoraCita,
       estado: c.estado,
       clienteNombre: c.clienteNombre || 'Cliente',
@@ -197,7 +201,9 @@ const calendarEvents = computed(() => {
       if (!salesMap.has(s.citaVenta.id)) {
         salesMap.set(s.citaVenta.id, {
           id: s.citaVenta.id,
+          sesionId: s.id,
           hotelId: Number(s.hotelId),
+          fotografoId: s.fotografoId || null,
           fechaHoraCita: s.citaVenta.fechaHoraCita,
           estado: s.citaVenta.estado,
           clienteNombre: s.clienteNombre || 'Cliente',
@@ -215,12 +221,23 @@ const calendarEvents = computed(() => {
   })
 
   const salesEvents = salesList.map((sale) => {
-    let color = '#10b981' // Verde para ventas completadas/programadas
-    if (sale.estado === 'NO_SHOW')
-      color = '#ef4444' // Rojo para no-show
-    else if (sale.estado === 'CANCELADA')
-      color = '#6b7280' // Gris para canceladas
-    else if (sale.estado === 'PROGRAMADA') color = '#f59e0b' // Ámbar para programadas
+    let fotografoId: string | null = sale.fotografoId || null
+    if (!fotografoId && sale.sesionId) {
+      const parentSession = sessionStore.sessions.find((s) => s.id === sale.sesionId)
+      if (parentSession) {
+        fotografoId = parentSession.fotografoId || null
+      }
+    }
+
+    let color = '#9ca3af' // Gris si no hay fotógrafo asignado
+    if (fotografoId) {
+      const fotografo = userStore.users.find((u) => String(u.id) === String(fotografoId))
+      if (fotografo && fotografo.color) {
+        color = fotografo.color
+      } else if (fotografo) {
+        color = '#3b82f6'
+      }
+    }
 
     const roomStr = sale.numeroHabitacion ? ` (Hab ${sale.numeroHabitacion})` : ''
 
