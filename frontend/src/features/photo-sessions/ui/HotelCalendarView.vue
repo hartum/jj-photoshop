@@ -14,8 +14,8 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
+import type { EventContentArg } from '@fullcalendar/core'
 import { Plus, Bell, Warning } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -143,14 +143,14 @@ const calendarEvents = computed(() => {
       }
     }
 
-    // Prefix emoji for alert conditions
-    let prefix = ''
+    // Alert condition icon type
+    let alertIcon: 'clock' | 'camera' | 'noshow' | null = null
     if (session.estado === 'PROGRAMADA' && new Date(session.fechaHoraInicio) < now) {
-      prefix = '⏰ '
+      alertIcon = 'clock'
     } else if (session.estado === 'COMPLETADA' && !session.citaVenta) {
-      prefix = '📸 '
+      alertIcon = 'camera'
     } else if (session.citaVenta?.estado === 'NO_SHOW') {
-      prefix = '🚫 '
+      alertIcon = 'noshow'
     }
 
     const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
@@ -159,13 +159,14 @@ const calendarEvents = computed(() => {
 
     return {
       id: `session-${session.id}`,
-      title: `${prefix}${session.clienteNombre}${roomStr} [${paxStr}]${conceptoStr}`,
+      title: `${session.clienteNombre}${roomStr} [${paxStr}]${conceptoStr}`,
       start: session.fechaHoraInicio,
       backgroundColor: color,
       borderColor: color,
       extendedProps: {
         rawSession: session,
         type: 'session',
+        alertIcon,
       },
     }
   })
@@ -251,13 +252,14 @@ const calendarEvents = computed(() => {
 
     return {
       id: `sale-${sale.id}`,
-      title: `💰 Cita Venta: ${sale.clienteNombre || 'Cliente'}${roomStr}`,
+      title: `Cita Venta: ${sale.clienteNombre || 'Cliente'}${roomStr}`,
       start: sale.fechaHoraCita,
       backgroundColor: color,
       borderColor: color,
       extendedProps: {
         rawSale: sale,
         type: 'sale',
+        iconType: 'money',
       },
     }
   })
@@ -282,8 +284,56 @@ const calendarOptions = computed(() => ({
   height: 'auto',
   select: handleDateSelect,
   eventClick: handleEventClick,
+  eventContent: renderEventContent,
   events: calendarEvents.value,
 }))
+
+// SVGs extraídos directamente del paquete @element-plus/icons-vue compilado
+const ICON_SVG: Record<string, string> = {
+  // Filled: dos tarjetas/billetes apilados con círculo (icono proporcionado por el usuario)
+  money: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path fill-rule="evenodd" clip-rule="evenodd" d="M22 12.9342C22 12.956 22 12.978 22 13L22 15C22 15.022 22 15.044 22 15.0658C22 15.9523 22.0001 16.7161 21.9179 17.3278C21.8297 17.9833 21.631 18.6117 21.1213 19.1213C20.6117 19.631 19.9833 19.8297 19.3278 19.9179C18.7161 20.0001 17.9523 20.0001 17.0658 20L10.9342 20C10.0477 20.0001 9.28386 20.0001 8.6722 19.9179C8.01669 19.8297 7.38834 19.631 6.87867 19.1213C6.36901 18.6117 6.17027 17.9833 6.08214 17.3278C5.9999 16.7161 5.99994 15.9523 5.99999 15.0658L5.99999 12.9342C5.99994 12.0477 5.9999 11.2839 6.08214 10.6722C6.17027 10.0167 6.36901 9.38835 6.87867 8.87868C7.38834 8.36902 8.01669 8.17028 8.6722 8.08214C9.28386 7.99991 10.0477 7.99995 10.9342 8L17 8C17.022 8 17.044 8 17.0658 8C17.9523 7.99995 18.7161 7.99991 19.3278 8.08215C19.9833 8.17028 20.6117 8.36902 21.1213 8.87868C21.631 9.38835 21.8297 10.0167 21.9179 10.6722C22.0001 11.2839 22 12.0477 22 12.9342ZM11 14C11 12.3431 12.3432 11 14 11C15.6569 11 17 12.3431 17 14C17 15.6569 15.6569 17 14 17C12.3432 17 11 15.6569 11 14Z"/><path d="M17.9965 7.00391C17.7103 6.99994 17.4161 6.99997 17.1189 7.00001L10.8813 7.00001C10.0376 6.99992 9.21767 6.99983 8.53906 7.09107C7.77331 7.19402 6.89841 7.44484 6.17167 8.17158C5.44493 8.89832 5.19411 9.77323 5.09116 10.539C4.99992 11.2176 5 12.0375 5.00009 12.8813V15.1187C5.00006 15.4118 5.00003 15.702 5.00383 15.9844C4.93907 15.9812 4.87645 15.9774 4.81603 15.9727C4.44281 15.9439 4.07084 15.8804 3.70949 15.7082C3.08831 15.4122 2.58777 14.9117 2.29177 14.2905C2.11957 13.9291 2.05608 13.5572 2.02728 13.184C1.99998 12.8301 1.99999 12.4011 2.00001 11.9039L2 8.93415C1.99995 8.04768 1.99991 7.28385 2.08215 6.67219C2.17028 6.01668 2.36902 5.38833 2.87869 4.87866C3.38835 4.369 4.0167 4.17026 4.67221 4.08213C5.28387 3.99989 6.04769 3.99993 6.93418 3.99998L14.539 3.99993C14.9608 3.99956 15.3242 3.99924 15.6475 4.07069C16.7872 4.32262 17.6774 5.21276 17.9293 6.35249C17.9736 6.55277 17.9903 6.76846 17.9965 7.00391Z"/></svg>`,
+  // Filled: reloj sólido sin anillo outline
+  clock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 0 1-11.2 1.7L483.3 569.8a7.92 7.92 0 0 1-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.6 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"/></svg>`,
+  // Filled: cámara sólida (ya era filled, se mantiene igual)
+  camera: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M704 192h160a64 64 0 0 1 64 64v512a64 64 0 0 1-64 64H160a64 64 0 0 1-64-64V256a64 64 0 0 1 64-64h160l48-64h304l48 64zm-192 128a192 192 0 1 0 0 384 192 192 0 0 0 0-384zm0 80a112 112 0 1 1 0 224 112 112 0 0 1 0-224z"/></svg>`,
+  // Filled: triángulo sólido con exclamación dentro
+  warning: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M955.7 856l-416-720c-12.2-21.2-45.2-21.2-57.4 0l-416 720c-12.2 21.1 3 47.5 28.7 47.5h832c25.7.1 40.9-26.3 28.7-47.5zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8zm32 352a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>`,
+}
+
+function renderEventContent(arg: EventContentArg) {
+  const type = arg.event.extendedProps.type
+  const alertIcon: string | undefined = arg.event.extendedProps.alertIcon
+  const title: string = arg.event.title
+  const timeText: string = arg.timeText ?? ''
+
+  let iconSvg = ''
+  if (type === 'sale') {
+    iconSvg = ICON_SVG.money ?? ''
+  } else if (alertIcon && alertIcon in ICON_SVG) {
+    iconSvg = ICON_SVG[alertIcon] ?? ''
+  }
+
+  const container = document.createElement('div')
+  container.style.display = 'flex'
+  container.style.alignItems = 'center'
+  container.style.gap = '4px'
+  container.style.width = '100%'
+  container.style.overflow = 'hidden'
+  container.style.whiteSpace = 'nowrap'
+
+  let html = ''
+
+  if (iconSvg) {
+    html += iconSvg
+  }
+  if (timeText) {
+    html += `<span style="font-weight:bold;flex-shrink:0;">${timeText}</span>`
+  }
+  html += `<span style="overflow:hidden;text-overflow:ellipsis;">${title}</span>`
+
+  container.innerHTML = html
+  return { domNodes: [container] }
+}
 
 function initSelectedHotel() {
   const queryHotelId = route.query.hotelId ? Number(route.query.hotelId) : null
@@ -415,7 +465,10 @@ function handleEventClick(clickInfo: {
           <div class="alerts-sections-grid">
             <!-- 1. Sesiones Vencidas -->
             <div v-if="overdueSessions.length > 0" class="alert-section section-overdue">
-              <h4 class="section-title">⏰ Sesiones Vencidas ({{ overdueSessions.length }})</h4>
+              <h4 class="section-title">
+                <el-icon style="vertical-align: middle; margin-right: 4px"><Clock /></el-icon>
+                Sesiones Vencidas ({{ overdueSessions.length }})
+              </h4>
               <div class="section-cards">
                 <div v-for="s in overdueSessions" :key="s.id" class="alert-item-card">
                   <div class="item-details">
@@ -438,12 +491,18 @@ function handleEventClick(clickInfo: {
 
             <!-- 2. Sesiones Sin Cita de Venta -->
             <div v-if="missingSaleSessions.length > 0" class="alert-section section-missing">
-              <h4 class="section-title">📸 Sesiones Sin Cita de Venta ({{ missingSaleSessions.length }})</h4>
+              <h4 class="section-title">
+                <el-icon style="vertical-align: middle; margin-right: 4px"><Camera /></el-icon>
+                Sesiones Sin Cita de Venta ({{ missingSaleSessions.length }})
+              </h4>
               <div class="section-cards">
                 <div v-for="s in missingSaleSessions" :key="s.id" class="alert-item-card">
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
-                    <span class="item-sub">{{ s.estado === 'COMPLETADA' ? 'Completada' : 'Programada' }} — {{ s.fechaHoraInicio }}</span>
+                    <span class="item-sub"
+                      >{{ s.estado === 'COMPLETADA' ? 'Completada' : 'Programada' }} —
+                      {{ s.fechaHoraInicio }}</span
+                    >
                   </div>
                   <el-button
                     type="primary"
@@ -458,7 +517,10 @@ function handleEventClick(clickInfo: {
 
             <!-- 3. No Show en Cita de Venta -->
             <div v-if="noShowSales.length > 0" class="alert-section section-noshow">
-              <h4 class="section-title">🚫 No Show en Venta ({{ noShowSales.length }})</h4>
+              <h4 class="section-title">
+                <el-icon style="vertical-align: middle; margin-right: 4px"><Warning /></el-icon>
+                No Show en Venta ({{ noShowSales.length }})
+              </h4>
               <div class="section-cards">
                 <div v-for="s in noShowSales" :key="s.id" class="alert-item-card">
                   <div class="item-details">

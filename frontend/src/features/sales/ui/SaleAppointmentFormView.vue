@@ -14,8 +14,6 @@ import {
   Check,
   Close,
   Warning,
-  User,
-  OfficeBuilding,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
