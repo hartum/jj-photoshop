@@ -121,7 +121,6 @@ const totalAlertsCount = computed(() => {
 // Filtered events for FullCalendar (Photo Sessions + Sales Appointments)
 const calendarEvents = computed(() => {
   const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
-  const now = new Date()
 
   // 1. Photo Session events
   const sessionList = sessionStore.sessions.filter((s) => {
@@ -143,16 +142,6 @@ const calendarEvents = computed(() => {
       }
     }
 
-    // Alert condition icon type
-    let alertIcon: 'clock' | 'camera' | 'noshow' | null = null
-    if (session.estado === 'PROGRAMADA' && new Date(session.fechaHoraInicio) < now) {
-      alertIcon = 'clock'
-    } else if (session.estado === 'COMPLETADA' && !session.citaVenta) {
-      alertIcon = 'camera'
-    } else if (session.citaVenta?.estado === 'NO_SHOW') {
-      alertIcon = 'noshow'
-    }
-
     const paxStr = `${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX`
     const roomStr = session.numeroHabitacion ? ` (Hab ${session.numeroHabitacion})` : ''
     const conceptoStr = session.concepto ? ` - ${session.concepto}` : ''
@@ -166,7 +155,6 @@ const calendarEvents = computed(() => {
       extendedProps: {
         rawSession: session,
         type: 'session',
-        alertIcon,
       },
     }
   })
@@ -302,16 +290,10 @@ const ICON_SVG: Record<string, string> = {
 
 function renderEventContent(arg: EventContentArg) {
   const type = arg.event.extendedProps.type
-  const alertIcon: string | undefined = arg.event.extendedProps.alertIcon
   const title: string = arg.event.title
   const timeText: string = arg.timeText ?? ''
 
-  let iconSvg = ''
-  if (type === 'sale') {
-    iconSvg = ICON_SVG.money ?? ''
-  } else if (alertIcon && alertIcon in ICON_SVG) {
-    iconSvg = ICON_SVG[alertIcon] ?? ''
-  }
+  const iconSvg = type === 'sale' ? (ICON_SVG.money ?? '') : (ICON_SVG.camera ?? '')
 
   const container = document.createElement('div')
   container.style.display = 'flex'
