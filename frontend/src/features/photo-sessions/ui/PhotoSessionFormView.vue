@@ -229,6 +229,13 @@ onMounted(async () => {
   if (isEditing.value && sessionId.value) {
     const existing = sessionStore.sessions.find((s) => String(s.id) === String(sessionId.value))
     if (existing) {
+      const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+      if (!allowedHotelIds.has(Number(existing.hotelId))) {
+        ElMessage.error('No tienes acceso a las sesiones fotográficas de este hotel')
+        handleGoBack()
+        return
+      }
+
       loadedSession.value = existing
 
       formData.value = {

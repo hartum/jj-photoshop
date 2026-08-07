@@ -122,10 +122,11 @@ const calendarEvents = computed(() => {
 
   // 1. Photo Session events
   const sessionList = sessionStore.sessions.filter((s) => {
+    if (!allowedHotelIds.has(Number(s.hotelId))) return false
     if (selectedHotelId.value) {
       return Number(s.hotelId) === Number(selectedHotelId.value)
     }
-    return allowedHotelIds.has(Number(s.hotelId))
+    return true
   })
 
   const sessionEvents = sessionList.map((session) => {
@@ -183,15 +184,18 @@ const calendarEvents = computed(() => {
 
   // Add from saleStore
   saleStore.citasVenta.forEach((c) => {
+    const parentSession = sessionStore.sessions.find((s) => s.id === c.sesionId)
+    const effectiveHotelId = parentSession ? Number(parentSession.hotelId) : Number(c.hotelId)
+
     salesMap.set(c.id, {
       id: c.id,
       sesionId: c.sesionId,
-      hotelId: Number(c.hotelId),
-      fotografoId: c.fotografoId || null,
+      hotelId: effectiveHotelId,
+      fotografoId: c.fotografoId || parentSession?.fotografoId || null,
       fechaHoraCita: c.fechaHoraCita,
       estado: c.estado,
-      clienteNombre: c.clienteNombre || 'Cliente',
-      numeroHabitacion: c.numeroHabitacion || undefined,
+      clienteNombre: c.clienteNombre || parentSession?.clienteNombre || 'Cliente',
+      numeroHabitacion: c.numeroHabitacion || parentSession?.numeroHabitacion || undefined,
     })
   })
 
@@ -214,10 +218,11 @@ const calendarEvents = computed(() => {
   })
 
   const salesList = Array.from(salesMap.values()).filter((c) => {
+    if (!allowedHotelIds.has(Number(c.hotelId))) return false
     if (selectedHotelId.value) {
       return Number(c.hotelId) === Number(selectedHotelId.value)
     }
-    return allowedHotelIds.has(Number(c.hotelId))
+    return true
   })
 
   const salesEvents = salesList.map((sale) => {

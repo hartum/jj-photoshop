@@ -59,6 +59,25 @@ const sessionInfo = ref({
 
 const currentUser = computed(() => authStore.user)
 
+// Hotels list accessible by current user based on role matrix
+const userHotels = computed(() => {
+  const user = currentUser.value
+  if (!user) return hotelStore.hotels
+
+  const roleCode = user.roleCode?.toUpperCase()
+  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'CONTABLE') {
+    return hotelStore.hotels
+  }
+
+  if (roleCode === 'GERENTE') {
+    const areaIds = new Set(user.areaIds || [])
+    return hotelStore.hotels.filter((h) => areaIds.has(h.areaId))
+  }
+
+  const userHotelIds = new Set(user.hotelIds || [])
+  return hotelStore.hotels.filter((h) => userHotelIds.has(h.id))
+})
+
 // Role-based edit lock
 const isReadOnly = computed(() => {
   if (!isEditing.value) return false
@@ -70,7 +89,9 @@ const isReadOnly = computed(() => {
 
 // Available completed sessions without a sales appointment (for session selector)
 const availableSessions = computed(() => {
+  const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
   return sessionStore.sessions.filter((s) => {
+    if (!allowedHotelIds.has(Number(s.hotelId))) return false
     if (s.estado !== 'COMPLETADA') return false
     if (s.citaVenta && s.citaVenta.id) return false
     return true
@@ -163,6 +184,13 @@ onMounted(async () => {
   if (isEditing.value && citaId.value) {
     const existing = await saleStore.fetchCitaVenta(citaId.value)
     if (existing) {
+      const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+      if (!allowedHotelIds.has(Number(existing.hotelId))) {
+        ElMessage.error('No tienes acceso a las citas de venta de este hotel')
+        handleGoBack()
+        return
+      }
+
       formData.value = {
         sesionId: existing.sesionId,
         hotelId: existing.hotelId,

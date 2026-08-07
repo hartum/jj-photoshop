@@ -119,7 +119,8 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const mapped = citas.map((c) => ({
         id: c.id,
         sesionId: c.sesionId,
-        hotelId: c.hotelId,
+        hotelId: c.sesion?.hotelId || c.hotelId,
+        hotelNombre: c.hotel?.nombre || '',
         fechaHoraCita: c.fechaHoraCita.toISOString().slice(0, 16),
         estado: c.estado,
         numFotosVendidas: c.numFotosVendidas,
@@ -255,13 +256,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
       const fechaCita = parseLocalDateTime(body.fechaHoraCita)
 
-      // Check conflicts
-      const conflicts = await findConflicts(body.hotelId, fechaCita)
+      // Check conflicts using session's hotelId
+      const conflicts = await findConflicts(sesion.hotelId, fechaCita)
 
       const nueva = await prisma.citaVenta.create({
         data: {
           sesionId: body.sesionId,
-          hotelId: body.hotelId,
+          hotelId: sesion.hotelId,
           fechaHoraCita: fechaCita,
           estado: 'PROGRAMADA',
           notas: body.notas ? body.notas.trim() : null,

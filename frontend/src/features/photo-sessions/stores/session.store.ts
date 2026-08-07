@@ -50,6 +50,15 @@ const MOCK_INITIAL_SESSIONS: SesionFotografica[] = [
   },
 ]
 
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const token = localStorage.getItem('token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
 export const useSessionStore = defineStore('sessions', () => {
   const sessions = ref<SesionFotografica[]>([])
   const isLoading = ref(false)
@@ -85,7 +94,7 @@ export const useSessionStore = defineStore('sessions', () => {
     isLoading.value = true
     try {
       const url = hotelId ? `${API_URL}/sesiones?hotelId=${hotelId}` : `${API_URL}/sesiones`
-      const res = await fetch(url)
+      const res = await fetch(url, { headers: getAuthHeaders() })
       if (res.ok) {
         const data = await res.json()
         sessions.value = data
@@ -106,7 +115,7 @@ export const useSessionStore = defineStore('sessions', () => {
     try {
       const res = await fetch(`${API_URL}/sesiones`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
 
@@ -167,7 +176,7 @@ export const useSessionStore = defineStore('sessions', () => {
     try {
       const res = await fetch(`${API_URL}/sesiones/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
       if (res.ok) {
