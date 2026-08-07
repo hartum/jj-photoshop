@@ -14,7 +14,7 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
-import type { EventContentArg } from '@fullcalendar/core'
+import type { EventContentArg, DatesSetArg } from '@fullcalendar/core'
 import { Plus, Bell, Warning } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -255,10 +255,27 @@ const calendarEvents = computed(() => {
   return [...sessionEvents, ...salesEvents]
 })
 
+const CALENDAR_VIEW_STORAGE_KEY = 'jj_calendar_view'
+
+function getInitialCalendarView(): string {
+  const savedView = localStorage.getItem(CALENDAR_VIEW_STORAGE_KEY)
+  const validViews = ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek']
+  if (savedView && validViews.includes(savedView)) {
+    return savedView
+  }
+  return window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek'
+}
+
+function handleDatesSet(dateInfo: DatesSetArg) {
+  if (dateInfo.view?.type) {
+    localStorage.setItem(CALENDAR_VIEW_STORAGE_KEY, dateInfo.view.type)
+  }
+}
+
 // FullCalendar Configuration computed so reactivity works seamlessly
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
-  initialView: window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek',
+  initialView: getInitialCalendarView(),
   locale: esLocale,
   headerToolbar: {
     left: 'prev,next today',
@@ -272,6 +289,7 @@ const calendarOptions = computed(() => ({
   height: 'auto',
   select: handleDateSelect,
   eventClick: handleEventClick,
+  datesSet: handleDatesSet,
   eventContent: renderEventContent,
   events: calendarEvents.value,
 }))
