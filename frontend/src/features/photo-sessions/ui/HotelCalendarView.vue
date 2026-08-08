@@ -290,6 +290,10 @@ const calendarOptions = computed(() => ({
     center: 'title',
     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
   },
+  slotMinTime: '06:00:00',
+  slotMaxTime: '23:00:00',
+  slotDuration: '00:30:00',
+  expandRows: true,
   selectable: true,
   selectMirror: true,
   editable: false,
@@ -1177,6 +1181,50 @@ function handleEventClick(clickInfo: EventClickArg) {
 
 :deep(.fc-button-group > .fc-button) {
   margin-right: 0;
+}
+
+/* ── Celdas / Huecos más grandes para FullCalendar ── */
+:deep(.fc-timegrid-slot) {
+  height: 48px !important;
+}
+
+:deep(.fc-timegrid-slot-label) {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+:deep(.fc-daygrid-day-frame) {
+  min-height: 110px !important;
+}
+
+:deep(.fc-daygrid-day-top) {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 4px 6px;
+}
+
+:deep(.fc-event) {
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+:deep(.fc-event:hover) {
+  transform: translateY(-1px) scale(1.01) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14) !important;
+  z-index: 10 !important;
+}
+
+:deep(.fc-timegrid-event) {
+  border-radius: 6px !important;
+  margin: 1px 2px !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08) !important;
+}
+
+:deep(.fc-daygrid-event) {
+  margin: 2px 4px !important;
+  padding: 2px 4px !important;
+  border-radius: 4px !important;
 }
 
 .fab-btn {
