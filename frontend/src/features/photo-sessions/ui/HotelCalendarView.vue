@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -14,8 +14,8 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
-import type { EventContentArg, DatesSetArg } from '@fullcalendar/core'
-import { Plus, Bell, Warning } from '@element-plus/icons-vue'
+import type { EventContentArg, DatesSetArg, EventClickArg } from '@fullcalendar/core'
+import { Plus, Bell, Warning, OfficeBuilding, User } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +25,13 @@ const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
+
+const isMobile = ref(false)
+const mobileDialogVisible = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
 
 // Localización en Español para FullCalendar
 const esLocale = {
@@ -387,6 +394,8 @@ watch(
 )
 
 onMounted(async () => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   await Promise.all([
     hotelStore.fetchHotels(),
     userStore.fetchUsers(),
@@ -395,6 +404,10 @@ onMounted(async () => {
     saleStore.fetchCitasVenta(),
   ])
   initSelectedHotel()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 
 function navigateToNewSessionForm(startIso?: string) {
@@ -416,10 +429,183 @@ function handleDateSelect(selectInfo: { startStr: string }) {
   navigateToNewSessionForm(startIso)
 }
 
-function handleEventClick(clickInfo: {
-  event: { extendedProps: { rawSession?: SesionFotografica; rawSale?: CitaVenta; type?: string } }
-}) {
-  const { rawSession, rawSale, type } = clickInfo.event.extendedProps
+interface EventTooltipInfo {
+  hotelNombre: string
+  fotografoPrimerNombre: string
+  fotografoNombreCompleto: string
+  fechaCabecera: string
+  habitacion: string
+  clienteNombre: string
+  checkout: string
+  fechaCitaVenta: string
+  adultosYNinos: string
+  telefono: string
+  email: string
+  agendadoPor: string
+  type: 'session' | 'sale'
+  rawSession?: SesionFotografica
+  rawSale?: CitaVenta
+}
+
+const tooltipVisible = ref(false)
+const tooltipTarget = ref<HTMLElement | null>(null)
+const activeTooltipInfo = ref<EventTooltipInfo | null>(null)
+let clickTimer: ReturnType<typeof setTimeout> | null = null
+
+function formatEventHeaderDate(dateStr?: string | null): string {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const meses = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ]
+
+  const diaSemana = dias[d.getDay()]
+  const diaMes = d.getDate()
+  const mes = meses[d.getMonth()]
+  const horas = d.getHours()
+  const minutos = String(d.getMinutes()).padStart(2, '0')
+
+  return `${diaSemana}, ${diaMes} ${mes} - ${horas}:${minutos}`
+}
+
+function formatDateStr(dateStr?: string | null): string {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
+function formatDateTimeStr(dateStr?: string | null): string {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year} ${hours}:${minutes}`
+}
+
+interface ExtendedEventProps {
+  type?: 'session' | 'sale'
+  rawSession?: SesionFotografica
+  rawSale?: CitaVenta
+  paxStr?: string
+  [key: string]: unknown
+}
+
+function buildTooltipInfo(extendedProps: ExtendedEventProps): EventTooltipInfo {
+  const { rawSession, rawSale, type } = extendedProps
+
+  if (type === 'sale' && rawSale) {
+    const parentSession = sessionStore.sessions.find((s) => s.id === rawSale.sesionId)
+    const hotelId = rawSale.hotelId || parentSession?.hotelId
+    const hotel = hotelStore.hotels.find((h) => Number(h.id) === Number(hotelId))
+    const hotelNombre = hotel ? hotel.nombre : rawSale.hotelNombre || 'Hotel desconocido'
+
+    const fotografoId = rawSale.fotografoId || parentSession?.fotografoId
+    const fotografo = userStore.users.find((u) => String(u.id) === String(fotografoId))
+    const fotografoPrimerNombre =
+      (fotografo?.nombre ? fotografo.nombre.split(' ')[0] : '') || 'Sin asignar'
+    const fotografoNombreCompleto = fotografo?.nombre
+      ? `${fotografo.nombre} ${fotografo.apellidos || ''}`.trim()
+      : 'Sin asignar'
+
+    const agendadoUser = parentSession
+      ? userStore.users.find((u) => String(u.id) === String(parentSession.creadorId))
+      : null
+    const agendadoPor = agendadoUser?.nombre
+      ? `${agendadoUser.nombre} ${agendadoUser.apellidos || ''}`.trim()
+      : '-'
+
+    const numAdultos = rawSale.numAdultos ?? parentSession?.numAdultos ?? 1
+    const numNinos = rawSale.numNinos ?? parentSession?.numNinos ?? 0
+
+    return {
+      hotelNombre,
+      fotografoPrimerNombre,
+      fotografoNombreCompleto,
+      fechaCabecera: formatEventHeaderDate(rawSale.fechaHoraCita),
+      habitacion: rawSale.numeroHabitacion || parentSession?.numeroHabitacion || '-',
+      clienteNombre: rawSale.clienteNombre || parentSession?.clienteNombre || '-',
+      checkout: formatDateStr(parentSession?.fechaSalida),
+      fechaCitaVenta: formatDateTimeStr(rawSale.fechaHoraCita),
+      adultosYNinos: `${numAdultos} adulto(s), ${numNinos} niño(s)`,
+      telefono: rawSale.clienteTelefono || parentSession?.clienteTelefono || '-',
+      email: rawSale.clienteEmail || parentSession?.clienteEmail || '-',
+      agendadoPor,
+      type: 'sale',
+      rawSale,
+      rawSession: parentSession,
+    }
+  }
+
+  // Otherwise type === 'session'
+  const session = rawSession as SesionFotografica
+  const hotel = hotelStore.hotels.find((h) => Number(h.id) === Number(session?.hotelId))
+  const hotelNombre = hotel ? hotel.nombre : 'Hotel desconocido'
+
+  const fotografo = userStore.users.find((u) => String(u.id) === String(session?.fotografoId))
+  const fotografoPrimerNombre =
+    (fotografo?.nombre ? fotografo.nombre.split(' ')[0] : '') || 'Sin asignar'
+  const fotografoNombreCompleto = fotografo?.nombre
+    ? `${fotografo.nombre} ${fotografo.apellidos || ''}`.trim()
+    : 'Sin asignar'
+
+  const agendadoUser = userStore.users.find((u) => String(u.id) === String(session?.creadorId))
+  const agendadoPor = agendadoUser?.nombre
+    ? `${agendadoUser.nombre} ${agendadoUser.apellidos || ''}`.trim()
+    : '-'
+
+  const numAdultos = session?.numAdultos ?? 1
+  const numNinos = session?.numNinos ?? 0
+
+  return {
+    hotelNombre,
+    fotografoPrimerNombre,
+    fotografoNombreCompleto,
+    fechaCabecera: formatEventHeaderDate(session.fechaHoraInicio),
+    habitacion: session?.numeroHabitacion || '-',
+    clienteNombre: session?.clienteNombre || '-',
+    checkout: formatDateStr(session?.fechaSalida),
+    fechaCitaVenta: session?.citaVenta?.fechaHoraCita
+      ? formatDateTimeStr(session.citaVenta.fechaHoraCita)
+      : 'Sin cita',
+    adultosYNinos: `${numAdultos} adulto(s), ${numNinos} niño(s)`,
+    telefono: session?.clienteTelefono || '-',
+    email: session?.clienteEmail || '-',
+    agendadoPor,
+    type: 'session',
+    rawSession: session,
+  }
+}
+
+function triggerEditEvent(info?: EventTooltipInfo | ExtendedEventProps | null) {
+  if (!info) return
+  tooltipVisible.value = false
+  mobileDialogVisible.value = false
+
+  const type = info.type
+  const rawSale = info.rawSale
+  const rawSession = info.rawSession
 
   if (type === 'sale' && rawSale) {
     router.push(`/ventas/${rawSale.id}/editar`)
@@ -428,6 +614,31 @@ function handleEventClick(clickInfo: {
 
   if (rawSession) {
     router.push(`/agenda/${rawSession.id}/editar`)
+  }
+}
+
+function handleEventClick(clickInfo: EventClickArg) {
+  if (isMobile.value) {
+    // En versión móvil abrimos directamente el diálogo modal
+    activeTooltipInfo.value = buildTooltipInfo(clickInfo.event.extendedProps)
+    mobileDialogVisible.value = true
+    return
+  }
+
+  if (clickTimer) {
+    // Doble clic -> editar evento directamente y cancelar temporizador
+    clearTimeout(clickTimer)
+    clickTimer = null
+    tooltipVisible.value = false
+    triggerEditEvent(clickInfo.event.extendedProps)
+  } else {
+    // Clic simple -> esperar 250ms por posible doble clic
+    clickTimer = setTimeout(() => {
+      clickTimer = null
+      activeTooltipInfo.value = buildTooltipInfo(clickInfo.event.extendedProps)
+      tooltipTarget.value = clickInfo.el
+      tooltipVisible.value = true
+    }, 250)
   }
 }
 </script>
@@ -569,6 +780,165 @@ function handleEventClick(clickInfo: {
     <!-- Calendario de FullCalendar -->
     <div class="calendar-card">
       <FullCalendar :options="calendarOptions" :events="calendarEvents" />
+
+      <!-- Popover de Detalle del Evento (Solo Desktop) -->
+      <el-popover
+        v-if="!isMobile"
+        v-model:visible="tooltipVisible"
+        :virtual-ref="tooltipTarget"
+        virtual-triggering
+        trigger="click"
+        width="340"
+        placement="right-start"
+        popper-class="event-details-popover"
+      >
+        <div v-if="activeTooltipInfo" class="tooltip-card">
+          <!-- Cabecera: Nombre Hotel + Nombre Fotógrafo (Solo Nombre) -->
+          <div class="tooltip-header">
+            <div class="header-hotel" title="Hotel">
+              <el-icon :size="16"><OfficeBuilding /></el-icon>
+              <span>{{ activeTooltipInfo.hotelNombre }}</span>
+            </div>
+            <div class="header-photographer" title="Fotógrafo asignado">
+              <el-icon :size="16"><User /></el-icon>
+              <span>{{ activeTooltipInfo.fotografoPrimerNombre }}</span>
+            </div>
+            <div class="sub-header">
+              <span>{{ activeTooltipInfo.fechaCabecera }}</span>
+            </div>
+          </div>
+
+          <!-- Cuerpo con datos detallados -->
+          <div class="tooltip-body">
+            <div class="info-row">
+              <span class="info-label">Habitación:</span>
+              <span class="info-value">{{ activeTooltipInfo.habitacion }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Nombre cliente:</span>
+              <span class="info-value">{{ activeTooltipInfo.clienteNombre }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Checkout:</span>
+              <span class="info-value">{{ activeTooltipInfo.checkout }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Fecha cita venta:</span>
+              <span class="info-value">{{ activeTooltipInfo.fechaCitaVenta }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Adultos y niños:</span>
+              <span class="info-value">{{ activeTooltipInfo.adultosYNinos }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Teléfono:</span>
+              <span class="info-value">{{ activeTooltipInfo.telefono }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email:</span>
+              <span class="info-value email-text">{{ activeTooltipInfo.email }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Agendado por:</span>
+              <span class="info-value">{{ activeTooltipInfo.agendadoPor }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Fotógrafo:</span>
+              <span class="info-value">{{ activeTooltipInfo.fotografoNombreCompleto }}</span>
+            </div>
+          </div>
+
+          <!-- Pie / Acciones -->
+          <div class="tooltip-footer">
+            <el-button
+              type="primary"
+              style="width: 100%"
+              @click="triggerEditEvent(activeTooltipInfo)"
+            >
+              Editar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
+            </el-button>
+            <div class="double-click-hint">💡 O haz doble clic en el evento para editar</div>
+          </div>
+        </div>
+      </el-popover>
+
+      <!-- Dialog Modal para Móvil (Sustituye al Tooltip/Popover) -->
+      <el-dialog
+        v-model="mobileDialogVisible"
+        width="90%"
+        class="mobile-event-dialog"
+        append-to-body
+        destroy-on-close
+      >
+        <template #header>
+          <div v-if="activeTooltipInfo" class="dialog-custom-header">
+            <div class="header-hotel" title="Hotel">
+              <el-icon :size="18"><OfficeBuilding /></el-icon>
+              <span>{{ activeTooltipInfo.hotelNombre }}</span>
+            </div>
+            <div class="header-photographer" title="Fotógrafo asignado">
+              <el-icon :size="16"><User /></el-icon>
+              <span>{{ activeTooltipInfo.fotografoPrimerNombre }}</span>
+            </div>
+            <div class="sub-header">
+              <span>{{ activeTooltipInfo.fechaCabecera }}</span>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="activeTooltipInfo" class="tooltip-body">
+          <div class="info-row">
+            <span class="info-label">Habitación:</span>
+            <span class="info-value">{{ activeTooltipInfo.habitacion }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nombre cliente:</span>
+            <span class="info-value">{{ activeTooltipInfo.clienteNombre }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Checkout:</span>
+            <span class="info-value">{{ activeTooltipInfo.checkout }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Fecha cita venta:</span>
+            <span class="info-value">{{ activeTooltipInfo.fechaCitaVenta }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Adultos y niños:</span>
+            <span class="info-value">{{ activeTooltipInfo.adultosYNinos }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Teléfono:</span>
+            <span class="info-value">{{ activeTooltipInfo.telefono }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email:</span>
+            <span class="info-value email-text">{{ activeTooltipInfo.email }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Agendado por:</span>
+            <span class="info-value">{{ activeTooltipInfo.agendadoPor }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Fotógrafo:</span>
+            <span class="info-value">{{ activeTooltipInfo.fotografoNombreCompleto }}</span>
+          </div>
+        </div>
+
+        <template #footer>
+          <div v-if="activeTooltipInfo" class="dialog-footer-actions">
+            <el-button
+              type="primary"
+              size="large"
+              style="width: 100%"
+              @click="triggerEditEvent(activeTooltipInfo)"
+            >
+              Editar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
+            </el-button>
+          </div>
+          <div class="double-click-hint">💡 O haz doble clic en el evento para editar</div>
+        </template>
+      </el-dialog>
     </div>
 
     <!-- Botón Flotante para Móvil (+ Agendar) -->
@@ -872,5 +1242,99 @@ function handleEventClick(clickInfo: {
   .calendar-card {
     padding: 0.75rem 0 0;
   }
+}
+
+/* Tooltip Card & Popover Styling */
+.tooltip-card {
+  padding: 0.1rem;
+  font-family: inherit;
+}
+
+.tooltip-header {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--el-border-color-light, #f1f5f9);
+  gap: 5px;
+}
+.header-hotel,
+.header-photographer {
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sub-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--el-border-color-lighter, #f1f5f9);
+}
+
+.info-label {
+  color: var(--el-text-color-secondary, #64748b);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.info-value {
+  color: var(--el-text-color-primary, #0f172a);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+.email-text {
+  font-size: 0.8rem;
+}
+
+.tooltip-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--el-border-color-lighter, #e2e8f0);
+}
+
+.double-click-hint {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--el-text-color-placeholder, #94a3b8);
+  text-align: center;
+}
+
+/* Mobile Dialog Specific Styles */
+.dialog-custom-header {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--el-border-color-light, #f1f5f9);
+  gap: 5px;
+  padding-bottom: 0.5rem;
+  width: 100%;
+}
+
+.dialog-footer-actions {
+  display: flex;
+  width: 100%;
 }
 </style>
