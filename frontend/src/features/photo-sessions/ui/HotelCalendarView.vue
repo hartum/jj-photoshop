@@ -290,6 +290,7 @@ const calendarOptions = computed(() => ({
     center: 'title',
     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
   },
+  eventDisplay: 'block',
   slotMinTime: '06:00:00',
   slotMaxTime: '23:00:00',
   slotDuration: '00:30:00',
@@ -327,11 +328,12 @@ function renderEventContent(arg: EventContentArg) {
   const iconSvg = type === 'sale' ? (ICON_SVG.money ?? '') : (ICON_SVG.camera ?? '')
 
   const container = document.createElement('div')
+  container.className = 'jj-event-card-content'
   container.style.display = 'flex'
   container.style.flexDirection = 'column'
   container.style.width = '100%'
   container.style.overflow = 'hidden'
-  container.style.lineHeight = '1.2'
+  container.style.lineHeight = '1.25'
 
   let headerHtml =
     '<div style="display:flex;align-items:center;gap:4px;font-weight:bold;flex-shrink:0;white-space:nowrap;">'
@@ -1206,25 +1208,48 @@ function handleEventClick(clickInfo: EventClickArg) {
 :deep(.fc-event) {
   border-radius: 6px !important;
   cursor: pointer !important;
+  color: #ffffff !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
 
 :deep(.fc-event:hover) {
   transform: translateY(-1px) scale(1.01) !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
   z-index: 10 !important;
 }
 
 :deep(.fc-timegrid-event) {
   border-radius: 6px !important;
   margin: 1px 2px !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12) !important;
+  color: #ffffff !important;
 }
 
 :deep(.fc-daygrid-event) {
   margin: 2px 4px !important;
-  padding: 2px 4px !important;
-  border-radius: 4px !important;
+  padding: 3px 6px !important;
+  border-radius: 5px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+  color: #ffffff !important;
+}
+
+:deep(.fc-daygrid-event .jj-event-card-content),
+:deep(.fc-timegrid-event .jj-event-card-content) {
+  color: #ffffff !important;
+}
+
+/* ── Vista Agenda / Lista: texto oscuro legible y punto de color nativo ── */
+:deep(.fc-list-event) {
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+:deep(.fc-list-event td),
+:deep(.fc-list-event-title),
+:deep(.fc-list-event-title a),
+:deep(.fc-list-event-time),
+:deep(.fc-list-event .jj-event-card-content) {
+  color: var(--el-text-color-primary, #0f172a) !important;
 }
 
 .fab-btn {
