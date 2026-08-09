@@ -1,0 +1,59 @@
+name: Deploy JJ Studio to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install & Build Frontend
+        run: |
+          cd frontend
+          pnpm install
+          pnpm build
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            TARGET_DIR="/var/www/jjstudio_har_usr/data/www/jjstudio.hartum.net"
+            mkdir -p $TARGET_DIR
+            cd $TARGET_DIR
+
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/hartum/jj-photoshop.git .
+            else
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            # Install dependencies
+            cd $TARGET_DIR/backend
+            pnpm install --approve-builds
+
+            # Restart or start Backend with PM2
+            pm2 restart jjstudio-backend || pm2 start src/index.ts --name jjstudio-backend --interpreter tsx
+
+            # Save PM2 state
+            pm2 save
