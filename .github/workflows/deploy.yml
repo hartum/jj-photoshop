@@ -13,24 +13,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-          cache-dependency-path: 'frontend/pnpm-lock.yaml'
-
-      - name: Install & Build Frontend
-        run: |
-          cd frontend
-          pnpm install
-          pnpm build
-
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -49,12 +31,16 @@ jobs:
               git reset --hard origin/main
             fi
 
-            # Install dependencies
+            # Build Frontend on VPS
+            cd $TARGET_DIR/frontend
+            pnpm install
+            pnpm build
+
+            # Install & Restart Backend with PM2
             cd $TARGET_DIR/backend
             pnpm install --approve-builds
+            pm2 restart jjstudio-backend || pm2 start src/index.ts --name jjstudio-backend --interpreter ./node_modules/.bin/tsx
 
-            # Restart or start Backend with PM2
-            pm2 restart jjstudio-backend || pm2 start src/index.ts --name jjstudio-backend --interpreter tsx
-
-            # Save PM2 state
+            # Fix Permissions & Save PM2
+            chown -R jjstudio_har_usr:jjstudio_har_usr $TARGET_DIR
             pm2 save
