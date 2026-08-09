@@ -32,6 +32,10 @@ fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
 })
 
+fastify.get('/api/health', async () => {
+  return { status: 'ok', timestamp: new Date().toISOString() }
+})
+
 const start = async () => {
   try {
     const port = Number(process.env.PORT) || 3000
