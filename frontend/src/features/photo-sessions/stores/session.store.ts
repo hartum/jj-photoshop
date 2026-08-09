@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { SesionFotografica, CreateSesionPayload } from '../domain/session.model'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 const LOCAL_STORAGE_KEY = 'jj_photoshop_sesiones_fotograficas'
 
 const MOCK_INITIAL_SESSIONS: SesionFotografica[] = [

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Perfil } from '../domain/profile.model'
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const useProfileStore = defineStore('profiles', () => {
   const profiles = ref<Perfil[]>([])

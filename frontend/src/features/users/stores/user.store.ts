@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { User, UserWithProfile } from '../domain/user.model'
 import { useProfileStore } from './profile.store'
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const useUserStore = defineStore('users', () => {
   const profileStore = useProfileStore()
