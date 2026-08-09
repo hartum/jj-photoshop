@@ -140,28 +140,35 @@ const calendarEvents = computed(() => {
 
   const sessionEvents = sessionList.map((session) => {
     let color = '#9ca3af' // Gris por defecto si no hay fotógrafo asignado
+    let fotografoPrimerNombre = ''
     if (session.fotografoId) {
       const fotografo = userStore.users.find((u) => String(u.id) === String(session.fotografoId))
-      if (fotografo && fotografo.color) {
-        color = fotografo.color
-      } else if (fotografo) {
-        color = '#3b82f6'
+      if (fotografo) {
+        if (fotografo.color) {
+          color = fotografo.color
+        } else {
+          color = '#3b82f6'
+        }
+        fotografoPrimerNombre = (fotografo.nombre ? fotografo.nombre.split(' ')[0] : '') || ''
       }
     }
 
     const paxStr = `[${session.numAdultos ?? 1}.${session.numNinos ?? 0} PAX]`
-    const roomStr = session.numeroHabitacion ? ` (Hab ${session.numeroHabitacion})` : ''
-    const conceptoStr = session.concepto ? ` - ${session.concepto}` : ''
+    const roomStr = session.numeroHabitacion ? `Hab ${session.numeroHabitacion}` : ''
+    const clienteNombre = session.clienteNombre || 'Cliente'
 
     return {
       id: `session-${session.id}`,
-      title: `${session.clienteNombre}${roomStr}${conceptoStr}`,
+      title: clienteNombre,
       start: session.fechaHoraInicio,
       backgroundColor: color,
       borderColor: color,
       extendedProps: {
         rawSession: session,
         type: 'session',
+        fotografoPrimerNombre,
+        roomStr,
+        clienteNombre,
         paxStr,
       },
     }
@@ -179,6 +186,8 @@ const calendarEvents = computed(() => {
       estado: string
       clienteNombre: string
       numeroHabitacion?: string
+      numAdultos?: number
+      numNinos?: number
     }
   >()
 
@@ -196,6 +205,8 @@ const calendarEvents = computed(() => {
       estado: c.estado,
       clienteNombre: c.clienteNombre || parentSession?.clienteNombre || 'Cliente',
       numeroHabitacion: c.numeroHabitacion || parentSession?.numeroHabitacion || undefined,
+      numAdultos: c.numAdultos ?? parentSession?.numAdultos,
+      numNinos: c.numNinos ?? parentSession?.numNinos,
     })
   })
 
@@ -212,6 +223,8 @@ const calendarEvents = computed(() => {
           estado: s.citaVenta.estado,
           clienteNombre: s.clienteNombre || 'Cliente',
           numeroHabitacion: s.numeroHabitacion || undefined,
+          numAdultos: s.numAdultos,
+          numNinos: s.numNinos,
         })
       }
     }
@@ -227,28 +240,38 @@ const calendarEvents = computed(() => {
 
   const salesEvents = salesList.map((sale) => {
     let fotografoId: string | null = sale.fotografoId || null
-    if (!fotografoId && sale.sesionId) {
-      const parentSession = sessionStore.sessions.find((s) => s.id === sale.sesionId)
-      if (parentSession) {
+    let parentSession: SesionFotografica | undefined
+    if (sale.sesionId) {
+      parentSession = sessionStore.sessions.find((s) => s.id === sale.sesionId)
+      if (!fotografoId && parentSession) {
         fotografoId = parentSession.fotografoId || null
       }
     }
 
     let color = '#9ca3af' // Gris si no hay fotógrafo asignado
+    let fotografoPrimerNombre = ''
     if (fotografoId) {
       const fotografo = userStore.users.find((u) => String(u.id) === String(fotografoId))
-      if (fotografo && fotografo.color) {
-        color = fotografo.color
-      } else if (fotografo) {
-        color = '#3b82f6'
+      if (fotografo) {
+        if (fotografo.color) {
+          color = fotografo.color
+        } else {
+          color = '#3b82f6'
+        }
+        fotografoPrimerNombre = (fotografo.nombre ? fotografo.nombre.split(' ')[0] : '') || ''
       }
     }
 
-    const roomStr = sale.numeroHabitacion ? ` (Hab ${sale.numeroHabitacion})` : ''
+    const numAdultos = sale.numAdultos ?? parentSession?.numAdultos ?? 1
+    const numNinos = sale.numNinos ?? parentSession?.numNinos ?? 0
+    const paxStr = `[${numAdultos}.${numNinos} PAX]`
+    const habitacionNum = sale.numeroHabitacion || parentSession?.numeroHabitacion
+    const roomStr = habitacionNum ? `Hab ${habitacionNum}` : ''
+    const clienteNombre = sale.clienteNombre || parentSession?.clienteNombre || 'Cliente'
 
     return {
       id: `sale-${sale.id}`,
-      title: `${sale.clienteNombre || 'Cliente'}${roomStr}`,
+      title: clienteNombre,
       start: sale.fechaHoraCita,
       backgroundColor: color,
       borderColor: color,
@@ -256,6 +279,10 @@ const calendarEvents = computed(() => {
         rawSale: sale,
         type: 'sale',
         iconType: 'money',
+        fotografoPrimerNombre,
+        roomStr,
+        clienteNombre,
+        paxStr,
       },
     }
   })
@@ -321,8 +348,10 @@ const ICON_SVG: Record<string, string> = {
 
 function renderEventContent(arg: EventContentArg) {
   const type = arg.event.extendedProps.type
-  const paxStr = arg.event.extendedProps.paxStr
-  const title: string = arg.event.title
+  const fotografoPrimerNombre = (arg.event.extendedProps.fotografoPrimerNombre as string) ?? ''
+  const roomStr = (arg.event.extendedProps.roomStr as string) ?? ''
+  const clienteNombre = (arg.event.extendedProps.clienteNombre as string) || arg.event.title
+  const paxStr = (arg.event.extendedProps.paxStr as string) ?? ''
   const timeText: string = arg.timeText ?? ''
 
   const iconSvg = type === 'sale' ? (ICON_SVG.money ?? '') : (ICON_SVG.camera ?? '')
@@ -335,20 +364,31 @@ function renderEventContent(arg: EventContentArg) {
   container.style.overflow = 'hidden'
   container.style.lineHeight = '1.25'
 
+  // Cabecera: icono, hora, nombre del fotógrafo asignado (sin apellidos solo nombre)
   let headerHtml =
-    '<div style="display:flex;align-items:center;gap:4px;font-weight:bold;flex-shrink:0;white-space:nowrap;">'
+    '<div style="display:flex;align-items:center;gap:4px;font-weight:bold;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
   if (iconSvg) {
     headerHtml += iconSvg
   }
   if (timeText) {
     headerHtml += `<span>${timeText}</span>`
   }
-  if (paxStr) {
-    headerHtml += `<span style="font-weight:600;opacity:0.9;">${paxStr}</span>`
+  if (fotografoPrimerNombre) {
+    headerHtml += `<span style="font-weight:600;opacity:0.95;overflow:hidden;text-overflow:ellipsis;"> - ${fotografoPrimerNombre}</span>`
   }
   headerHtml += '</div>'
 
-  const bodyHtml = `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;margin-top:1px;">${title}</div>`
+  // Cuerpo: nº habitación, (salto de línea), Nombre cliente, (salto de línea), nº personas
+  let bodyHtml =
+    '<div style="display:flex;flex-direction:column;margin-top:2px;gap:1px;overflow:hidden;">'
+  if (roomStr) {
+    bodyHtml += `<div style="font-size:0.85em;font-weight:600;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${roomStr}</div>`
+  }
+  bodyHtml += `<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${clienteNombre}</div>`
+  if (paxStr) {
+    bodyHtml += `<div style="font-size:0.85em;font-weight:500;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${paxStr}</div>`
+  }
+  bodyHtml += '</div>'
 
   container.innerHTML = headerHtml + bodyHtml
   return { domNodes: [container] }
@@ -1209,7 +1249,9 @@ function handleEventClick(clickInfo: EventClickArg) {
   border-radius: 6px !important;
   cursor: pointer !important;
   color: #ffffff !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease !important;
 }
 
 :deep(.fc-event:hover) {
