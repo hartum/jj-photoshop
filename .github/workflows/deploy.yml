@@ -21,6 +21,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             TARGET_DIR="/var/www/jjstudio_har_usr/data/www/jjstudio.hartum.net"
+            git config --global --add safe.directory $TARGET_DIR
             mkdir -p $TARGET_DIR
             cd $TARGET_DIR
 
