@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   OfficeBuilding,
   Close,
+  WarnTriangleFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { IosDatepicker } from 'vue-ios-style-datepicker'
@@ -135,8 +136,7 @@ const photographers = computed(() => {
 
   return userStore.usersWithProfile.filter((u) => {
     const perfilCode =
-      u.perfil?.code?.toUpperCase() ||
-      profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+      u.perfil?.code?.toUpperCase() || profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
     const isFotografo = perfilCode === 'FOTOGRAFO'
     if (!isFotografo) return false
     const assignedHotelIds = u.hotelIds || []
@@ -413,8 +413,8 @@ async function handleSaveSession() {
         class="form-alert-banner"
       >
         <template #title>
-          ⏰ Sesión Vencida — Esta sesión estaba programada para la fecha elegida y ya ha pasado.
-          Por favor actualiza su estado.
+          Sesión Vencida — Esta sesión estaba programada para la fecha elegida y ya ha pasado. Por
+          favor actualiza su estado.
         </template>
       </el-alert>
 
@@ -426,7 +426,7 @@ async function handleSaveSession() {
         class="form-alert-banner"
       >
         <template #title>
-          📸 Sin Cita de Venta — Esta sesión está completada pero aún no tiene una cita de venta
+          Sin Cita de Venta — Esta sesión está completada pero aún no tiene una cita de venta
           programada.
         </template>
         <template #default>
@@ -450,7 +450,7 @@ async function handleSaveSession() {
         class="form-alert-banner"
       >
         <template #title>
-          🚫 No Show en Venta — El cliente no se presentó a la cita de venta. Puedes reprogramarla.
+          No Show en Venta — El cliente no se presentó a la cita de venta. Puedes reprogramarla.
         </template>
         <template #default>
           <div style="margin-top: 0.5rem">
@@ -658,7 +658,8 @@ async function handleSaveSession() {
               clearable
             />
             <div v-if="conflictsCitaVenta.length > 0" class="conflict-inline-warning">
-              ⚠️ {{ conflictsCitaVenta.length }} cita(s) de venta en el mismo hotel en esta franja
+              <el-icon style="vertical-align: middle; margin-right: 4px; color: #e6a23c"><WarnTriangleFilled /></el-icon>
+              {{ conflictsCitaVenta.length }} cita(s) de venta en el mismo hotel en esta franja
               (±1h)
             </div>
           </el-form-item>

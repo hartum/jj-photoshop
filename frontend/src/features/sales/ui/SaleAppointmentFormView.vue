@@ -155,9 +155,11 @@ watch(
       citaId.value ?? undefined,
     )
     if (conflicts.value.length > 0) {
-      ElMessage.warning(
-        `⚠️ Hay ${conflicts.value.length} cita(s) de venta en el mismo hotel dentro de la franja de 1 hora`,
-      )
+      ElMessage({
+        type: 'warning',
+        icon: WarnTriangleFilled,
+        message: `Hay ${conflicts.value.length} cita(s) de venta en el mismo hotel dentro de la franja de 1 hora`,
+      })
     }
   },
 )
@@ -339,7 +341,7 @@ async function handleSave() {
       class="conflict-banner"
     >
       <template #title>
-        ⚠️ Hay {{ conflicts.length }} cita(s) de venta en la misma franja horaria (±1h)
+        Hay {{ conflicts.length }} cita(s) de venta en la misma franja horaria (±1h)
       </template>
       <div v-for="c in conflicts" :key="c.id" class="conflict-item">
         {{ c.clienteNombre }} — {{ c.fechaHoraCita }}
@@ -433,7 +435,8 @@ async function handleSave() {
             />
           </el-select>
           <div v-if="excludedSessionsCount > 0" class="select-helper-notice">
-            ⚠️ Hay {{ excludedSessionsCount }} sesión(es) en tus hoteles no mostrada(s) porque están
+            <el-icon style="vertical-align: middle; margin-right: 4px; color: #e6a23c"><WarnTriangleFilled /></el-icon>
+            Hay {{ excludedSessionsCount }} sesión(es) en tus hoteles no mostrada(s) porque están
             canceladas o el cliente no se presentó.
           </div>
         </el-form-item>

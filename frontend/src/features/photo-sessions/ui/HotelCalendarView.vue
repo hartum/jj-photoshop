@@ -15,7 +15,7 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
 import type { EventContentArg, DatesSetArg, EventClickArg } from '@fullcalendar/core'
-import { Plus, Bell, Warning, OfficeBuilding, User } from '@element-plus/icons-vue'
+import { Plus, Bell, Warning, OfficeBuilding, User, InfoFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -894,7 +894,10 @@ function handleEventClick(clickInfo: EventClickArg) {
             >
               Editar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
             </el-button>
-            <div class="double-click-hint">💡 O haz doble clic en el evento para editar</div>
+            <div class="double-click-hint">
+              <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>
+              O haz doble clic en el evento para editar
+            </div>
           </div>
         </div>
       </el-popover>
@@ -973,7 +976,10 @@ function handleEventClick(clickInfo: EventClickArg) {
               Editar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
             </el-button>
           </div>
-          <div class="double-click-hint">💡 O haz doble clic en el evento para editar</div>
+          <div class="double-click-hint">
+            <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>
+            O haz doble clic en el evento para editar
+          </div>
         </template>
       </el-dialog>
     </div>
