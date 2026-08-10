@@ -15,7 +15,7 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
 import type { EventContentArg, DatesSetArg, EventClickArg } from '@fullcalendar/core'
-import { Plus, Bell, Warning, OfficeBuilding, User, InfoFilled } from '@element-plus/icons-vue'
+import { Plus, Bell, OfficeBuilding, User, InfoFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -759,7 +759,8 @@ function handleEventClick(clickInfo: EventClickArg) {
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub"
-                      >{{ formatDateTime(s.fechaHoraInicio) }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
+                      >{{ formatDateTime(s.fechaHoraInicio)
+                      }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
                     >
                   </div>
                   <el-button type="warning" @click="router.push(`/agenda/${s.id}/editar`)">
@@ -779,7 +780,8 @@ function handleEventClick(clickInfo: EventClickArg) {
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub"
-                      >{{ formatDateTime(s.fechaHoraInicio) }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
+                      >{{ formatDateTime(s.fechaHoraInicio)
+                      }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
                     >
                   </div>
                   <el-button type="primary" @click="router.push(`/ventas/nueva?sesionId=${s.id}`)">
@@ -797,7 +799,8 @@ function handleEventClick(clickInfo: EventClickArg) {
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub"
-                      >{{ formatDateTime(s.citaVenta?.fechaHoraCita) }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
+                      >{{ formatDateTime(s.citaVenta?.fechaHoraCita)
+                      }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
                     >
                   </div>
                   <el-button
