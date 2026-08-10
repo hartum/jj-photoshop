@@ -14,6 +14,9 @@ import {
   Check,
   Close,
   Warning,
+  Camera,
+  Money,
+  WarnTriangleFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -26,7 +29,7 @@ const authStore = useAuthStore()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
 
-const citaId = computed(() => route.params.id ? Number(route.params.id) : null)
+const citaId = computed(() => (route.params.id ? Number(route.params.id) : null))
 const isEditing = computed(() => !!citaId.value)
 const isSaving = ref(false)
 const isMobile = ref(false)
@@ -122,16 +125,16 @@ const paxDisplay = computed(() => {
   return `${sessionInfo.value.numAdultos}.${sessionInfo.value.numNinos} PAX`
 })
 
-// Shows sales fields only when completing
-const showSalesFields = computed(() => {
-  return formData.value.estado === 'COMPLETADA'
-})
+function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '-'
+  return dateStr.replace('T', ' ').slice(0, 16)
+}
 
-const estadoOptions: { value: EstadoCitaVenta; label: string }[] = [
-  { value: 'PROGRAMADA', label: 'Programada' },
-  { value: 'COMPLETADA', label: 'Completada' },
-  { value: 'NO_SHOW', label: 'No se presentó' },
-  { value: 'CANCELADA', label: 'Cancelada' },
+const estadoOptions: { value: EstadoCitaVenta; label: string; color: string }[] = [
+  { value: 'PROGRAMADA', label: 'Programada', color: '#409eff' },
+  { value: 'COMPLETADA', label: 'Completada', color: '#67c23a' },
+  { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c' },
+  { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c' },
 ]
 
 function checkMobile() {
@@ -322,13 +325,7 @@ async function handleSave() {
     </div>
 
     <!-- Read-only lock banner -->
-    <el-alert
-      v-if="isReadOnly"
-      type="warning"
-      :closable="false"
-      show-icon
-      class="lock-banner"
-    >
+    <el-alert v-if="isReadOnly" type="warning" :closable="false" show-icon class="lock-banner">
       Esta cita está completada. Solo gerentes, administradores y superusuarios pueden editarla.
     </el-alert>
 
@@ -352,7 +349,9 @@ async function handleSave() {
     <!-- Session Reference Card (read-only) -->
     <el-card v-if="sessionInfo.clienteNombre" class="session-ref-card" shadow="never">
       <template #header>
-        <span class="ref-card-title">📸 Sesión Fotográfica Asociada</span>
+        <span class="ref-card-title">
+          <el-icon :size="24"><Camera /></el-icon> Sesión Fotográfica Asociada
+        </span>
       </template>
       <div class="ref-grid">
         <div class="ref-item">
@@ -381,13 +380,18 @@ async function handleSave() {
         </div>
         <div class="ref-item">
           <span class="ref-label">Sesión de fotos</span>
-          <span class="ref-value">{{ sessionInfo.fechaHoraInicio }}</span>
+          <span class="ref-value">{{ formatDateTime(sessionInfo.fechaHoraInicio) }}</span>
         </div>
       </div>
     </el-card>
 
     <!-- Main Form -->
     <el-card class="form-card" shadow="never">
+      <template #header>
+        <span class="ref-card-title">
+          <el-icon :size="24"><Money /></el-icon> Cita venta fotos
+        </span>
+      </template>
       <el-form
         :model="formData"
         label-position="top"
@@ -395,6 +399,23 @@ async function handleSave() {
         class="sale-form"
         :disabled="isReadOnly"
       >
+        <!-- Estado de la Cita -->
+        <el-form-item label="Estado de la Cita" class="status-form-item">
+          <el-radio-group v-model="formData.estado" class="status-radio-group">
+            <el-radio
+              v-for="opt in estadoOptions"
+              :key="opt.value"
+              :value="opt.value"
+              size="large"
+              :class="['status-radio', `status-radio--${opt.value.toLowerCase()}`]"
+            >
+              <span class="status-radio-label" :style="{ color: opt.color }">
+                {{ opt.label }}
+              </span>
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+
         <!-- Session selector (only when creating new) -->
         <el-form-item v-if="!isEditing" label="Sesión Fotográfica *" required>
           <el-select
@@ -407,71 +428,50 @@ async function handleSave() {
             <el-option
               v-for="session in availableSessions"
               :key="session.id"
-              :label="`${session.clienteNombre} — ${session.fechaHoraInicio} (${session.estado === 'COMPLETADA' ? 'Completada' : 'Programada'})`"
+              :label="`${session.clienteNombre} — ${formatDateTime(session.fechaHoraInicio)} (${session.estado === 'COMPLETADA' ? 'Completada' : 'Programada'})`"
               :value="session.id"
             />
           </el-select>
           <div v-if="excludedSessionsCount > 0" class="select-helper-notice">
-            ⚠️ Hay {{ excludedSessionsCount }} sesión(es) en tus hoteles no mostrada(s) porque están canceladas o el cliente no se presentó.
+            ⚠️ Hay {{ excludedSessionsCount }} sesión(es) en tus hoteles no mostrada(s) porque están
+            canceladas o el cliente no se presentó.
           </div>
         </el-form-item>
 
-        <!-- Date/time and State -->
+        <!-- Date/time -->
+        <el-form-item label="Fecha y Hora de la Cita *" required>
+          <el-date-picker
+            v-model="formData.fechaHoraCita"
+            type="datetime"
+            format="YYYY-MM-DD HH:mm"
+            value-format="YYYY-MM-DDTHH:mm"
+            placeholder="Selecciona fecha y hora"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <!-- Sales fields -->
         <div class="form-row-2">
-          <el-form-item label="Fecha y Hora de la Cita *" required>
-            <el-date-picker
-              v-model="formData.fechaHoraCita"
-              type="datetime"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DDTHH:mm"
-              placeholder="Selecciona fecha y hora"
+          <el-form-item label="Nº de Fotos Vendidas *">
+            <el-input-number
+              v-model="formData.numFotosVendidas"
+              :min="0"
+              :step="1"
               style="width: 100%"
+              placeholder="0"
             />
           </el-form-item>
 
-          <el-form-item label="Estado">
-            <el-select
-              v-model="formData.estado"
+          <el-form-item label="Total en USD *">
+            <el-input-number
+              v-model="formData.totalVentaUsd"
+              :min="0"
+              :step="0.01"
+              :precision="2"
               style="width: 100%"
-              placeholder="Estado de la cita"
-            >
-              <el-option
-                v-for="opt in estadoOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
+              placeholder="0.00"
+            />
           </el-form-item>
-        </div>
-
-        <!-- Sales fields (only visible when COMPLETADA) -->
-        <div v-if="showSalesFields" class="sales-box">
-          <div class="sales-title">
-            <span>💰 Datos de la Venta</span>
-          </div>
-          <div class="form-row-2">
-            <el-form-item label="Nº de Fotos Vendidas *">
-              <el-input-number
-                v-model="formData.numFotosVendidas"
-                :min="0"
-                :step="1"
-                style="width: 100%"
-                placeholder="0"
-              />
-            </el-form-item>
-
-            <el-form-item label="Total en USD *">
-              <el-input-number
-                v-model="formData.totalVentaUsd"
-                :min="0"
-                :step="0.01"
-                :precision="2"
-                style="width: 100%"
-                placeholder="0.00"
-              />
-            </el-form-item>
-          </div>
         </div>
 
         <!-- Notes -->
@@ -563,6 +563,10 @@ async function handleSave() {
 .ref-card-title {
   font-weight: 600;
   font-size: 0.95rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .ref-grid {
@@ -602,25 +606,45 @@ async function handleSave() {
   gap: 0.5rem;
 }
 
+.status-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.status-radio {
+  margin-right: 0 !important;
+}
+
+.status-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+:deep(.status-radio--programada.is-checked .el-radio__inner) {
+  border-color: #409eff !important;
+  background: #409eff !important;
+}
+:deep(.status-radio--completada.is-checked .el-radio__inner) {
+  border-color: #67c23a !important;
+  background: #67c23a !important;
+}
+:deep(.status-radio--no_show.is-checked .el-radio__inner) {
+  border-color: #e6a23c !important;
+  background: #e6a23c !important;
+}
+:deep(.status-radio--cancelada.is-checked .el-radio__inner) {
+  border-color: #f56c6c !important;
+  background: #f56c6c !important;
+}
+
 .form-row-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-}
-
-.sales-box {
-  background-color: var(--el-fill-color-blank, #f8fafc);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 6px;
-  padding: 1rem 1rem 0.25rem 1rem;
-  margin-bottom: 1rem;
-}
-
-.sales-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--heading-color, #334155);
-  margin-bottom: 0.75rem;
 }
 
 .form-actions {
