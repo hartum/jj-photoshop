@@ -112,17 +112,19 @@ const missingSaleSessions = computed(() => {
   })
 })
 
-const noShowSales = computed(() => {
+const overdueSales = computed(() => {
   const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
+  const now = new Date()
   return sessionStore.sessions.filter((s) => {
     if (!allowedHotelIds.has(Number(s.hotelId))) return false
     if (selectedHotelId.value && Number(s.hotelId) !== Number(selectedHotelId.value)) return false
-    return s.citaVenta?.estado === 'NO_SHOW'
+    if (!s.citaVenta) return false
+    return s.citaVenta.estado === 'PROGRAMADA' && new Date(s.citaVenta.fechaHoraCita) < now
   })
 })
 
 const totalAlertsCount = computed(() => {
-  return overdueSessions.value.length + missingSaleSessions.value.length + noShowSales.value.length
+  return overdueSessions.value.length + missingSaleSessions.value.length + overdueSales.value.length
 })
 
 // Filtered events for FullCalendar (Photo Sessions + Sales Appointments)
@@ -746,10 +748,7 @@ function handleEventClick(clickInfo: EventClickArg) {
           <div class="alerts-sections-grid">
             <!-- 1. Sesiones Vencidas -->
             <div v-if="overdueSessions.length > 0" class="alert-section section-overdue">
-              <h4 class="section-title">
-                <el-icon style="vertical-align: middle; margin-right: 4px"><Clock /></el-icon>
-                Sesiones Vencidas ({{ overdueSessions.length }})
-              </h4>
+              <h4 class="section-title">Sesiones Vencidas ({{ overdueSessions.length }})</h4>
               <div class="section-cards">
                 <div v-for="s in overdueSessions" :key="s.id" class="alert-item-card">
                   <div class="item-details">
@@ -759,11 +758,7 @@ function handleEventClick(clickInfo: EventClickArg) {
                       {{ s.numeroHabitacion ? `Hab ${s.numeroHabitacion}` : '' }}</span
                     >
                   </div>
-                  <el-button
-                    type="warning"
-                    size="small"
-                    @click="router.push(`/agenda/${s.id}/editar`)"
-                  >
+                  <el-button type="warning" @click="router.push(`/agenda/${s.id}/editar`)">
                     Cambiar Estado
                   </el-button>
                 </div>
@@ -773,7 +768,6 @@ function handleEventClick(clickInfo: EventClickArg) {
             <!-- 2. Sesiones Sin Cita de Venta -->
             <div v-if="missingSaleSessions.length > 0" class="alert-section section-missing">
               <h4 class="section-title">
-                <el-icon style="vertical-align: middle; margin-right: 4px"><Camera /></el-icon>
                 Sesiones Sin Cita de Venta ({{ missingSaleSessions.length }})
               </h4>
               <div class="section-cards">
@@ -785,35 +779,27 @@ function handleEventClick(clickInfo: EventClickArg) {
                       {{ s.fechaHoraInicio }}</span
                     >
                   </div>
-                  <el-button
-                    type="primary"
-                    size="small"
-                    @click="router.push(`/ventas/nueva?sesionId=${s.id}`)"
-                  >
+                  <el-button type="primary" @click="router.push(`/ventas/nueva?sesionId=${s.id}`)">
                     Agendar Venta
                   </el-button>
                 </div>
               </div>
             </div>
 
-            <!-- 3. No Show en Cita de Venta -->
-            <div v-if="noShowSales.length > 0" class="alert-section section-noshow">
-              <h4 class="section-title">
-                <el-icon style="vertical-align: middle; margin-right: 4px"><Warning /></el-icon>
-                No Show en Venta ({{ noShowSales.length }})
-              </h4>
+            <!-- 3. Citas de Venta Vencidas -->
+            <div v-if="overdueSales.length > 0" class="alert-section section-noshow">
+              <h4 class="section-title">Citas ventas vencidas ({{ overdueSales.length }})</h4>
               <div class="section-cards">
-                <div v-for="s in noShowSales" :key="s.id" class="alert-item-card">
+                <div v-for="s in overdueSales" :key="s.id" class="alert-item-card">
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub">Cita: {{ s.citaVenta?.fechaHoraCita }}</span>
                   </div>
                   <el-button
-                    type="danger"
-                    size="small"
+                    type="warning"
                     @click="router.push(`/ventas/${s.citaVenta?.id}/editar`)"
                   >
-                    Reprogramar
+                    Cambiar Estado
                   </el-button>
                 </div>
               </div>
@@ -1086,8 +1072,7 @@ function handleEventClick(clickInfo: EventClickArg) {
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
   background-color: var(--el-fill-color-blank, #f8fafc);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 4px;
+  border-bottom: 1px solid var(--toolbar-border, #e2e8f0);
 }
 
 .item-details {
