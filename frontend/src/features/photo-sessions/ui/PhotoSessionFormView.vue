@@ -308,8 +308,7 @@ onUnmounted(() => {
 })
 
 function handleGoBack() {
-  const hotelIdParam = formData.value.hotelId ? `?hotelId=${formData.value.hotelId}` : ''
-  router.push(`/agenda${hotelIdParam}`)
+  router.push('/agenda')
 }
 
 async function handleSaveSession() {
