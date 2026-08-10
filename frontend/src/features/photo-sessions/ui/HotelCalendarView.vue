@@ -530,6 +530,11 @@ function formatEventHeaderDate(dateStr?: string | null): string {
   return `${diaSemana}, ${diaMes} ${mes} - ${horas}:${minutos}`
 }
 
+function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '-'
+  return dateStr.replace('T', ' ').slice(0, 16)
+}
+
 function formatDateStr(dateStr?: string | null): string {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
@@ -754,8 +759,7 @@ function handleEventClick(clickInfo: EventClickArg) {
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub"
-                      >{{ s.fechaHoraInicio }} —
-                      {{ s.numeroHabitacion ? `Hab ${s.numeroHabitacion}` : '' }}</span
+                      >{{ formatDateTime(s.fechaHoraInicio) }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
                     >
                   </div>
                   <el-button type="warning" @click="router.push(`/agenda/${s.id}/editar`)">
@@ -775,8 +779,7 @@ function handleEventClick(clickInfo: EventClickArg) {
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
                     <span class="item-sub"
-                      >{{ s.estado === 'COMPLETADA' ? 'Completada' : 'Programada' }} —
-                      {{ s.fechaHoraInicio }}</span
+                      >{{ formatDateTime(s.fechaHoraInicio) }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
                     >
                   </div>
                   <el-button type="primary" @click="router.push(`/ventas/nueva?sesionId=${s.id}`)">
@@ -788,12 +791,14 @@ function handleEventClick(clickInfo: EventClickArg) {
 
             <!-- 3. Citas de Venta Vencidas -->
             <div v-if="overdueSales.length > 0" class="alert-section section-noshow">
-              <h4 class="section-title">Citas ventas vencidas ({{ overdueSales.length }})</h4>
+              <h4 class="section-title">Citas venta vencidas ({{ overdueSales.length }})</h4>
               <div class="section-cards">
                 <div v-for="s in overdueSales" :key="s.id" class="alert-item-card">
                   <div class="item-details">
                     <span class="item-name">{{ s.clienteNombre }}</span>
-                    <span class="item-sub">Cita: {{ s.citaVenta?.fechaHoraCita }}</span>
+                    <span class="item-sub"
+                      >{{ formatDateTime(s.citaVenta?.fechaHoraCita) }}{{ s.numeroHabitacion ? ` | Hab ${s.numeroHabitacion}` : '' }}</span
+                    >
                   </div>
                   <el-button
                     type="warning"
