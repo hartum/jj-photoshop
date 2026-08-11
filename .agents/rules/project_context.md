@@ -61,12 +61,39 @@ Este archivo define el contexto obligatorio, la estructura de negocio, los roles
 ## 4. Stack Tecnológico Acordado
 
 * **Backend**: Node.js + TypeScript, Fastify framework, Prisma ORM, MariaDB (puerto 3306), Zod para validaciones.
-* **Frontend**: Vue 3 (Composition API `<script setup lang="ts">`), PrimeVue v4 (Tema Aura), Pinia para estado, Vue Router, Vite.
+* **Frontend**: Vue 3 (Composition API `<script setup lang="ts">`), Element Plus + PrimeVue, Pinia para estado, Vue Router, Vite.
 * **Arquitectura**: Arquitectura Hexagonal y Slices Verticales (`backend/src/features/` y `frontend/src/features/`).
 
 ---
 
-## 5. Instrucciones para el Agente AI
+## 5. Reglas Críticas de Entornos y Despliegue (Local vs VPS Producción)
+
+### A. Gestión Estricta de Archivos `.env` (¡NUNCA SUBIR A GIT!):
+1. **Los archivos `.env` (tanto en `backend/` como en `frontend/`) NUNCA deben incluirse en commits de Git**. Deben permanecer siempre en `.gitignore`.
+2. **Entorno Local (Mac)**:
+   - `backend/.env`: Contiene `DATABASE_URL="mysql://root:@localhost:3306/jj_photoshop"`.
+   - `frontend/.env`: Contiene `VITE_API_URL=/api`.
+3. **Entorno Producción (VPS Contabo con FASTPANEL)**:
+   - `backend/.env`: Contiene `DATABASE_URL="mysql://jjstudio_har:JJStudio2026Pass@127.0.0.1:3306/jjstudio_har"`.
+   - `frontend/.env`: Contiene `VITE_API_URL=/api`.
+4. **Carga Obligatoria de `dotenv` en Backend**:
+   - `backend/src/index.ts` y `backend/src/shared/db.ts` **DEBEN** importar siempre `import 'dotenv/config'` como primera línea para garantizar que PM2 y Prisma carguen las variables de entorno en producción.
+
+### B. Configuración de Red y Proxy de Vite (Prevención de Error 502):
+- En `frontend/vite.config.ts`, el target del proxy para `/api` en desarrollo local **SIEMPRE debe apuntar a la IP IPv4 directa `http://127.0.0.1:3000`** (NUNCA a `http://localhost:3000`, ya que macOS intenta resolver por IPv6 `::1` provocando errores `502 Bad Gateway`).
+
+### C. Pipeline de Despliegue CI/CD (`.github/workflows/deploy.yml`):
+- El script de despliegue en el VPS **DEBE incluir siempre**:
+  1. `git config --global --add safe.directory $TARGET_DIR` para prevenir fallos por propiedad de archivos (`dubious ownership`).
+  2. `npx prisma db push` en el backend para aplicar cambios de esquema a MariaDB sin resetear ni borrar datos de producción.
+  3. `pnpm install` limpio (sin flags no soportados).
+  4. Reinicio de proceso PM2 `jjstudio-backend`.
+  5. Asignación de permisos al usuario web: `chown -R jjstudio_har_usr:jjstudio_har_usr $TARGET_DIR`.
+
+---
+
+## 6. Instrucciones Generales para el Agente AI
 - Siempre mantén la separación de responsabilidades y la restricción de visibilidad por rol y por hotel.
 - No borres ni simplifiques la lógica de negocio descrita en este documento.
 - Asegúrate de que las consultas y mutaciones respeten el tipado estricto de TypeScript sin usar `any`.
+- Respeta estrictamente la regla de NO commitear archivos `.env` bajo ninguna circunstancia.

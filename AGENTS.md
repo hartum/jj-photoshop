@@ -1,6 +1,6 @@
 # AGENTS.md - Proyecto JJ Photoshop
 
-Este archivo contiene el contexto del proyecto, la arquitectura tecnológica y los requisitos funcionales para asistentes de IA y desarrolladores.
+Este archivo contiene el contexto del proyecto, la arquitectura tecnológica, los requisitos funcionales y las directrices críticas de despliegue para asistentes de IA y desarrolladores.
 
 ## 📌 Resumen del Proyecto
 **JJ Photoshop** es un sistema Web/SaaS de gestión operativa y comercial para una empresa de servicios de fotografía en cadenas hoteleras.
@@ -20,8 +20,8 @@ Este archivo contiene el contexto del proyecto, la arquitectura tecnológica y l
 ---
 
 ## 🚀 Stack Tecnológico
-* **Backend**: Node.js + TypeScript, Fastify, Prisma ORM, MariaDB (localhost:3306), Zod.
-* **Frontend**: Vue 3 (`<script setup lang="ts">`), PrimeVue v4 (Tema Aura), Pinia, Vue Router, Vite.
+* **Backend**: Node.js + TypeScript, Fastify, Prisma ORM, MariaDB (localhost:3306), Zod, dotenv.
+* **Frontend**: Vue 3 (`<script setup lang="ts">`), Element Plus + PrimeVue, Pinia, Vue Router, Vite.
 * **Estilo Arquitectónico**: Slices Verticales y Arquitectura Hexagonal.
 
 ---
@@ -34,6 +34,23 @@ Este archivo contiene el contexto del proyecto, la arquitectura tecnológica y l
 
 ---
 
+## ⚠️ Reglas Inviolables de Entornos y Despliegue (Local vs VPS Producción)
+
+### 1. Gestión de `.env` (NUNCA SUBIR A GIT):
+- Los archivos `.env` deben estar SIEMPRE en `.gitignore` tanto en `backend/` como en `frontend/`.
+- **Local (Mac)**: `backend/.env` tiene `DATABASE_URL="mysql://root:@localhost:3306/jj_photoshop"`.
+- **Producción (VPS)**: `backend/.env` tiene `DATABASE_URL="mysql://jjstudio_har:JJStudio2026Pass@127.0.0.1:3306/jjstudio_har"`.
+- `backend/src/index.ts` y `backend/src/shared/db.ts` deben importar SIEMPRE `import 'dotenv/config'` como primera línea.
+
+### 2. Configuración de Proxy Vite (Prevenir Error 502):
+- En `frontend/vite.config.ts`, el target del proxy para `/api` debe ser SIEMPRE `http://127.0.0.1:3000` (IPv4 explícito) para evitar que macOS intente resolver por IPv6 `::1`.
+
+### 3. Pipeline CI/CD GitHub Actions (`deploy.yml`):
+- Debe incluir siempre `git config --global --add safe.directory $TARGET_DIR`.
+- Debe ejecutar `npx prisma db push` en el backend para aplicar cambios de esquema a MariaDB automáticamente sin alterar datos existentes.
+
+---
+
 ## 🛠️ Comandos Principales
 ```bash
 # Servidor MariaDB en Mac (automático)
@@ -42,6 +59,6 @@ brew services start mariadb
 # Backend (Fastify + Prisma)
 cd backend && pnpm dev
 
-# Frontend (Vue 3 + PrimeVue Aura)
+# Frontend (Vue 3 + Vite)
 cd frontend && pnpm dev
 ```
