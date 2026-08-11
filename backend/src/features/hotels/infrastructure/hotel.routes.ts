@@ -33,6 +33,7 @@ export async function hotelRoutes(fastify: FastifyInstance) {
         personaContacto: h.personaContacto || '',
         email: h.email || '',
         telefono: h.telefono || '',
+        metaMensualDefault: h.metaMensualDefault ?? null,
         createdAt: h.createdAt.toISOString().split('T')[0],
       }))
 
@@ -58,6 +59,7 @@ export async function hotelRoutes(fastify: FastifyInstance) {
         personaContacto?: string
         email?: string
         telefono?: string
+        metaMensualDefault?: number | null
       }
 
       if (!body.areaId || !body.nombre || body.nombre.trim() === '') {
@@ -76,6 +78,7 @@ export async function hotelRoutes(fastify: FastifyInstance) {
           personaContacto: body.personaContacto ? body.personaContacto.trim() : null,
           email: body.email ? body.email.trim() : null,
           telefono: body.telefono ? body.telefono.trim() : null,
+          metaMensualDefault: body.metaMensualDefault != null ? Number(body.metaMensualDefault) : null,
         },
         include: {
           area: {
@@ -102,6 +105,7 @@ export async function hotelRoutes(fastify: FastifyInstance) {
         personaContacto: nuevo.personaContacto || '',
         email: nuevo.email || '',
         telefono: nuevo.telefono || '',
+        metaMensualDefault: nuevo.metaMensualDefault ?? null,
         createdAt: nuevo.createdAt.toISOString().split('T')[0],
       })
     } catch (err: unknown) {
@@ -126,6 +130,7 @@ export async function hotelRoutes(fastify: FastifyInstance) {
         personaContacto?: string
         email?: string
         telefono?: string
+        metaMensualDefault?: number | null
       }
 
       const actualizado = await prisma.hotel.update({
@@ -141,6 +146,9 @@ export async function hotelRoutes(fastify: FastifyInstance) {
           ...(body.personaContacto !== undefined && { personaContacto: body.personaContacto ? body.personaContacto.trim() : null }),
           ...(body.email !== undefined && { email: body.email ? body.email.trim() : null }),
           ...(body.telefono !== undefined && { telefono: body.telefono ? body.telefono.trim() : null }),
+          ...(body.metaMensualDefault !== undefined && {
+            metaMensualDefault: body.metaMensualDefault != null ? Number(body.metaMensualDefault) : null,
+          }),
         },
         include: {
           area: {
@@ -167,6 +175,7 @@ export async function hotelRoutes(fastify: FastifyInstance) {
         personaContacto: actualizado.personaContacto || '',
         email: actualizado.email || '',
         telefono: actualizado.telefono || '',
+        metaMensualDefault: actualizado.metaMensualDefault ?? null,
         createdAt: actualizado.createdAt.toISOString().split('T')[0],
       })
     } catch (err: unknown) {

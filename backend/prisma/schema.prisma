@@ -39,6 +39,7 @@ model Usuario {
   sesionesComoFotografo SesionFotografica[] @relation("FotografoSesiones")
   sesionesComoCreador   SesionFotografica[] @relation("CreadorSesiones")
   colorAsignado         UsuarioColor?
+  metas                 Meta[]
 
   @@map("usuarios")
 }
@@ -84,24 +85,26 @@ model Area {
 }
 
 model Hotel {
-  id                Int                 @id @default(autoincrement())
-  areaId            Int                 @map("id_area")
-  nombre            String              @map("nombre_hotel")
-  direccion         String?
-  estrellas         Int?
-  latitud           Float?
-  longitud          Float?
-  cadenaHotelera    String?             @map("cadena_hotelera")
-  personaContacto   String?             @map("persona_contacto")
-  email             String?
-  telefono          String?
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  deletedAt         DateTime?           @map("deleted_at")
-  area              Area                @relation(fields: [areaId], references: [id])
-  usuariosAsignados UsuarioHotel[]
-  sesiones          SesionFotografica[]
-  citasVenta        CitaVenta[]
+  id                 Int                 @id @default(autoincrement())
+  areaId             Int                 @map("id_area")
+  nombre             String              @map("nombre_hotel")
+  direccion          String?
+  estrellas          Int?
+  latitud            Float?
+  longitud           Float?
+  cadenaHotelera     String?             @map("cadena_hotelera")
+  personaContacto    String?             @map("persona_contacto")
+  email              String?
+  telefono           String?
+  metaMensualDefault Float?              @map("meta_mensual_default")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  deletedAt          DateTime?           @map("deleted_at")
+  area               Area                @relation(fields: [areaId], references: [id])
+  usuariosAsignados  UsuarioHotel[]
+  sesiones           SesionFotografica[]
+  citasVenta         CitaVenta[]
+  metas              Meta[]
 
   @@map("hoteles")
 }
@@ -179,4 +182,26 @@ model CitaVenta {
   hotel  Hotel             @relation(fields: [hotelId], references: [id])
 
   @@map("citas_venta")
+}
+
+model Meta {
+  id               Int       @id @default(autoincrement())
+  alcanceTipo      String    @map("alcance_tipo") // "HOTEL" | "USUARIO"
+  hotelId          Int       @map("hotel_id")
+  usuarioId        String?   @map("usuario_id")
+  anio             Int       @map("anio")
+  mes              Int       @map("mes") // 1-12
+  importeObjetivo  Float     @map("importe_objetivo")
+  sesionesObjetivo Int?      @map("sesiones_objetivo")
+  ventasObjetivo   Int?      @map("ventas_objetivo")
+  activo           Boolean   @default(true)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  hotel   Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, usuarioId, anio, mes, alcanceTipo])
+  @@map("metas")
 }

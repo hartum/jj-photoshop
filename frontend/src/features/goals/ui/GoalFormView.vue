@@ -1,0 +1,790 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { useHotelStore } from '@/features/hotels/stores/hotel.store'
+import { useUserStore } from '@/features/users/stores/user.store'
+import { useCountryStore } from '@/features/countries/stores/country.store'
+import { useGoalStore } from '@/features/goals/stores/goal.store'
+import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { ElMessage } from 'element-plus'
+import { OfficeBuilding, Location, User, Check, Share } from '@element-plus/icons-vue'
+import type { Hotel } from '@/features/hotels/domain/hotel.model'
+
+const route = useRoute()
+const authStore = useAuthStore()
+const countryStore = useCountryStore()
+const hotelStore = useHotelStore()
+const userStore = useUserStore()
+const goalStore = useGoalStore()
+
+const now = new Date()
+const selectedAnio = ref(now.getFullYear())
+const selectedMes = ref(now.getMonth() + 1)
+const selectedHotelId = ref<number | null>(null)
+
+const isSaving = ref(false)
+const hotelTargetAmount = ref<number>(0)
+const defaultHotelTarget = ref<number | null>(null)
+
+// Personal goals per photographer edit map: userId -> custom amount
+const customPhotographerGoals = ref<Record<string, number>>({})
+
+// Selector dinámico de años: 5 hacia atrás y 2 hacia adelante
+const yearsOptions = computed(() => {
+  const currentYear = now.getFullYear()
+  const years: number[] = []
+  for (let y = currentYear - 5; y <= currentYear + 2; y++) {
+    years.push(y)
+  }
+  return years
+})
+const monthsOptions = [
+  { value: 1, label: 'Enero' },
+  { value: 2, label: 'Febrero' },
+  { value: 3, label: 'Marzo' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Mayo' },
+  { value: 6, label: 'Junio' },
+  { value: 7, label: 'Julio' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Septiembre' },
+  { value: 10, label: 'Octubre' },
+  { value: 11, label: 'Noviembre' },
+  { value: 12, label: 'Diciembre' },
+]
+
+// Hoteles permitidos según el rol
+const availableHotels = computed(() => {
+  const user = authStore.user
+  if (!user) return []
+  const role = user.roleCode?.toUpperCase()
+
+  if (role === 'SUPERUSUARIO' || role === 'ADMIN') {
+    return hotelStore.hotels
+  }
+
+  if (role === 'GERENTE') {
+    const userAreaIds = new Set(user.areaIds || [])
+    return hotelStore.hotels.filter((h) => userAreaIds.has(h.areaId))
+  }
+
+  if (role === 'SUPERVISOR') {
+    const userHotelIds = new Set(user.hotelIds || [])
+    return hotelStore.hotels.filter((h) => userHotelIds.has(h.id))
+  }
+
+  return []
+})
+
+interface AreaGroup {
+  id: number
+  nombre: string
+  hoteles: Hotel[]
+}
+
+interface CountryGroup {
+  id: number
+  nombre: string
+  codigo: string
+  areas: AreaGroup[]
+}
+
+// Hoteles agrupados por país y área para el selector
+const groupedHotelsByCountry = computed<CountryGroup[]>(() => {
+  const hotels = availableHotels.value
+  const groupsMap = new Map<number, CountryGroup>()
+
+  for (const h of hotels) {
+    const countryId = h.paisId || 0
+    const countryName = h.paisNombre || 'Sin País'
+    const countryObj = countryStore.countries.find(
+      (c) => c.id === countryId || c.nombre === countryName,
+    )
+    const countryCode = countryObj?.codigo || h.paisCodigo || ''
+
+    if (!groupsMap.has(countryId)) {
+      groupsMap.set(countryId, {
+        id: countryId,
+        nombre: countryName,
+        codigo: countryCode,
+        areas: [],
+      })
+    }
+
+    const countryGroup = groupsMap.get(countryId)!
+    const areaId = h.areaId || 0
+    const areaName = h.areaNombre || 'Sin Área'
+
+    let areaGroup = countryGroup.areas.find((a) => a.id === areaId)
+    if (!areaGroup) {
+      areaGroup = {
+        id: areaId,
+        nombre: areaName,
+        hoteles: [],
+      }
+      countryGroup.areas.push(areaGroup)
+    }
+
+    areaGroup.hoteles.push(h)
+  }
+
+  return Array.from(groupsMap.values())
+})
+
+const currentHotel = computed(() => {
+  if (!selectedHotelId.value) return null
+  return hotelStore.hotels.find((h) => h.id === selectedHotelId.value) || null
+})
+
+// Fotógrafos asignados a este hotel
+const assignedPhotographers = computed(() => {
+  if (!selectedHotelId.value) return []
+  return userStore.usersWithProfile.filter((u) => {
+    const isFoto = u.perfil?.code?.toUpperCase() === 'FOTOGRAFO'
+    const isAssigned = u.hotelIds?.includes(selectedHotelId.value!)
+    return isFoto && isAssigned && u.status === 'Activo'
+  })
+})
+
+// Suggested quota per photographer
+const suggestedQuotaPerPhotographer = computed(() => {
+  const count = assignedPhotographers.value.length
+  if (count === 0 || !hotelTargetAmount.value) return 0
+  return Math.round((hotelTargetAmount.value / count) * 100) / 100
+})
+
+async function loadHotelGoals() {
+  if (!selectedHotelId.value) return
+
+  await goalStore.fetchMetas({
+    hotelId: selectedHotelId.value,
+    anio: selectedAnio.value,
+    mes: selectedMes.value,
+  })
+
+  // Fill hotel target
+  const hotelMeta = goalStore.metas.find(
+    (m) =>
+      m.hotelId === selectedHotelId.value &&
+      m.anio === selectedAnio.value &&
+      m.mes === selectedMes.value &&
+      m.alcanceTipo === 'HOTEL' &&
+      !m.usuarioId,
+  )
+
+  if (hotelMeta) {
+    hotelTargetAmount.value = hotelMeta.importeObjetivo
+  } else {
+    hotelTargetAmount.value = currentHotel.value?.metaMensualDefault || 0
+  }
+
+  defaultHotelTarget.value = currentHotel.value?.metaMensualDefault ?? null
+
+  // Fill photographers custom goals
+  const map: Record<string, number> = {}
+  for (const foto of assignedPhotographers.value) {
+    const userMeta = goalStore.metas.find(
+      (m) =>
+        m.hotelId === selectedHotelId.value &&
+        m.usuarioId === foto.id &&
+        m.anio === selectedAnio.value &&
+        m.mes === selectedMes.value &&
+        m.alcanceTipo === 'USUARIO',
+    )
+    if (userMeta) {
+      map[foto.id] = userMeta.importeObjetivo
+    } else {
+      map[foto.id] = suggestedQuotaPerPhotographer.value
+    }
+  }
+  customPhotographerGoals.value = map
+}
+
+watch([selectedHotelId, selectedAnio, selectedMes], async () => {
+  await loadHotelGoals()
+})
+
+async function handleSaveHotelGoal() {
+  if (!selectedHotelId.value) {
+    ElMessage.warning('Por favor selecciona un hotel')
+    return
+  }
+
+  isSaving.value = true
+  try {
+    // 1. Guardar meta del hotel
+    await goalStore.saveMeta({
+      alcanceTipo: 'HOTEL',
+      hotelId: selectedHotelId.value,
+      anio: selectedAnio.value,
+      mes: selectedMes.value,
+      importeObjetivo: Number(hotelTargetAmount.value) || 0,
+    })
+
+    // 2. Guardar o actualizar metas de fotógrafos si son personalizadas
+    for (const foto of assignedPhotographers.value) {
+      const customVal = customPhotographerGoals.value[foto.id]
+      if (customVal !== undefined) {
+        await goalStore.saveMeta({
+          alcanceTipo: 'USUARIO',
+          hotelId: selectedHotelId.value,
+          usuarioId: foto.id,
+          anio: selectedAnio.value,
+          mes: selectedMes.value,
+          importeObjetivo: Number(customVal) || 0,
+        })
+      }
+    }
+
+    ElMessage.success('¡Metas guardadas correctamente para el mes seleccionado!')
+    await loadHotelGoals()
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Error al guardar las metas'
+    ElMessage.error(errorMsg)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+function applySuggestedDivisionToAll() {
+  const quota = suggestedQuotaPerPhotographer.value
+  const map: Record<string, number> = {}
+  for (const foto of assignedPhotographers.value) {
+    map[foto.id] = quota
+  }
+  customPhotographerGoals.value = map
+  ElMessage.info('Cuotas sugeridas equitativas aplicadas a todos los fotógrafos')
+}
+
+function applyRouteQueryParams() {
+  if (route.query.anio) {
+    const a = Number(route.query.anio)
+    if (!isNaN(a)) selectedAnio.value = a
+  }
+  if (route.query.mes) {
+    const m = Number(route.query.mes)
+    if (!isNaN(m) && m >= 1 && m <= 12) selectedMes.value = m
+  }
+  if (route.query.hotelId) {
+    const hid = Number(route.query.hotelId)
+    if (!isNaN(hid) && availableHotels.value.some((h) => h.id === hid)) {
+      selectedHotelId.value = hid
+      return
+    }
+  }
+
+  // Si no se especificó hotel o no es válido para este usuario, seleccionar el primero disponible
+  if (!selectedHotelId.value || !availableHotels.value.some((h) => h.id === selectedHotelId.value)) {
+    const firstHotel = availableHotels.value[0]
+    if (firstHotel) {
+      selectedHotelId.value = firstHotel.id
+    }
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    countryStore.fetchCountries(),
+    hotelStore.fetchHotels(),
+    userStore.fetchUsers(),
+  ])
+  applyRouteQueryParams()
+})
+
+watch(
+  () => [route.query.hotelId, route.query.mes, route.query.anio],
+  () => {
+    applyRouteQueryParams()
+  },
+)
+
+function formatCurrency(val: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(val)
+}
+</script>
+
+<template>
+  <div class="metas-config-container">
+    <!-- Header & Selectors Card -->
+    <el-card class="config-filter-card" shadow="never">
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label class="filter-label">Hotel</label>
+          <el-select
+            v-model="selectedHotelId"
+            placeholder="Selecciona un hotel..."
+            filterable
+            clearable
+            class="full-width"
+            popper-class="custom-group-select-dropdown"
+          >
+            <el-option-group
+              v-for="pais in groupedHotelsByCountry"
+              :key="pais.id"
+              :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
+            >
+              <template v-for="area in pais.areas" :key="area.id">
+                <!-- Item no seleccionable por cada Área -->
+                <el-option
+                  :value="`area-${area.id}`"
+                  :label="area.nombre"
+                  disabled
+                  class="area-header-option"
+                >
+                  <div class="area-option-header">
+                    <el-icon :size="18" class="area-icon"><Location /></el-icon>
+                    <span class="area-title">{{ area.nombre }}</span>
+                  </div>
+                </el-option>
+
+                <!-- Hoteles pertenecientes a este área -->
+                <el-option
+                  v-for="h in area.hoteles"
+                  :key="h.id"
+                  :label="`${h.nombre} (${area.nombre})`"
+                  :value="h.id"
+                  class="hotel-sub-option"
+                >
+                  <div class="option-item-content hotel-option-item">
+                    <el-icon :size="18" class="hotel-option-icon"><OfficeBuilding /></el-icon>
+                    <span class="hotel-name">{{ h.nombre }}</span>
+                  </div>
+                </el-option>
+              </template>
+            </el-option-group>
+          </el-select>
+        </div>
+
+        <div class="filter-field">
+          <label class="filter-label">Año</label>
+          <el-select v-model="selectedAnio" class="full-width">
+            <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
+          </el-select>
+        </div>
+
+        <div class="filter-field">
+          <label class="filter-label">Mes</label>
+          <el-select v-model="selectedMes" class="full-width">
+            <el-option
+              v-for="m in monthsOptions"
+              :key="m.value"
+              :label="m.label"
+              :value="m.value"
+            />
+          </el-select>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- Empty State -->
+    <div v-if="!currentHotel" class="empty-hotel-box">
+      <el-empty description="Selecciona un hotel para configurar sus metas mensuales." />
+    </div>
+
+    <!-- Main Configuration Area -->
+    <div v-else class="metas-work-area">
+      <!-- 1. Meta Global del Hotel -->
+      <el-card class="hotel-target-card" shadow="hover">
+        <template #header>
+          <div class="card-header-flex">
+            <div class="header-left-title">
+              <el-icon class="hotel-icon"><OfficeBuilding /></el-icon>
+              <span>Meta Mensual del Hotel: {{ currentHotel.nombre }}</span>
+            </div>
+            <el-tag type="primary" size="large">
+              {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
+            </el-tag>
+          </div>
+        </template>
+
+        <div class="hotel-target-body">
+          <el-row :gutter="24" align="middle">
+            <el-col :xs="24" :md="8">
+              <div class="input-goal-box">
+                <label class="input-goal-label">Importe Objetivo del Mes (USD):</label>
+                <el-input-number
+                  v-model="hotelTargetAmount"
+                  :min="0"
+                  :step="500"
+                  :precision="0"
+                  size="large"
+                  class="target-input-number"
+                >
+                  <template #suffix>
+                    <span>$ (USD)</span>
+                  </template>
+                </el-input-number>
+                <span class="help-text" v-if="defaultHotelTarget">
+                  Meta por defecto del hotel: {{ formatCurrency(defaultHotelTarget) }}
+                </span>
+              </div>
+            </el-col>
+
+            <el-col :xs="24" :md="16">
+              <div class="division-info-box">
+                <div class="division-header">
+                  <el-icon class="share-icon"><Share /></el-icon>
+                  <span class="division-title">Reparto Equitativo Sugerido</span>
+                </div>
+                <p class="division-description">
+                  Con
+                  <strong>{{ assignedPhotographers.length }} fotógrafos activos</strong> asignados a
+                  este hotel, la cuota igualitaria recomendada por persona es de:
+                </p>
+                <div class="suggested-quota-badge">
+                  {{ formatCurrency(suggestedQuotaPerPhotographer) }} <small>/ fotógrafo</small>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
+        </div>
+      </el-card>
+
+      <!-- 2. Asignación Individual de Metas a Fotógrafos -->
+      <el-card class="photographers-target-card" shadow="hover">
+        <template #header>
+          <div class="card-header-flex">
+            <div class="header-left-title">
+              <el-icon class="user-icon"><User /></el-icon>
+              <span
+                >Metas Individuales del Equipo de Fotografía ({{
+                  assignedPhotographers.length
+                }})</span
+              >
+            </div>
+            <el-button
+              type="primary"
+              link
+              :icon="Share"
+              @click="applySuggestedDivisionToAll"
+              :disabled="assignedPhotographers.length === 0"
+            >
+              Aplicar cuota sugerida a todos
+            </el-button>
+          </div>
+        </template>
+
+        <div v-if="assignedPhotographers.length === 0" class="no-photographers">
+          <el-empty
+            description="No hay fotógrafos activos asignados a este hotel."
+            :image-size="70"
+          />
+        </div>
+
+        <div v-else class="photographers-table-wrapper">
+          <el-table :data="assignedPhotographers" style="width: 100%" stripe>
+            <el-table-column label="Fotógrafo" min-width="180">
+              <template #default="{ row }">
+                <div class="foto-info">
+                  <span class="foto-name">{{ row.nombre }} {{ row.apellidos }}</span>
+                  <span class="foto-email">{{ row.email }}</span>
+                </div>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="Cuota Sugerida" width="160" align="center">
+              <template #default>
+                <span class="text-muted">{{ formatCurrency(suggestedQuotaPerPhotographer) }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="Meta Asignada (USD)" min-width="200">
+              <template #default="{ row }">
+                <el-input-number
+                  v-model="customPhotographerGoals[row.id]"
+                  :min="0"
+                  :step="200"
+                  size="default"
+                  class="user-target-input"
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- Botón de Guardado -->
+        <div class="save-actions-bar">
+          <el-button
+            type="primary"
+            size="large"
+            :icon="Check"
+            :loading="isSaving"
+            @click="handleSaveHotelGoal"
+          >
+            Guardar Configuración de Metas
+          </el-button>
+        </div>
+      </el-card>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.metas-config-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.config-filter-card {
+  border-radius: 10px;
+  background-color: var(--el-bg-color-overlay, #ffffff);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--nav-link-color, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.metas-work-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.hotel-target-card,
+.photographers-target-card {
+  border-radius: 12px;
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.header-left-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--heading-color, #0f172a);
+}
+
+.hotel-icon {
+  color: #409eff;
+}
+
+.user-icon {
+  color: #67c23a;
+}
+
+.input-goal-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-goal-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--heading-color, #0f172a);
+}
+
+.target-input-number {
+  width: 100%;
+  max-width: 320px;
+}
+
+.help-text {
+  font-size: 0.8rem;
+  color: var(--nav-link-color, #64748b);
+}
+
+.division-info-box {
+  background-color: var(--app-bg, #f8fafc);
+  border: 1px solid var(--el-border-color-light, #e2e8f0);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.division-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.division-description {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--nav-link-color, #64748b);
+  line-height: 1.4;
+}
+
+.suggested-quota-badge {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.suggested-quota-badge small {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--nav-link-color, #64748b);
+}
+
+/* Photographers Table */
+.foto-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.foto-name {
+  font-weight: 600;
+  color: var(--heading-color, #0f172a);
+}
+
+.foto-email {
+  font-size: 0.75rem;
+  color: var(--nav-link-color, #64748b);
+}
+
+.user-target-input {
+  width: 100%;
+  max-width: 200px;
+}
+
+.save-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--el-border-color-light, #e2e8f0);
+}
+
+.option-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hotel-option-icon {
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+:deep(.el-select-group__title) {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--heading-color, #0f172a);
+  padding-top: 0.6rem;
+  padding-bottom: 0.3rem;
+}
+</style>
+
+<style>
+/* Estilos globales para el dropdown personalizado de hoteles con áreas no seleccionables */
+.custom-group-select-dropdown .el-select-group__title {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.3rem !important;
+  letter-spacing: 0.02em;
+}
+
+.custom-group-select-dropdown .area-header-option {
+  height: 30px !important;
+  line-height: 30px !important;
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  margin: 2px 0 !important;
+  padding: 0 12px !important;
+}
+
+.custom-group-select-dropdown .area-header-option.is-disabled {
+  color: var(--heading-color, #0f172a) !important;
+  cursor: default !important;
+  background-color: transparent !important;
+  background: none !important;
+}
+
+.custom-group-select-dropdown .area-option-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.custom-group-select-dropdown .area-icon {
+  font-size: 1.15rem !important;
+  color: #e6a23c !important;
+  flex-shrink: 0;
+}
+
+.custom-group-select-dropdown .area-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+
+html.dark .custom-group-select-dropdown .area-header-option {
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+}
+
+html.dark .custom-group-select-dropdown .area-title {
+  color: #94a3b8 !important;
+}
+
+html.dark .custom-group-select-dropdown .el-select-group__title {
+  color: #f1f5f9 !important;
+}
+
+.custom-group-select-dropdown .hotel-sub-option {
+  padding-left: 28px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+
+.custom-group-select-dropdown .hotel-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-group-select-dropdown .hotel-option-icon {
+  color: #94a3b8 !important;
+  font-size: 1.15rem !important;
+}
+
+.custom-group-select-dropdown .hotel-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--app-text, #334155);
+}
+</style>

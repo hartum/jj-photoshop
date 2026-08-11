@@ -31,14 +31,14 @@ export const PERMISSION_MATRIX: Record<RoleCode, RoleConfig> = {
     scopeType: 'GLOBAL',
   },
   GERENTE: {
-    allowedNavRoutes: ['/inicio', '/agenda', '/ventas', '/usuarios'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/ventas', '/usuarios', '/configuracion'],
     visibleTargetRoles: ['GERENTE', 'SUPERVISOR', 'FOTOGRAFO', 'AGENDADOR'],
     assignableTargetRoles: ['SUPERVISOR', 'FOTOGRAFO', 'AGENDADOR'],
     canCreateUsers: true,
     scopeType: 'AREAS',
   },
   SUPERVISOR: {
-    allowedNavRoutes: ['/inicio', '/agenda', '/ventas', '/usuarios'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/ventas', '/usuarios', '/configuracion'],
     visibleTargetRoles: ['SUPERVISOR', 'FOTOGRAFO', 'AGENDADOR'],
     assignableTargetRoles: ['FOTOGRAFO', 'AGENDADOR'],
     canCreateUsers: true,

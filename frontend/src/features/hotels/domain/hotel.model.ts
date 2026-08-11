@@ -14,6 +14,7 @@ export interface Hotel {
   personaContacto?: string
   email?: string
   telefono?: string
+  metaMensualDefault?: number | null
   createdAt?: string
 }
 
@@ -28,6 +29,7 @@ export interface CreateHotelPayload {
   personaContacto?: string
   email?: string
   telefono?: string
+  metaMensualDefault?: number | null
 }
 
 export type UpdateHotelPayload = Partial<CreateHotelPayload>

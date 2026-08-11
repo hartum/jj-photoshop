@@ -6,6 +6,7 @@ import { countryRoutes } from './features/countries/infrastructure/country.route
 import { hotelRoutes } from './features/hotels/infrastructure/hotel.routes.js'
 import { sessionRoutes } from './features/photo-sessions/infrastructure/session.routes.js'
 import { saleRoutes } from './features/sales/infrastructure/sale.routes.js'
+import { goalRoutes } from './features/goals/infrastructure/goal.routes.js'
 
 const fastify = Fastify({
   logger: true,
@@ -27,6 +28,7 @@ await fastify.register(countryRoutes)
 await fastify.register(hotelRoutes)
 await fastify.register(sessionRoutes)
 await fastify.register(saleRoutes)
+await fastify.register(goalRoutes)
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
