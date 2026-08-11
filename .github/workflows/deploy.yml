@@ -37,9 +37,10 @@ jobs:
             pnpm install
             pnpm build
 
-            # Install & Restart Backend with PM2
+            # Install, Update DB Schema & Restart Backend with PM2
             cd $TARGET_DIR/backend
             pnpm install --approve-builds
+            npx prisma db push
             pm2 restart jjstudio-backend || pm2 start src/index.ts --name jjstudio-backend --interpreter ./node_modules/.bin/tsx
 
             # Fix Permissions & Save PM2
