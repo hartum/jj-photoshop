@@ -7,12 +7,7 @@ import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
 import { getDefaultAvatar, getRoleSvg } from '@/features/users/utils/user-avatar'
-import {
-  getRolePermissions,
-  canEditUser,
-  canDeleteUser,
-  type RoleCode,
-} from '@/shared/permissions'
+import { getRolePermissions, canEditUser, canDeleteUser, type RoleCode } from '@/shared/permissions'
 import { Search, Plus, EditPen, Delete, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -223,16 +218,24 @@ async function handleDeleteUser() {
           <template #default="{ row }">
             <div
               v-if="row.perfil?.code?.toUpperCase() === 'FOTOGRAFO'"
-              style="display: flex; align-items: center; justify-content: center; gap: 6px;"
+              style="display: flex; align-items: center; justify-content: center; gap: 6px"
             >
               <span
                 v-if="row.color"
-                :style="{ backgroundColor: row.color, width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #ffffff', boxShadow: '0 0 0 1px #cbd5e1', display: 'inline-block' }"
+                :style="{
+                  backgroundColor: row.color,
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 0 0 1px #cbd5e1',
+                  display: 'inline-block',
+                }"
                 :title="`Color: ${row.color}`"
               />
-              <span v-else style="color: #94a3b8; font-size: 0.8rem;">—</span>
+              <span v-else style="color: #94a3b8; font-size: 0.8rem">—</span>
             </div>
-            <span v-else style="color: #cbd5e1; font-size: 0.8rem;">—</span>
+            <span v-else style="color: #cbd5e1; font-size: 0.8rem">—</span>
           </template>
         </el-table-column>
 
@@ -250,7 +253,9 @@ async function handleDeleteUser() {
                 @click="navigateToEdit(row)"
               />
               <el-button
-                v-if="canDeleteUser(currentUser?.roleCode, row.perfil?.code, currentUser?.id, row.id)"
+                v-if="
+                  canDeleteUser(currentUser?.roleCode, row.perfil?.code, currentUser?.id, row.id)
+                "
                 type="danger"
                 link
                 :icon="Delete"
@@ -354,8 +359,8 @@ async function handleDeleteUser() {
   width: 35px;
   height: 35px;
   object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(50%) sepia(0%) saturate(0%) hue-rotate(244deg)
-    brightness(97%) contrast(85%);
+  /*filter: brightness(0) saturate(100%) invert(50%) sepia(0%) saturate(0%) hue-rotate(244deg)
+    brightness(97%) contrast(85%);*/
 }
 
 .user-fullname {
