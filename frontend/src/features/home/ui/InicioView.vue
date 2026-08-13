@@ -9,6 +9,7 @@ import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
 import type { FotografoProgreso, HotelProgresoResumen } from '@/features/goals/domain/goal.model'
 import GoalProgressCard from '@/features/goals/ui/GoalProgressCard.vue'
+import PhotographerHotelGoalCard from '@/features/goals/ui/PhotographerHotelGoalCard.vue'
 import GoalEvolutionChart from '@/features/goals/ui/GoalEvolutionChart.vue'
 import {
   User,
@@ -727,51 +728,30 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         </div>
       </div>
 
-      <!-- Tarjetas de Metas Personales y del Hotel -->
+      <!-- Tarjetas de Metas Agrupadas por Hotel (Meta Colectiva + Meta Personal) -->
       <div v-if="photographerPersonalGoals.length === 0" class="mb-4">
         <el-card class="dashboard-card" shadow="hover">
           <el-empty description="Aún no tienes metas registradas para este mes en tus hoteles asignados." />
         </el-card>
       </div>
 
-      <div v-else class="photographer-goals-grid">
-        <div v-for="g in photographerPersonalGoals" :key="g.hotelId" class="hotel-goal-pair">
-          <el-row :gutter="20">
-            <!-- 1. Meta Personal del Fotógrafo -->
-            <el-col :xs="24" :md="12">
-              <GoalProgressCard
-                :titulo="`Tu Meta Personal — ${g.hotelNombre}`"
-                :subtitulo="`Progreso individual acumulado en ${monthsOptions.find(m => m.value === selectedMes)?.label}`"
-                :meta-importe="g.personal.metaImporte"
-                :ventas-reales-usd="g.personal.ventasRealesUsd"
-                :porcentaje-cumplimiento="g.personal.porcentajeCumplimiento"
-                :meta-esperada-hoy="g.personal.metaEsperadaHoy"
-                :desviacion-monetaria="g.personal.desviacionMonetaria"
-                :semaforo="g.personal.semaforo"
-                :num-ventas="g.personal.numVentas"
-                :num-sesiones="g.personal.numSesiones"
-                badge-text="Tu Desempeño"
-              />
-            </el-col>
-
-            <!-- 2. Meta Colectiva del Hotel -->
-            <el-col :xs="24" :md="12">
-              <GoalProgressCard
-                :titulo="`Meta Colectiva del Hotel — ${g.hotelNombre}`"
-                :subtitulo="`Progreso global de todo el equipo (${g.hotel.fotografos.length} fotógrafos)`"
-                :meta-importe="g.hotel.metaImporte"
-                :ventas-reales-usd="g.hotel.ventasRealesUsd"
-                :porcentaje-cumplimiento="g.hotel.porcentajeCumplimiento"
-                :meta-esperada-hoy="g.hotel.metaEsperadaHoy"
-                :desviacion-monetaria="g.hotel.desviacionMonetaria"
-                :semaforo="g.hotel.semaforo"
-                :num-ventas="g.hotel.numVentas"
-                :num-sesiones="g.hotel.numSesiones"
-                badge-text="Meta del Hotel"
-              />
-            </el-col>
-          </el-row>
-        </div>
+      <div v-else class="photographer-goals-container mb-4">
+        <el-row :gutter="20">
+          <el-col
+            v-for="g in photographerPersonalGoals"
+            :key="g.hotelId"
+            :xs="24"
+            :md="12"
+            :lg="12"
+          >
+            <PhotographerHotelGoalCard
+              :hotel-nombre="g.hotelNombre"
+              :hotel-progreso="g.hotel"
+              :personal-progreso="g.personal"
+              :month-label="monthsOptions.find(m => m.value === selectedMes)?.label || ''"
+            />
+          </el-col>
+        </el-row>
       </div>
 
       <!-- Hoteles asignados e instrucciones -->
