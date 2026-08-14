@@ -58,16 +58,16 @@ function calcularSemaforo(
   diaActual: number,
 ): SemaforoEstado {
   if (metaTotal <= 0) {
-    return 'VERDE'
+    return 'SIN_META'
   }
   if (ventasReales >= metaTotal) {
     return 'VERDE'
   }
   if (diaActual === 0) {
-    return 'VERDE'
+    return ventasReales > 0 ? 'VERDE' : 'SIN_META'
   }
   if (metaEsperada <= 0) {
-    return ventasReales > 0 ? 'VERDE' : 'AMARILLO'
+    return ventasReales > 0 ? 'VERDE' : 'SIN_META'
   }
 
   const ratio = ventasReales / metaEsperada

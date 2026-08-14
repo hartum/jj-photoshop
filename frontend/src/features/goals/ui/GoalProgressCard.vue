@@ -5,6 +5,7 @@ import {
   SuccessFilled,
   WarningFilled,
   CircleCloseFilled,
+  InfoFilled,
   Money,
   TrendCharts,
   Calendar,
@@ -34,25 +35,33 @@ const props = withDefaults(
   },
 )
 
+const isSinMeta = computed(() => {
+  return props.semaforo === 'SIN_META' || props.metaImporte <= 0
+})
+
 const semaforoColor = computed(() => {
+  if (isSinMeta.value) return '#94a3b8' // Slate / Gray
   if (props.semaforo === 'VERDE') return '#10b981' // Green
-  if (props.semaforo === 'AMARILLO') return '#f59e0b' // Yellow / Amber
+  if (props.semaforo === 'AMARILLO') return '#f59e0b' // Amber
   return '#ef4444' // Red
 })
 
 const semaforoBgLight = computed(() => {
+  if (isSinMeta.value) return 'rgba(148, 163, 184, 0.12)'
   if (props.semaforo === 'VERDE') return 'rgba(16, 185, 129, 0.12)'
   if (props.semaforo === 'AMARILLO') return 'rgba(245, 158, 11, 0.12)'
   return 'rgba(239, 68, 68, 0.12)'
 })
 
 const semaforoLabel = computed(() => {
+  if (isSinMeta.value) return 'Meta no definida'
   if (props.semaforo === 'VERDE') return 'En tiempo / Adelantado'
   if (props.semaforo === 'AMARILLO') return 'Alerta leve'
   return 'Por detrás'
 })
 
 const semaforoIcon = computed(() => {
+  if (isSinMeta.value) return InfoFilled
   if (props.semaforo === 'VERDE') return SuccessFilled
   if (props.semaforo === 'AMARILLO') return WarningFilled
   return CircleCloseFilled

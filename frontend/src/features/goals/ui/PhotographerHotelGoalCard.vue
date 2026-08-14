@@ -5,6 +5,7 @@ import {
   SuccessFilled,
   WarningFilled,
   CircleCloseFilled,
+  InfoFilled,
   Money,
   TrendCharts,
   Calendar,
@@ -18,18 +19,21 @@ const props = defineProps<{
 }>()
 
 function getSemaforoColor(estado?: SemaforoEstado): string {
+  if (estado === 'SIN_META' || !estado) return '#94a3b8'
   if (estado === 'VERDE') return '#10b981'
   if (estado === 'AMARILLO') return '#f59e0b'
   return '#ef4444'
 }
 
 function getSemaforoBg(estado?: SemaforoEstado): string {
+  if (estado === 'SIN_META' || !estado) return 'rgba(148, 163, 184, 0.12)'
   if (estado === 'VERDE') return 'rgba(16, 185, 129, 0.12)'
   if (estado === 'AMARILLO') return 'rgba(245, 158, 11, 0.12)'
   return 'rgba(239, 68, 68, 0.12)'
 }
 
 function getSemaforoIcon(estado?: SemaforoEstado) {
+  if (estado === 'SIN_META' || !estado) return InfoFilled
   if (estado === 'VERDE') return SuccessFilled
   if (estado === 'AMARILLO') return WarningFilled
   return CircleCloseFilled

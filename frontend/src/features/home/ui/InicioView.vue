@@ -41,6 +41,16 @@ const selectedAnio = ref(now.getFullYear())
 const selectedMes = ref(now.getMonth() + 1)
 const selectedHotelFilter = ref<number | null>(null)
 
+// Selector dinámico de años: 5 hacia atrás y 2 hacia adelante
+const yearsOptions = computed(() => {
+  const currentYear = now.getFullYear()
+  const years: number[] = []
+  for (let y = currentYear - 5; y <= currentYear + 2; y++) {
+    years.push(y)
+  }
+  return years
+})
+
 const monthsOptions = [
   { value: 1, label: 'Enero' },
   { value: 2, label: 'Febrero' },
@@ -121,15 +131,16 @@ const globalProgresoTotals = computed(() => {
   const pct = metaTotal > 0 ? Math.round((ventasTotal / metaTotal) * 1000) / 10 : 0
   const desv = ventasTotal - metaEsperadaTotal
 
-  let semaforo: 'VERDE' | 'AMARILLO' | 'ROJO' = 'VERDE'
-  if (metaTotal > 0) {
-    if (ventasTotal >= metaTotal) semaforo = 'VERDE'
-    else if (metaEsperadaTotal > 0) {
-      const ratio = ventasTotal / metaEsperadaTotal
-      if (ratio >= 1.0) semaforo = 'VERDE'
-      else if (ratio >= 0.8) semaforo = 'AMARILLO'
-      else semaforo = 'ROJO'
-    }
+  let semaforo: 'VERDE' | 'AMARILLO' | 'ROJO' | 'SIN_META' = 'SIN_META'
+  if (metaTotal <= 0) {
+    semaforo = 'SIN_META'
+  } else if (ventasTotal >= metaTotal) {
+    semaforo = 'VERDE'
+  } else if (metaEsperadaTotal > 0) {
+    const ratio = ventasTotal / metaEsperadaTotal
+    if (ratio >= 1.0) semaforo = 'VERDE'
+    else if (ratio >= 0.8) semaforo = 'AMARILLO'
+    else semaforo = 'ROJO'
   }
 
   return {
@@ -142,6 +153,27 @@ const globalProgresoTotals = computed(() => {
     numHoteles: list.length,
   }
 })
+
+function getSemaforoTagType(semaforo: string, metaImporte: number): 'success' | 'warning' | 'danger' | 'info' {
+  if (metaImporte <= 0 || semaforo === 'SIN_META') return 'info'
+  if (semaforo === 'VERDE') return 'success'
+  if (semaforo === 'AMARILLO') return 'warning'
+  return 'danger'
+}
+
+function getSemaforoText(semaforo: string, metaImporte: number): string {
+  if (metaImporte <= 0 || semaforo === 'SIN_META') return 'Meta no definida'
+  if (semaforo === 'VERDE') return 'En tiempo'
+  if (semaforo === 'AMARILLO') return 'Alerta'
+  return 'Atrasado'
+}
+
+function getProgressColor(semaforo: string, metaImporte: number): string {
+  if (metaImporte <= 0 || semaforo === 'SIN_META') return '#94a3b8'
+  if (semaforo === 'VERDE') return '#10b981'
+  if (semaforo === 'AMARILLO') return '#f59e0b'
+  return '#ef4444'
+}
 
 // --- CÁLCULO DE DATOS PARA GERENTE DE ÁREA ---
 
@@ -358,7 +390,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
             <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
           </el-select>
           <el-select v-model="selectedAnio" size="default" style="width: 100px">
-            <el-option v-for="y in [2025, 2026, 2027]" :key="y" :label="String(y)" :value="y" />
+            <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
           </el-select>
           <el-button type="primary" :icon="Setting" size="default" @click="handleNavigateToGoalForm(selectedHotelFilter)">
             Configurar Metas
@@ -427,21 +459,21 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
               <div class="table-progress-cell">
                 <el-progress
                   :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
-                  :color="row.semaforo === 'VERDE' ? '#10b981' : row.semaforo === 'AMARILLO' ? '#f59e0b' : '#ef4444'"
+                  :color="getProgressColor(row.semaforo, row.metaImporte)"
                   :stroke-width="8"
                 />
                 <span class="progress-pct-label">{{ row.porcentajeCumplimiento }}%</span>
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Semáforo" width="120" align="center">
+          <el-table-column label="Semáforo" width="130" align="center">
             <template #default="{ row }">
               <el-tag
                 size="small"
                 effect="dark"
-                :type="row.semaforo === 'VERDE' ? 'success' : row.semaforo === 'AMARILLO' ? 'warning' : 'danger'"
+                :type="getSemaforoTagType(row.semaforo, row.metaImporte)"
               >
-                {{ row.semaforo === 'VERDE' ? 'En tiempo' : row.semaforo === 'AMARILLO' ? 'Alerta' : 'Atrasado' }}
+                {{ getSemaforoText(row.semaforo, row.metaImporte) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -560,26 +592,26 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
               <span class="font-bold text-primary">{{ formatCurrency(row.ventasRealesUsd) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Avance" min-width="160">
+          <el-table-column label="Avance" min-width="170">
             <template #default="{ row }">
               <div class="table-progress-cell">
                 <el-progress
                   :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
-                  :color="row.semaforo === 'VERDE' ? '#10b981' : row.semaforo === 'AMARILLO' ? '#f59e0b' : '#ef4444'"
+                  :color="getProgressColor(row.semaforo, row.metaImporte)"
                   :stroke-width="8"
                 />
                 <span class="progress-pct-label">{{ row.porcentajeCumplimiento }}%</span>
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Semáforo" width="110" align="center">
+          <el-table-column label="Semáforo" width="130" align="center">
             <template #default="{ row }">
               <el-tag
                 size="small"
                 effect="dark"
-                :type="row.semaforo === 'VERDE' ? 'success' : row.semaforo === 'AMARILLO' ? 'warning' : 'danger'"
+                :type="getSemaforoTagType(row.semaforo, row.metaImporte)"
               >
-                {{ row.semaforo === 'VERDE' ? 'En tiempo' : row.semaforo === 'AMARILLO' ? 'Alerta' : 'Atrasado' }}
+                {{ getSemaforoText(row.semaforo, row.metaImporte) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -655,6 +687,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
             :semaforo="hotelProg.semaforo"
             :num-ventas="hotelProg.numVentas"
             :num-sesiones="hotelProg.numSesiones"
+            class="mb-4"
           />
 
           <!-- Tabla de Desglose por Fotógrafo en este Hotel -->
@@ -679,26 +712,26 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
                   <span>{{ formatCurrency(row.metaEsperadaHoy) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Avance" min-width="160">
+              <el-table-column label="Avance" min-width="170">
                 <template #default="{ row }">
                   <div class="table-progress-cell">
                     <el-progress
                       :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
-                      :color="row.semaforo === 'VERDE' ? '#10b981' : row.semaforo === 'AMARILLO' ? '#f59e0b' : '#ef4444'"
+                      :color="getProgressColor(row.semaforo, row.metaImporte)"
                       :stroke-width="8"
                     />
                     <span class="progress-pct-label">{{ row.porcentajeCumplimiento }}%</span>
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="Semáforo" width="110" align="center">
+              <el-table-column label="Semáforo" width="130" align="center">
                 <template #default="{ row }">
                   <el-tag
                     size="small"
                     effect="dark"
-                    :type="row.semaforo === 'VERDE' ? 'success' : row.semaforo === 'AMARILLO' ? 'warning' : 'danger'"
+                    :type="getSemaforoTagType(row.semaforo, row.metaImporte)"
                   >
-                    {{ row.semaforo === 'VERDE' ? 'En tiempo' : row.semaforo === 'AMARILLO' ? 'Alerta' : 'Atrasado' }}
+                    {{ getSemaforoText(row.semaforo, row.metaImporte) }}
                   </el-tag>
                 </template>
               </el-table-column>

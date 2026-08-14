@@ -1,6 +1,6 @@
 export type AlcanceTipo = 'HOTEL' | 'USUARIO'
 
-export type SemaforoEstado = 'VERDE' | 'AMARILLO' | 'ROJO'
+export type SemaforoEstado = 'VERDE' | 'AMARILLO' | 'ROJO' | 'SIN_META'
 
 export interface Meta {
   id: number

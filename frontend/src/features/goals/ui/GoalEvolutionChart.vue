@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { EvolucionMetasResponse } from '../domain/goal.model'
-import {
-  TrendCharts,
-  Calendar,
-} from '@element-plus/icons-vue'
+import { TrendCharts, Calendar } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   data: EvolucionMetasResponse | null
@@ -166,20 +163,21 @@ function formatCurrency(val: number): string {
           <h3 class="chart-title">Evolución y Progresión de Ventas</h3>
         </div>
         <span class="chart-subtitle">
-          {{ hotelName ? `Hotel: ${hotelName}` : 'Consolidado general' }} — Año {{ data?.anio || 2026 }}
+          {{ hotelName ? `Hotel: ${hotelName}` : 'Consolidado general' }} — Año
+          {{ data?.anio || 2026 }}
         </span>
       </div>
 
       <div class="header-right">
         <!-- Switcher Mes vs Año -->
-        <el-radio-group v-model="activeTab" size="small" class="tab-radio-group">
+        <el-radio-group v-model="activeTab" class="tab-radio-group">
           <el-radio-button value="mes">
             <el-icon :size="14"><Calendar /></el-icon>
-            <span class="tab-label">Mes a Día</span>
+            <span class="tab-label">Mensual</span>
           </el-radio-button>
           <el-radio-button value="anio">
             <el-icon :size="14"><TrendCharts /></el-icon>
-            <span class="tab-label">Año a Mes</span>
+            <span class="tab-label">Anual</span>
           </el-radio-button>
         </el-radio-group>
       </div>
@@ -200,7 +198,10 @@ function formatCurrency(val: number): string {
     <!-- Loading / Empty / SVG Chart -->
     <div class="chart-body" v-loading="loading">
       <div v-if="!data || (!mesPoints.length && !anioPoints.length)" class="empty-state">
-        <el-empty description="Sin datos de progresión disponibles para este período" :image-size="80" />
+        <el-empty
+          description="Sin datos de progresión disponibles para este período"
+          :image-size="80"
+        />
       </div>
 
       <div v-else class="svg-container" @mouseleave="hoveredIndex = null">
@@ -254,18 +255,10 @@ function formatCurrency(val: number): string {
           />
 
           <!-- Target Line (Dashed) -->
-          <path
-            v-if="currentCoords.objetivo"
-            :d="currentCoords.objetivo"
-            class="line-objetivo"
-          />
+          <path v-if="currentCoords.objetivo" :d="currentCoords.objetivo" class="line-objetivo" />
 
           <!-- Real Sales Line -->
-          <path
-            v-if="currentCoords.real"
-            :d="currentCoords.real"
-            class="line-real"
-          />
+          <path v-if="currentCoords.real" :d="currentCoords.real" class="line-real" />
 
           <!-- X-Axis Labels & Points -->
           <g class="axis-x-labels">
@@ -352,7 +345,9 @@ function formatCurrency(val: number): string {
             }"
           >
             <div class="tooltip-title">
-              <span v-if="activeTab === 'mes'">Día {{ (hoveredPoint.data as any).dia }} del mes</span>
+              <span v-if="activeTab === 'mes'"
+                >Día {{ (hoveredPoint.data as any).dia }} del mes</span
+              >
               <span v-else>Mes de {{ (hoveredPoint.data as any).mesNombre }}</span>
             </div>
             <div class="tooltip-row">
@@ -373,10 +368,20 @@ function formatCurrency(val: number): string {
               <span class="tooltip-lbl">Diferencia:</span>
               <span
                 class="tooltip-val font-bold"
-                :class="hoveredPoint.data.realAcumulado >= hoveredPoint.data.objetivoAcumulado ? 'text-success' : 'text-danger'"
+                :class="
+                  hoveredPoint.data.realAcumulado >= hoveredPoint.data.objetivoAcumulado
+                    ? 'text-success'
+                    : 'text-danger'
+                "
               >
-                {{ hoveredPoint.data.realAcumulado >= hoveredPoint.data.objetivoAcumulado ? '+' : '' }}
-                {{ formatCurrency(hoveredPoint.data.realAcumulado - hoveredPoint.data.objetivoAcumulado) }}
+                {{
+                  hoveredPoint.data.realAcumulado >= hoveredPoint.data.objetivoAcumulado ? '+' : ''
+                }}
+                {{
+                  formatCurrency(
+                    hoveredPoint.data.realAcumulado - hoveredPoint.data.objetivoAcumulado,
+                  )
+                }}
               </span>
             </div>
           </div>
