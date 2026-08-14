@@ -62,18 +62,29 @@ const fotografoSubtitle = computed(() => {
   const label = count === 1 ? '1 fotógrafo' : `${count} fotógrafos`
   return `Progreso global de todo el equipo (${label})`
 })
+
+const displayHotelTitle = computed(() => {
+  const name = props.hotelNombre || ''
+  if (name.toLowerCase().startsWith('hotel')) {
+    return name
+  }
+  return `Hotel ${name}`
+})
 </script>
 
 <template>
   <el-card class="combined-goal-card" shadow="hover">
+    <!-- TÍTULO EN GRANDE CON EL NOMBRE DEL HOTEL -->
+    <h2 class="card-hotel-main-title">{{ displayHotelTitle }}</h2>
+
     <!-- ============================================== -->
-    <!-- PARTE SUPERIOR: META COLECTIVA DEL HOTEL -->
+    <!-- PARTE SUPERIOR: META DEL HOTEL -->
     <!-- ============================================== -->
     <div class="goal-section collective-section">
       <!-- Header -->
       <div class="goal-section-header">
         <div class="header-titles">
-          <h3 class="goal-title">Meta Colectiva del Hotel — {{ hotelNombre }}</h3>
+          <h3 class="goal-title">Meta del Hotel — {{ formatCurrency(hotelProgreso.metaImporte) }}</h3>
           <p class="goal-subtitle">{{ fotografoSubtitle }}</p>
         </div>
 
@@ -166,7 +177,7 @@ const fotografoSubtitle = computed(() => {
       <!-- Header -->
       <div class="goal-section-header">
         <div class="header-titles">
-          <h3 class="goal-title">Tu Meta Personal — {{ hotelNombre }}</h3>
+          <h3 class="goal-title">Tu Meta Personal — {{ formatCurrency(personalProgreso.metaImporte) }}</h3>
           <p class="goal-subtitle">Progreso individual acumulado en {{ monthLabel }}</p>
         </div>
 
@@ -265,6 +276,16 @@ const fotografoSubtitle = computed(() => {
 
 .combined-goal-card :deep(.el-card__body) {
   padding: 1.25rem 1.5rem;
+}
+
+.card-hotel-main-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--heading-color, #0f172a);
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--el-border-color-lighter, #f1f5f9);
+  letter-spacing: -0.02em;
 }
 
 /* Sections */
