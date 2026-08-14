@@ -7,6 +7,8 @@ import { useCountryStore } from '@/features/countries/stores/country.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
+import { useSessionStore } from '@/features/photo-sessions/stores/session.store'
+import { useSaleStore } from '@/features/sales/stores/sale.store'
 import type { FotografoProgreso, HotelProgresoResumen } from '@/features/goals/domain/goal.model'
 import GoalProgressCard from '@/features/goals/ui/GoalProgressCard.vue'
 import PhotographerHotelGoalCard from '@/features/goals/ui/PhotographerHotelGoalCard.vue'
@@ -22,6 +24,7 @@ import {
   Notebook,
   Calendar,
   Edit,
+  Money,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -31,6 +34,8 @@ const countryStore = useCountryStore()
 const profileStore = useProfileStore()
 const hotelStore = useHotelStore()
 const goalStore = useGoalStore()
+const sessionStore = useSessionStore()
+const saleStore = useSaleStore()
 
 const currentUser = computed(() => authStore.user)
 const userRole = computed(() => currentUser.value?.roleCode?.toUpperCase() || '')
@@ -88,12 +93,38 @@ onMounted(async () => {
     profileStore.fetchProfiles(),
     hotelStore.fetchHotels(),
   ])
+  sessionStore.fetchSessions()
+  saleStore.fetchCitasVenta()
   await loadGoalsData()
 })
 
 watch([selectedAnio, selectedMes, selectedHotelFilter], async () => {
   await loadGoalsData()
 })
+
+function getTodaySessionsForHotel(hotelId: number) {
+  const today = new Date().toISOString().split('T')[0]
+  return sessionStore.sessions.filter((s) => {
+    if (s.hotelId !== hotelId) return false
+    const sDate = s.fechaHoraInicio ? s.fechaHoraInicio.split('T')[0] : ''
+    return sDate === today && s.estado !== 'CANCELADA'
+  })
+}
+
+function getTodaySalesForHotel(hotelId: number) {
+  const today = new Date().toISOString().split('T')[0]
+  return saleStore.citasVenta.filter((c) => {
+    if (c.hotelId !== hotelId) return false
+    const cDate = c.fechaHoraCita ? c.fechaHoraCita.split('T')[0] : ''
+    return cDate === today && c.estado !== 'CANCELADA'
+  })
+}
+
+function formatTime(isoStr?: string): string {
+  if (!isoStr) return '--:--'
+  const timePart = isoStr.includes('T') ? isoStr.split('T')[1] : isoStr
+  return timePart ? timePart.slice(0, 5) : '--:--'
+}
 
 // --- CÁLCULOS GLOBALES Y KPIS ---
 
@@ -154,7 +185,10 @@ const globalProgresoTotals = computed(() => {
   }
 })
 
-function getSemaforoTagType(semaforo: string, metaImporte: number): 'success' | 'warning' | 'danger' | 'info' {
+function getSemaforoTagType(
+  semaforo: string,
+  metaImporte: number,
+): 'success' | 'warning' | 'danger' | 'info' {
   if (metaImporte <= 0 || semaforo === 'SIN_META') return 'info'
   if (semaforo === 'VERDE') return 'success'
   if (semaforo === 'AMARILLO') return 'warning'
@@ -256,8 +290,6 @@ const supervisorHotels = computed(() => {
   }
   return list
 })
-
-
 
 // --- CÁLCULO DE DATOS PARA FOTÓGRAFO ---
 
@@ -383,16 +415,32 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <div class="section-header-row">
         <h2 class="section-title">Panel Ejecutivo y Metas Globales</h2>
         <div class="controls-bar">
-          <el-select v-model="selectedHotelFilter" placeholder="Todos los Hoteles" clearable size="default" style="width: 220px">
+          <el-select
+            v-model="selectedHotelFilter"
+            placeholder="Todos los Hoteles"
+            clearable
+            size="default"
+            style="width: 220px"
+          >
             <el-option v-for="h in hotelStore.hotels" :key="h.id" :label="h.nombre" :value="h.id" />
           </el-select>
           <el-select v-model="selectedMes" size="default" style="width: 140px">
-            <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
+            <el-option
+              v-for="m in monthsOptions"
+              :key="m.value"
+              :label="m.label"
+              :value="m.value"
+            />
           </el-select>
           <el-select v-model="selectedAnio" size="default" style="width: 100px">
             <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
           </el-select>
-          <el-button type="primary" :icon="Setting" size="default" @click="handleNavigateToGoalForm(selectedHotelFilter)">
+          <el-button
+            type="primary"
+            :icon="Setting"
+            size="default"
+            @click="handleNavigateToGoalForm(selectedHotelFilter)"
+          >
             Configurar Metas
           </el-button>
         </div>
@@ -403,7 +451,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         <GoalProgressCard
           v-if="!selectedHotelFilter"
           titulo="Objetivo Comercial Global de la Cadena"
-          :subtitulo="`Mes de ${monthsOptions.find(m => m.value === selectedMes)?.label} ${selectedAnio} — Consolidado de ${globalProgresoTotals.numHoteles} hoteles`"
+          :subtitulo="`Mes de ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio} — Consolidado de ${globalProgresoTotals.numHoteles} hoteles`"
           :meta-importe="globalProgresoTotals.metaTotal"
           :ventas-reales-usd="globalProgresoTotals.ventasTotal"
           :porcentaje-cumplimiento="globalProgresoTotals.porcentaje"
@@ -415,7 +463,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         <GoalProgressCard
           v-else-if="currentHotelProgreso"
           :titulo="`Meta Mensual: ${currentHotelProgreso.hotelNombre}`"
-          :subtitulo="`${currentHotelProgreso.areaNombre} (${currentHotelProgreso.paisNombre}) — ${monthsOptions.find(m => m.value === selectedMes)?.label} ${selectedAnio}`"
+          :subtitulo="`${currentHotelProgreso.areaNombre} (${currentHotelProgreso.paisNombre}) — ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio}`"
           :meta-importe="currentHotelProgreso.metaImporte"
           :ventas-reales-usd="currentHotelProgreso.ventasRealesUsd"
           :porcentaje-cumplimiento="currentHotelProgreso.porcentajeCumplimiento"
@@ -435,7 +483,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       />
 
       <!-- Tabla Comparativa de Hoteles con Semáforos -->
-      <el-card class="dashboard-card mb-4" header="Desglose y Estado de Metas por Hotel" shadow="hover">
+      <el-card
+        class="dashboard-card mb-4"
+        header="Desglose y Estado de Metas por Hotel"
+        shadow="hover"
+      >
         <el-table :data="goalStore.progresoHoteles" style="width: 100%" size="small" stripe>
           <el-table-column prop="hotelNombre" label="Hotel" min-width="160" />
           <el-table-column prop="areaNombre" label="Área" min-width="120" />
@@ -485,25 +537,35 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <el-row :gutter="20" class="stats-row">
         <el-col :xs="24" :sm="12" :md="6">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-primary"><el-icon><User /></el-icon></div>
+            <div class="card-icon bg-primary">
+              <el-icon><User /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Usuarios Activos</span>
-              <span class="stat-value">{{ activeUsers }} <small>/ {{ totalUsers }}</small></span>
+              <span class="stat-value"
+                >{{ activeUsers }} <small>/ {{ totalUsers }}</small></span
+              >
             </div>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="6">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-warning"><el-icon><Location /></el-icon></div>
+            <div class="card-icon bg-warning">
+              <el-icon><Location /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Países y Áreas</span>
-              <span class="stat-value">{{ totalCountries }} <small>p / {{ totalAreas }} á</small></span>
+              <span class="stat-value"
+                >{{ totalCountries }} <small>p / {{ totalAreas }} á</small></span
+              >
             </div>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="12" :md="6">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-success"><el-icon><OfficeBuilding /></el-icon></div>
+            <div class="card-icon bg-success">
+              <el-icon><OfficeBuilding /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Hoteles</span>
               <span class="stat-value">{{ totalHotels }}</span>
@@ -512,11 +574,15 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         </el-col>
         <el-col :xs="24" :sm="12" :md="6">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-info"><el-icon><Setting /></el-icon></div>
+            <div class="card-icon bg-info">
+              <el-icon><Setting /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Enlaces Rápidos</span>
               <div class="quick-actions">
-                <el-button size="small" type="primary" link @click="goToConfig()">Configuración</el-button>
+                <el-button size="small" type="primary" link @click="goToConfig()"
+                  >Configuración</el-button
+                >
                 <el-button size="small" type="primary" link @click="goToUsers">Usuarios</el-button>
               </div>
             </div>
@@ -532,13 +598,29 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <div class="section-header-row">
         <h2 class="section-title">Control de Áreas y Metas</h2>
         <div class="controls-bar">
-          <el-select v-model="selectedHotelFilter" placeholder="Todos tus Hoteles" clearable size="default" style="width: 220px">
+          <el-select
+            v-model="selectedHotelFilter"
+            placeholder="Todos tus Hoteles"
+            clearable
+            size="default"
+            style="width: 220px"
+          >
             <el-option v-for="h in managerHotels" :key="h.id" :label="h.nombre" :value="h.id" />
           </el-select>
           <el-select v-model="selectedMes" size="default" style="width: 140px">
-            <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
+            <el-option
+              v-for="m in monthsOptions"
+              :key="m.value"
+              :label="m.label"
+              :value="m.value"
+            />
           </el-select>
-          <el-button type="primary" :icon="Edit" size="default" @click="handleNavigateToGoalForm(selectedHotelFilter)">
+          <el-button
+            type="primary"
+            :icon="Edit"
+            size="default"
+            @click="handleNavigateToGoalForm(selectedHotelFilter)"
+          >
             Establecer Meta
           </el-button>
         </div>
@@ -549,7 +631,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         <GoalProgressCard
           v-if="!selectedHotelFilter"
           titulo="Objetivo Comercial de tus Áreas"
-          :subtitulo="`Mes de ${monthsOptions.find(m => m.value === selectedMes)?.label} ${selectedAnio}`"
+          :subtitulo="`Mes de ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio}`"
           :meta-importe="globalProgresoTotals.metaTotal"
           :ventas-reales-usd="globalProgresoTotals.ventasTotal"
           :porcentaje-cumplimiento="globalProgresoTotals.porcentaje"
@@ -560,7 +642,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         <GoalProgressCard
           v-else-if="currentHotelProgreso"
           :titulo="`Meta Mensual: ${currentHotelProgreso.hotelNombre}`"
-          :subtitulo="`${currentHotelProgreso.areaNombre} — ${monthsOptions.find(m => m.value === selectedMes)?.label} ${selectedAnio}`"
+          :subtitulo="`${currentHotelProgreso.areaNombre} — ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio}`"
           :meta-importe="currentHotelProgreso.metaImporte"
           :ventas-reales-usd="currentHotelProgreso.ventasRealesUsd"
           :porcentaje-cumplimiento="currentHotelProgreso.porcentajeCumplimiento"
@@ -578,7 +660,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       />
 
       <!-- Tabla de Hoteles en tus Áreas con Semáforos y Acción de Establecer Meta -->
-      <el-card class="dashboard-card mb-4" header="Rendimiento de Hoteles en tus Áreas" shadow="hover">
+      <el-card
+        class="dashboard-card mb-4"
+        header="Rendimiento de Hoteles en tus Áreas"
+        shadow="hover"
+      >
         <el-table :data="goalStore.progresoHoteles" style="width: 100%" size="small" stripe>
           <el-table-column prop="hotelNombre" label="Hotel" min-width="160" />
           <el-table-column prop="areaNombre" label="Área" min-width="120" />
@@ -617,7 +703,13 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           </el-table-column>
           <el-table-column label="Acción" width="130" align="center">
             <template #default="{ row }">
-              <el-button size="small" type="primary" link :icon="Edit" @click="handleNavigateToGoalForm(row.hotelId)">
+              <el-button
+                size="small"
+                type="primary"
+                link
+                :icon="Edit"
+                @click="handleNavigateToGoalForm(row.hotelId)"
+              >
                 Establecer Meta
               </el-button>
             </template>
@@ -629,7 +721,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <el-row :gutter="20" class="stats-row">
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-primary"><el-icon><Location /></el-icon></div>
+            <div class="card-icon bg-primary">
+              <el-icon><Location /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Tus Áreas</span>
               <span class="stat-value">{{ managerAreas.length }}</span>
@@ -638,7 +732,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         </el-col>
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-success"><el-icon><OfficeBuilding /></el-icon></div>
+            <div class="card-icon bg-success">
+              <el-icon><OfficeBuilding /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Hoteles Asociados</span>
               <span class="stat-value">{{ managerHotels.length }}</span>
@@ -647,7 +743,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         </el-col>
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-warning"><el-icon><User /></el-icon></div>
+            <div class="card-icon bg-warning">
+              <el-icon><User /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Personal a tu Cargo</span>
               <span class="stat-value">{{ managerTeam.length }}</span>
@@ -664,11 +762,22 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <div class="section-header-row">
         <h2 class="section-title">Control de Metas de tus Hoteles</h2>
         <div class="controls-bar">
-          <el-select v-model="selectedHotelFilter" placeholder="Selecciona un Hotel" clearable size="default" style="width: 220px">
+          <el-select
+            v-model="selectedHotelFilter"
+            placeholder="Selecciona un Hotel"
+            clearable
+            size="default"
+            style="width: 220px"
+          >
             <el-option v-for="h in supervisorHotels" :key="h.id" :label="h.nombre" :value="h.id" />
           </el-select>
           <el-select v-model="selectedMes" size="default" style="width: 140px">
-            <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
+            <el-option
+              v-for="m in monthsOptions"
+              :key="m.value"
+              :label="m.label"
+              :value="m.value"
+            />
           </el-select>
         </div>
       </div>
@@ -678,7 +787,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         <div v-for="hotelProg in goalStore.progresoHoteles" :key="hotelProg.hotelId">
           <GoalProgressCard
             :titulo="`Meta del Hotel: ${hotelProg.hotelNombre}`"
-            :subtitulo="`${hotelProg.areaNombre} — ${monthsOptions.find(m => m.value === selectedMes)?.label} ${selectedAnio}`"
+            :subtitulo="`${hotelProg.areaNombre} — ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio}`"
             :meta-importe="hotelProg.metaImporte"
             :ventas-reales-usd="hotelProg.ventasRealesUsd"
             :porcentaje-cumplimiento="hotelProg.porcentajeCumplimiento"
@@ -691,7 +800,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           />
 
           <!-- Tabla de Desglose por Fotógrafo en este Hotel -->
-          <el-card class="dashboard-card mb-4" :header="`Rendimiento Individual de Fotógrafos — ${hotelProg.hotelNombre}`" shadow="hover">
+          <el-card
+            class="dashboard-card mb-4"
+            :header="`Rendimiento Individual de Fotógrafos — ${hotelProg.hotelNombre}`"
+            shadow="hover"
+          >
             <div v-if="hotelProg.fotografos.length === 0" class="empty-hint p-3">
               No hay fotógrafos asignados a este hotel.
             </div>
@@ -704,7 +817,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
               </el-table-column>
               <el-table-column label="Ventas Reales" width="130" align="right">
                 <template #default="{ row }">
-                  <span class="font-bold text-primary">{{ formatCurrency(row.ventasRealesUsd) }}</span>
+                  <span class="font-bold text-primary">{{
+                    formatCurrency(row.ventasRealesUsd)
+                  }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="Ritmo a Hoy" width="120" align="right">
@@ -764,7 +879,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <!-- Tarjetas de Metas Agrupadas por Hotel (Meta Colectiva + Meta Personal) -->
       <div v-if="photographerPersonalGoals.length === 0" class="mb-4">
         <el-card class="dashboard-card" shadow="hover">
-          <el-empty description="Aún no tienes metas registradas para este mes en tus hoteles asignados." />
+          <el-empty
+            description="Aún no tienes metas registradas para este mes en tus hoteles asignados."
+          />
         </el-card>
       </div>
 
@@ -781,50 +898,114 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
               :hotel-nombre="g.hotelNombre"
               :hotel-progreso="g.hotel"
               :personal-progreso="g.personal"
-              :month-label="monthsOptions.find(m => m.value === selectedMes)?.label || ''"
+              :month-label="monthsOptions.find((m) => m.value === selectedMes)?.label || ''"
             />
           </el-col>
         </el-row>
       </div>
 
-      <!-- Hoteles asignados e instrucciones -->
-      <h3 class="subsection-title mt-4">Tus Hoteles y Destinos</h3>
+      <!-- Trabajo de hoy por hotel e instrucciones -->
+      <h3 class="subsection-title mt-4">Tu trabajo para hoy</h3>
       <el-row :gutter="20" class="photographer-grid">
         <el-col :xs="24" :md="16">
           <div class="hotels-cards-container">
             <el-card
               v-for="hotel in photographerHotels"
               :key="hotel.id"
-              class="dashboard-card hotel-detail-card"
+              class="dashboard-card hotel-work-card mb-4"
               shadow="hover"
             >
               <template #header>
                 <div class="hotel-card-header">
                   <div class="hotel-title-area">
                     <el-icon class="hotel-header-icon"><OfficeBuilding /></el-icon>
-                    <span class="hotel-name">{{ hotel.nombre }}</span>
+                    <span class="hotel-name font-bold">{{ hotel.nombre }}</span>
                   </div>
-                  <el-tag size="small" type="success" effect="plain" v-if="hotel.cadenaHotelera">
-                    {{ hotel.cadenaHotelera }}
-                  </el-tag>
+                  <span class="hotel-sub-info text-muted">
+                    {{ hotel.paisNombre }} — {{ hotel.areaNombre }}
+                  </span>
                 </div>
               </template>
 
-              <div class="hotel-card-body">
-                <div class="info-row">
-                  <el-icon><Location /></el-icon>
-                  <span>{{ hotel.paisNombre }} — {{ hotel.areaNombre }}</span>
+              <div class="hotel-work-body">
+                <!-- 1. Sesiones Fotográficas de Hoy -->
+                <div class="work-block mb-3">
+                  <div class="work-block-header">
+                    <el-icon class="work-icon text-primary"><Camera /></el-icon>
+                    <span class="work-block-title font-semibold">
+                      Sesiones Fotográficas de Hoy ({{ getTodaySessionsForHotel(hotel.id).length }})
+                    </span>
+                  </div>
+
+                  <div v-if="getTodaySessionsForHotel(hotel.id).length > 0" class="work-list mt-2">
+                    <div
+                      v-for="s in getTodaySessionsForHotel(hotel.id)"
+                      :key="s.id"
+                      class="work-item-row"
+                    >
+                      <div class="work-time-badge">
+                        <el-icon><Calendar /></el-icon>
+                        <span>{{ formatTime(s.fechaHoraInicio) }}</span>
+                      </div>
+                      <div class="work-info">
+                        <span class="client-name font-semibold">{{ s.clienteNombre }}</span>
+                        <span v-if="s.numeroHabitacion" class="room-tag"
+                          >Hab: {{ s.numeroHabitacion }}</span
+                        >
+                      </div>
+                      <el-tag
+                        size="small"
+                        :type="s.estado === 'COMPLETADA' ? 'success' : 'primary'"
+                      >
+                        {{ s.estado }}
+                      </el-tag>
+                    </div>
+                  </div>
+                  <div v-else class="work-empty-hint mt-1">
+                    <span class="text-muted">Sin sesiones fotográficas agendadas para hoy.</span>
+                  </div>
                 </div>
-                <div class="info-row" v-if="hotel.direccion">
-                  <el-icon><Notebook /></el-icon>
-                  <span class="address-text">{{ hotel.direccion }}</span>
-                </div>
-                <div class="contact-box" v-if="hotel.personaContacto || hotel.telefonoContacto">
-                  <span class="contact-title">Persona de Contacto:</span>
-                  <p class="contact-name" v-if="hotel.personaContacto">{{ hotel.personaContacto }}</p>
-                  <div class="contact-links">
-                    <span v-if="hotel.telefonoContacto"><el-icon><Phone /></el-icon> {{ hotel.telefonoContacto }}</span>
-                    <span v-if="hotel.emailContacto"><el-icon><Message /></el-icon> {{ hotel.emailContacto }}</span>
+
+                <!-- Divider -->
+                <div class="work-block-divider"></div>
+
+                <!-- 2. Citas de Venta de Hoy -->
+                <div class="work-block mt-3">
+                  <div class="work-block-header">
+                    <el-icon class="work-icon text-success"><Money /></el-icon>
+                    <span class="work-block-title font-semibold">
+                      Citas de Venta de Hoy ({{ getTodaySalesForHotel(hotel.id).length }})
+                    </span>
+                  </div>
+
+                  <div v-if="getTodaySalesForHotel(hotel.id).length > 0" class="work-list mt-2">
+                    <div
+                      v-for="c in getTodaySalesForHotel(hotel.id)"
+                      :key="c.id"
+                      class="work-item-row"
+                    >
+                      <div class="work-time-badge">
+                        <el-icon><Calendar /></el-icon>
+                        <span>{{ formatTime(c.fechaHoraCita) }}</span>
+                      </div>
+                      <div class="work-info">
+                        <span class="client-name font-semibold">{{
+                          c.clienteNombre || 'Cliente'
+                        }}</span>
+                        <span v-if="c.numeroHabitacion" class="room-tag"
+                          >Hab: {{ c.numeroHabitacion }}</span
+                        >
+                      </div>
+                      <el-tag
+                        size="small"
+                        :type="c.estado === 'COMPLETADA' ? 'success' : 'warning'"
+                      >
+                        {{ c.estado }}
+                      </el-tag>
+                    </div>
+                  </div>
+                  <div v-else class="work-empty-hint mt-1">
+                    <span class="text-muted">Sin citas de venta agendadas para hoy.</span>
                   </div>
                 </div>
               </div>
@@ -867,7 +1048,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
       <el-row :gutter="20" class="stats-row">
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-primary"><el-icon><Location /></el-icon></div>
+            <div class="card-icon bg-primary">
+              <el-icon><Location /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Países Conectados</span>
               <span class="stat-value">{{ totalCountries }}</span>
@@ -876,7 +1059,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         </el-col>
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-warning"><el-icon><Location /></el-icon></div>
+            <div class="card-icon bg-warning">
+              <el-icon><Location /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Áreas de Operación</span>
               <span class="stat-value">{{ totalAreas }}</span>
@@ -885,7 +1070,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
         </el-col>
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-success"><el-icon><OfficeBuilding /></el-icon></div>
+            <div class="card-icon bg-success">
+              <el-icon><OfficeBuilding /></el-icon>
+            </div>
             <div class="stat-content">
               <span class="stat-label">Destinos (Hoteles)</span>
               <span class="stat-value">{{ totalHotels }}</span>
@@ -896,7 +1083,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
 
       <el-row :gutter="20" class="details-row">
         <el-col :span="24">
-          <el-card class="dashboard-card" header="Catálogo de Hoteles por Países y Áreas" shadow="hover">
+          <el-card
+            class="dashboard-card"
+            header="Catálogo de Hoteles por Países y Áreas"
+            shadow="hover"
+          >
             <el-collapse>
               <el-collapse-item
                 v-for="pais in countryStore.countries"
@@ -906,7 +1097,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
                 <div class="pais-collapse-content">
                   <div v-for="area in pais.areas" :key="area.id" class="area-item-box">
                     <span class="area-title">{{ area.nombre }}</span>
-                    <el-table :data="area.hoteles || []" style="width: 100%; margin-top: 0.5rem" size="small">
+                    <el-table
+                      :data="area.hoteles || []"
+                      style="width: 100%; margin-top: 0.5rem"
+                      size="small"
+                    >
                       <el-table-column prop="nombre" label="Hotel" />
                       <el-table-column label="Cadena / Características">
                         <template #default="{ row }">
@@ -947,7 +1142,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
   right: 0;
   bottom: 0;
   left: 0;
-  background-image: radial-gradient(circle at 80% 20%, rgba(64, 158, 255, 0.15) 0%, transparent 50%);
+  background-image: radial-gradient(
+    circle at 80% 20%,
+    rgba(64, 158, 255, 0.15) 0%,
+    transparent 50%
+  );
   pointer-events: none;
 }
 
@@ -1078,10 +1277,18 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
   flex-shrink: 0;
 }
 
-.bg-primary { background-color: #409eff; }
-.bg-warning { background-color: #e6a23c; }
-.bg-success { background-color: #67c23a; }
-.bg-info { background-color: #909399; }
+.bg-primary {
+  background-color: #409eff;
+}
+.bg-warning {
+  background-color: #e6a23c;
+}
+.bg-success {
+  background-color: #67c23a;
+}
+.bg-info {
+  background-color: #909399;
+}
 
 .stat-content {
   display: flex;
@@ -1178,7 +1385,101 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
   line-height: 1.6;
 }
 
-.text-primary { color: #3b82f6; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
+.hotel-sub-info {
+  font-size: 0.8rem;
+}
+
+.hotel-work-body {
+  padding: 0.25rem 0;
+}
+
+.work-block-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.5em;
+}
+
+.work-icon {
+  font-size: 1.1rem;
+}
+
+.work-block-title {
+  color: var(--heading-color, #0f172a);
+}
+
+.work-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.work-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.8rem 1.5rem 0.8rem;
+  background-color: var(--app-bg, #f8fafc);
+  /*border-radius: 8px;*/
+  font-size: 0.85rem;
+  /*border-bottom: 1px dashed var(--el-border-color-light, #e4e7ed);*/
+  gap: 1rem;
+}
+
+.work-time-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #3b82f6;
+  font-size: 0.85rem;
+}
+
+.work-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.client-name {
+  color: var(--heading-color, #0f172a);
+}
+
+.room-tag {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.work-empty-hint {
+  font-size: 0.82rem;
+  padding-left: 1.6rem;
+}
+
+.work-block-divider {
+  height: 1px;
+  background-color: var(--el-border-color-lighter, #f1f5f9);
+  margin: 0.85rem 0;
+}
+
+.text-muted {
+  color: #94a3b8;
+}
+
+.text-success {
+  color: #10b981;
+}
+
+.text-primary {
+  color: #3b82f6;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.font-bold {
+  font-weight: 700;
+}
 </style>
