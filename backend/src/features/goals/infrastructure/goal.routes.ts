@@ -167,7 +167,7 @@ export async function goalRoutes(fastify: FastifyInstance) {
       }
 
       const roleCode = user.role.codigo.toUpperCase()
-      const allowedRoles = ['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR']
+      const allowedRoles = ['SUPERUSUARIO', 'ADMIN', 'GERENTE']
       if (!allowedRoles.includes(roleCode)) {
         return reply.status(403).send({ error: 'No tienes permisos para definir metas' })
       }
@@ -276,7 +276,7 @@ export async function goalRoutes(fastify: FastifyInstance) {
       if (!user) return reply.status(404).send({ error: 'Usuario no encontrado' })
 
       const roleCode = user.role.codigo.toUpperCase()
-      if (!['SUPERUSUARIO', 'ADMIN', 'GERENTE', 'SUPERVISOR'].includes(roleCode)) {
+      if (!['SUPERUSUARIO', 'ADMIN', 'GERENTE'].includes(roleCode)) {
         return reply.status(403).send({ error: 'No tienes permisos para modificar metas' })
       }
 

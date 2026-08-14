@@ -38,7 +38,7 @@ export const PERMISSION_MATRIX: Record<RoleCode, RoleConfig> = {
     scopeType: 'AREAS',
   },
   SUPERVISOR: {
-    allowedNavRoutes: ['/inicio', '/agenda', '/ventas', '/usuarios', '/configuracion'],
+    allowedNavRoutes: ['/inicio', '/agenda', '/ventas', '/usuarios'],
     visibleTargetRoles: ['SUPERVISOR', 'FOTOGRAFO', 'AGENDADOR'],
     assignableTargetRoles: ['FOTOGRAFO', 'AGENDADOR'],
     canCreateUsers: true,
