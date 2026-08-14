@@ -19,9 +19,6 @@ import {
   OfficeBuilding,
   Setting,
   Camera,
-  Phone,
-  Message,
-  Notebook,
   Calendar,
   Edit,
   Money,
@@ -867,10 +864,16 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
     <!-- 4. VISTA FOTÓGRAFO -->
     <!-- ========================================== -->
     <div v-else-if="userRole === 'FOTOGRAFO'" class="dashboard-section">
-      <div class="section-header-row">
+      <div class="section-header-row photographer-header-row">
         <h2 class="section-title">Tus Metas del Mes</h2>
-        <div class="controls-bar">
-          <el-button type="primary" :icon="Calendar" size="default" @click="goToAgenda">
+        <div class="controls-bar photographer-controls">
+          <el-button
+            type="primary"
+            :icon="Calendar"
+            size="large"
+            class="btn-agenda-hotel"
+            @click="goToAgenda"
+          >
             Ir a la Agenda del Hotel
           </el-button>
         </div>
@@ -947,11 +950,9 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
                         <el-icon><Calendar /></el-icon>
                         <span>{{ formatTime(s.fechaHoraInicio) }}</span>
                       </div>
-                      <div class="work-info">
-                        <span class="client-name font-semibold">{{ s.clienteNombre }}</span>
-                        <span v-if="s.numeroHabitacion" class="room-tag"
-                          >Hab: {{ s.numeroHabitacion }}</span
-                        >
+                      <div class="client-name font-semibold">{{ s.clienteNombre }}</div>
+                      <div v-if="s.numeroHabitacion" class="room-tag">
+                        Hab: {{ s.numeroHabitacion }}
                       </div>
                       <el-tag
                         size="small"
@@ -988,13 +989,11 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
                         <el-icon><Calendar /></el-icon>
                         <span>{{ formatTime(c.fechaHoraCita) }}</span>
                       </div>
-                      <div class="work-info">
-                        <span class="client-name font-semibold">{{
-                          c.clienteNombre || 'Cliente'
-                        }}</span>
-                        <span v-if="c.numeroHabitacion" class="room-tag"
-                          >Hab: {{ c.numeroHabitacion }}</span
-                        >
+                      <div class="client-name font-semibold">
+                        {{ c.clienteNombre || 'Cliente' }}
+                      </div>
+                      <div v-if="c.numeroHabitacion" class="room-tag">
+                        Hab: {{ c.numeroHabitacion }}
                       </div>
                       <el-tag
                         size="small"
@@ -1022,8 +1021,10 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           <el-card class="dashboard-card instructions-card" shadow="hover">
             <template #header>
               <div class="instructions-header">
-                <el-icon class="instructions-icon"><Camera /></el-icon>
-                <span>Instrucciones del Fotógrafo</span>
+                <div class="instructions-title-area">
+                  <el-icon class="instructions-icon"><Camera /></el-icon>
+                  <span class="instructions-name font-bold">Instrucciones del Fotógrafo</span>
+                </div>
               </div>
             </template>
             <div class="instructions-body">
@@ -1345,6 +1346,28 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
   color: var(--heading-color, #0f172a);
 }
 
+.instructions-header {
+  display: flex;
+  align-items: center;
+}
+
+.instructions-title-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.instructions-icon {
+  color: #409eff;
+  font-size: 1.15rem;
+}
+
+.instructions-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--heading-color, #0f172a);
+}
+
 .info-row {
   display: flex;
   align-items: center;
@@ -1417,14 +1440,14 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
 
 .work-item-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0.8rem 1.5rem 0.8rem;
+  padding: 0.75rem 1.25rem;
   background-color: var(--app-bg, #f8fafc);
-  /*border-radius: 8px;*/
+  border-radius: 8px;
   font-size: 0.85rem;
-  /*border-bottom: 1px dashed var(--el-border-color-light, #e4e7ed);*/
-  gap: 1rem;
+  border: 1px solid var(--el-border-color-lighter, #f1f5f9);
+  gap: 1.25rem;
 }
 
 .work-time-badge {
@@ -1433,12 +1456,6 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
   gap: 0.35rem;
   color: #3b82f6;
   font-size: 0.85rem;
-}
-
-.work-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .client-name {
@@ -1481,5 +1498,29 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
 }
 .font-bold {
   font-weight: 700;
+}
+
+.btn-agenda-hotel {
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .photographer-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .photographer-controls,
+  .btn-agenda-hotel {
+    width: 100%;
+  }
+
+  .work-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.85rem 1rem;
+    gap: 0.35rem;
+  }
 }
 </style>

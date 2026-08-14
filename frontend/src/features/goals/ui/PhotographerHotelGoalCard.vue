@@ -9,6 +9,7 @@ import {
   Money,
   TrendCharts,
   Calendar,
+  OfficeBuilding,
 } from '@element-plus/icons-vue'
 
 const props = defineProps<{
@@ -74,8 +75,11 @@ const displayHotelTitle = computed(() => {
 
 <template>
   <el-card class="combined-goal-card" shadow="hover">
-    <!-- TÍTULO EN GRANDE CON EL NOMBRE DEL HOTEL -->
-    <h2 class="card-hotel-main-title">{{ displayHotelTitle }}</h2>
+    <!-- TÍTULO CON ICONO DE EDIFICIO -->
+    <div class="card-hotel-main-header">
+      <el-icon class="hotel-header-icon"><OfficeBuilding /></el-icon>
+      <h3 class="card-hotel-main-title">{{ displayHotelTitle }}</h3>
+    </div>
 
     <!-- ============================================== -->
     <!-- PARTE SUPERIOR: META DEL HOTEL -->
@@ -84,7 +88,9 @@ const displayHotelTitle = computed(() => {
       <!-- Header -->
       <div class="goal-section-header">
         <div class="header-titles">
-          <h3 class="goal-title">Meta del Hotel — {{ formatCurrency(hotelProgreso.metaImporte) }}</h3>
+          <h3 class="goal-title">
+            Meta del Hotel — {{ formatCurrency(hotelProgreso.metaImporte) }}
+          </h3>
           <p class="goal-subtitle">{{ fotografoSubtitle }}</p>
         </div>
 
@@ -153,7 +159,8 @@ const displayHotelTitle = computed(() => {
               'text-danger': hotelProgreso.desviacionMonetaria < 0,
             }"
           >
-            {{ hotelProgreso.desviacionMonetaria >= 0 ? '+' : '' }}{{ formatCurrency(hotelProgreso.desviacionMonetaria) }}
+            {{ hotelProgreso.desviacionMonetaria >= 0 ? '+' : ''
+            }}{{ formatCurrency(hotelProgreso.desviacionMonetaria) }}
           </span>
         </div>
 
@@ -177,7 +184,9 @@ const displayHotelTitle = computed(() => {
       <!-- Header -->
       <div class="goal-section-header">
         <div class="header-titles">
-          <h3 class="goal-title">Tu Meta Personal — {{ formatCurrency(personalProgreso.metaImporte) }}</h3>
+          <h3 class="goal-title">
+            Tu Meta Personal — {{ formatCurrency(personalProgreso.metaImporte) }}
+          </h3>
           <p class="goal-subtitle">Progreso individual acumulado en {{ monthLabel }}</p>
         </div>
 
@@ -189,7 +198,9 @@ const displayHotelTitle = computed(() => {
             borderColor: getSemaforoColor(personalProgreso.semaforo),
           }"
         >
-          <el-icon :size="14"><component :is="getSemaforoIcon(personalProgreso.semaforo)" /></el-icon>
+          <el-icon :size="14"
+            ><component :is="getSemaforoIcon(personalProgreso.semaforo)"
+          /></el-icon>
           <span class="badge-text">Tu Desempeño</span>
         </div>
       </div>
@@ -197,7 +208,10 @@ const displayHotelTitle = computed(() => {
       <!-- Main Amounts -->
       <div class="amounts-row">
         <div class="amount-current">
-          <span class="current-value" :style="{ color: getSemaforoColor(personalProgreso.semaforo) }">
+          <span
+            class="current-value"
+            :style="{ color: getSemaforoColor(personalProgreso.semaforo) }"
+          >
             {{ formatCurrency(personalProgreso.ventasRealesUsd) }}
           </span>
           <span class="target-value">/ {{ formatCurrency(personalProgreso.metaImporte) }}</span>
@@ -246,7 +260,8 @@ const displayHotelTitle = computed(() => {
               'text-danger': personalProgreso.desviacionMonetaria < 0,
             }"
           >
-            {{ personalProgreso.desviacionMonetaria >= 0 ? '+' : '' }}{{ formatCurrency(personalProgreso.desviacionMonetaria) }}
+            {{ personalProgreso.desviacionMonetaria >= 0 ? '+' : ''
+            }}{{ formatCurrency(personalProgreso.desviacionMonetaria) }}
           </span>
         </div>
 
@@ -278,14 +293,25 @@ const displayHotelTitle = computed(() => {
   padding: 1.25rem 1.5rem;
 }
 
-.card-hotel-main-title {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--heading-color, #0f172a);
+.card-hotel-main-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--el-border-color-lighter, #f1f5f9);
-  letter-spacing: -0.02em;
+}
+
+.hotel-header-icon {
+  color: #409eff;
+  font-size: 1.15rem;
+}
+
+.card-hotel-main-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--heading-color, #0f172a);
+  margin: 0;
 }
 
 /* Sections */
@@ -320,7 +346,7 @@ const displayHotelTitle = computed(() => {
 .goal-title {
   margin: 0;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--heading-color, #0f172a);
 }
 
@@ -394,7 +420,9 @@ const displayHotelTitle = computed(() => {
 .progress-fill {
   height: 100%;
   border-radius: 9999px;
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+  transition:
+    width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.4s ease;
 }
 
 /* Pacing metrics */
