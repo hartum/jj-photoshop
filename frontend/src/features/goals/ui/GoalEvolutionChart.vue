@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { EvolucionMetasResponse } from '../domain/goal.model'
-import { TrendCharts, Calendar } from '@element-plus/icons-vue'
+import { Activity, Calendar, CalendarDays } from '@lucide/vue'
 
 const props = defineProps<{
   data: EvolucionMetasResponse | null
@@ -159,7 +159,7 @@ function formatCurrency(val: number): string {
     <div class="chart-header">
       <div class="header-left">
         <div class="chart-title-row">
-          <el-icon :size="20" class="header-icon"><TrendCharts /></el-icon>
+          <el-icon :size="20" class="header-icon"><Activity /></el-icon>
           <h3 class="chart-title">Evolución y Progresión de Ventas</h3>
         </div>
         <span class="chart-subtitle">
@@ -176,7 +176,7 @@ function formatCurrency(val: number): string {
             <span class="tab-label">Mensual</span>
           </el-radio-button>
           <el-radio-button value="anio">
-            <el-icon :size="14"><TrendCharts /></el-icon>
+            <el-icon :size="14"><CalendarDays /></el-icon>
             <span class="tab-label">Anual</span>
           </el-radio-button>
         </el-radio-group>
