@@ -513,15 +513,20 @@ function formatCurrency(val: number): string {
                 </template>
               </el-table-column>
 
-              <el-table-column label="Meta Asignada (USD)" min-width="200">
+              <el-table-column label="Meta Asignada (USD)" min-width="220">
                 <template #default="{ row }">
                   <el-input-number
                     v-model="customPhotographerGoals[row.id]"
                     :min="0"
                     :step="200"
+                    :precision="0"
                     size="default"
                     class="user-target-input"
-                  />
+                  >
+                    <template #suffix>
+                      <span>$ (USD)</span>
+                    </template>
+                  </el-input-number>
                 </template>
               </el-table-column>
             </el-table>
@@ -704,7 +709,7 @@ function formatCurrency(val: number): string {
 
 .user-target-input {
   width: 100%;
-  max-width: 200px;
+  max-width: 220px;
 }
 
 .save-actions-bar {

@@ -473,7 +473,11 @@ async function handleSave() {
               :precision="2"
               style="width: 100%"
               placeholder="0.00"
-            />
+            >
+              <template #suffix>
+                <span>$ (USD)</span>
+              </template>
+            </el-input-number>
           </el-form-item>
         </div>
 
