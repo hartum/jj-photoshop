@@ -6,6 +6,7 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
+import { useProfileStore } from '@/features/users/stores/profile.store'
 import { ElMessage } from 'element-plus'
 import { Location, User, Check, Share } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
@@ -16,6 +17,7 @@ const authStore = useAuthStore()
 const countryStore = useCountryStore()
 const hotelStore = useHotelStore()
 const userStore = useUserStore()
+const profileStore = useProfileStore()
 const goalStore = useGoalStore()
 
 const now = new Date()
@@ -287,10 +289,19 @@ onMounted(async () => {
   await Promise.all([
     countryStore.fetchCountries(),
     hotelStore.fetchHotels(),
+    profileStore.fetchProfiles(),
     userStore.fetchUsers(),
   ])
   applyRouteQueryParams()
+  await loadHotelGoals()
 })
+
+watch(
+  () => assignedPhotographers.value.length,
+  async () => {
+    await loadHotelGoals()
+  },
+)
 
 watch(
   () => [route.query.hotelId, route.query.mes, route.query.anio],

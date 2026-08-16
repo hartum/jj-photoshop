@@ -22,6 +22,9 @@ export const useUserStore = defineStore('users', () => {
   async function fetchUsers() {
     isLoading.value = true
     try {
+      if (profileStore.profiles.length === 0) {
+        await profileStore.fetchProfiles()
+      }
       const res = await fetch(`${API_URL}/usuarios`)
       if (res.ok) {
         users.value = await res.json()
