@@ -128,30 +128,44 @@ function formatCurrency(val: number): string {
 
     <!-- Pacing Details and Footnote -->
     <div class="pacing-metrics-row">
-      <div class="pacing-item">
-        <el-icon :size="14" class="pacing-icon"><Calendar /></el-icon>
-        <span class="pacing-label">Ritmo a hoy:</span>
-        <span class="pacing-val">{{ formatCurrency(metaEsperadaHoy) }}</span>
+      <div class="pacing-metrics-left">
+        <div class="pacing-item">
+          <el-icon :size="14" class="pacing-icon"><Calendar /></el-icon>
+          <span class="pacing-label">Ritmo a hoy:</span>
+          <span class="pacing-val">{{ formatCurrency(metaEsperadaHoy) }}</span>
+        </div>
+
+        <div class="pacing-item">
+          <el-icon :size="14" class="pacing-icon"><TrendCharts /></el-icon>
+          <span class="pacing-label">Desviación:</span>
+          <span
+            class="pacing-val font-semibold"
+            :class="{
+              'text-success': desviacionMonetaria >= 0,
+              'text-danger': desviacionMonetaria < 0,
+            }"
+          >
+            {{ desviacionMonetaria >= 0 ? '+' : '' }}{{ formatCurrency(desviacionMonetaria) }}
+          </span>
+        </div>
+
+        <div v-if="numVentas !== undefined" class="pacing-item">
+          <el-icon :size="14" class="pacing-icon"><Money /></el-icon>
+          <span class="pacing-label">Ventas:</span>
+          <span class="pacing-val">{{ numVentas }}</span>
+        </div>
+
+        <div v-if="numSesiones !== undefined" class="pacing-item">
+          <el-icon :size="14" class="pacing-icon"><Calendar /></el-icon>
+          <span class="pacing-label">Sesiones:</span>
+          <span class="pacing-val">{{ numSesiones }}</span>
+        </div>
       </div>
 
-      <div class="pacing-item">
-        <el-icon :size="14" class="pacing-icon"><TrendCharts /></el-icon>
-        <span class="pacing-label">Desviación:</span>
-        <span
-          class="pacing-val font-semibold"
-          :class="{
-            'text-success': desviacionMonetaria >= 0,
-            'text-danger': desviacionMonetaria < 0,
-          }"
-        >
-          {{ desviacionMonetaria >= 0 ? '+' : '' }}{{ formatCurrency(desviacionMonetaria) }}
-        </span>
-      </div>
-
-      <div v-if="numVentas !== undefined" class="pacing-item">
-        <el-icon :size="14" class="pacing-icon"><Money /></el-icon>
-        <span class="pacing-label">Ventas:</span>
-        <span class="pacing-val">{{ numVentas }}</span>
+      <div v-if="$slots.actions || $slots.footer || $slots.default" class="pacing-actions">
+        <slot name="actions" />
+        <slot name="footer" />
+        <slot />
       </div>
     </div>
   </el-card>
@@ -281,12 +295,26 @@ function formatCurrency(val: number): string {
 /* Pacing metrics */
 .pacing-metrics-row {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
   padding-top: 0.75rem;
   border-top: 1px dashed var(--el-border-color-lighter, #f1f5f9);
   font-size: 0.82rem;
+}
+
+.pacing-metrics-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.pacing-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
 }
 
 .pacing-item {

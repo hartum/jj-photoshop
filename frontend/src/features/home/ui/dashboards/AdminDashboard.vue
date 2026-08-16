@@ -156,23 +156,6 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
         <el-select v-model="selectedAnio" size="default" style="width: 100px">
           <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
         </el-select>
-        <el-button
-          type="primary"
-          :icon="Setting"
-          size="default"
-          @click="handleNavigateToGoalForm(selectedHotelFilter)"
-        >
-          Configurar Metas
-        </el-button>
-        <el-button
-          type="success"
-          plain
-          :icon="Money"
-          size="default"
-          @click="goToConfig('comisiones')"
-        >
-          Matriz Comisiones
-        </el-button>
       </div>
     </div>
 
@@ -188,7 +171,18 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
         :meta-esperada-hoy="globalProgresoTotals.metaEsperadaTotal"
         :desviacion-monetaria="globalProgresoTotals.desviacion"
         :semaforo="globalProgresoTotals.semaforo"
-      />
+      >
+        <template #actions>
+          <el-button
+            type="primary"
+            :icon="Setting"
+            size="default"
+            @click="handleNavigateToGoalForm(selectedHotelFilter)"
+          >
+            Configurar Metas
+          </el-button>
+        </template>
+      </GoalProgressCard>
 
       <GoalProgressCard
         v-else-if="currentHotelProgreso"
@@ -202,7 +196,18 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
         :semaforo="currentHotelProgreso.semaforo"
         :num-ventas="currentHotelProgreso.numVentas"
         :num-sesiones="currentHotelProgreso.numSesiones"
-      />
+      >
+        <template #actions>
+          <el-button
+            type="primary"
+            :icon="Setting"
+            size="default"
+            @click="handleNavigateToGoalForm(selectedHotelFilter)"
+          >
+            Configurar Metas
+          </el-button>
+        </template>
+      </GoalProgressCard>
     </div>
 
     <!-- Resumen Ejecutivo Financiero de Comisiones para Admin -->
@@ -216,9 +221,6 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
             Resumen Financiero de Comisiones —
             {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
           </span>
-          <el-button type="primary" link @click="goToConfig('comisiones')">
-            Editar Matriz de Comisiones
-          </el-button>
         </div>
       </template>
       <el-row :gutter="20">
@@ -248,6 +250,11 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
           </div>
         </el-col>
       </el-row>
+      <div class="comm-card-footer">
+        <el-button type="primary" :icon="Setting" size="default" @click="goToConfig('comisiones')">
+          Configurar Comisiones
+        </el-button>
+      </div>
     </el-card>
 
     <!-- Gráficas de Línea (Line Charts): Mes a Día y Año a Mes -->
@@ -475,5 +482,13 @@ html.dark .custom-group-select-dropdown .el-select-group__title {
   font-size: 0.85rem;
   color: var(--app-text, #334155);
 }
-</style>
 
+.comm-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--el-border-color-lighter, #f1f5f9);
+}
+</style>
