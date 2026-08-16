@@ -5,10 +5,10 @@ import GoalEvolutionChart from '@/features/goals/ui/GoalEvolutionChart.vue'
 import {
   User,
   Location,
-  OfficeBuilding,
   Edit,
   Money,
 } from '@element-plus/icons-vue'
+import { Hotel } from '@lucide/vue'
 
 const {
   goalStore,
@@ -234,7 +234,7 @@ const {
       <el-col :xs="24" :sm="8">
         <el-card class="dashboard-card stat-card" shadow="hover">
           <div class="card-icon bg-success">
-            <el-icon><OfficeBuilding /></el-icon>
+            <el-icon><Hotel :size="24" /></el-icon>
           </div>
           <div class="stat-content">
             <span class="stat-label">Hoteles Asociados</span>

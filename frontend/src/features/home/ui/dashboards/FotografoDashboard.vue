@@ -4,9 +4,9 @@ import PhotographerHotelGoalCard from '@/features/goals/ui/PhotographerHotelGoal
 import {
   Camera,
   Calendar,
-  OfficeBuilding,
   Money,
 } from '@element-plus/icons-vue'
+import { Hotel } from '@lucide/vue'
 
 const {
   currentUser,
@@ -169,7 +169,7 @@ const {
             <template #header>
               <div class="hotel-card-header">
                 <div class="hotel-title-area">
-                  <el-icon class="hotel-header-icon"><OfficeBuilding /></el-icon>
+                  <el-icon class="hotel-header-icon"><Hotel :size="18" /></el-icon>
                   <span class="hotel-name font-bold">{{ hotel.nombre }}</span>
                 </div>
                 <span class="hotel-sub-info text-muted">
