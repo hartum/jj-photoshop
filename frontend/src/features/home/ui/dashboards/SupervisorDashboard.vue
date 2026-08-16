@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDashboard, monthsOptions } from '@/features/home/composables/useDashboard'
-import GoalProgressCard from '@/features/goals/ui/GoalProgressCard.vue'
+import SupervisorHotelGoalCard from '@/features/goals/ui/SupervisorHotelGoalCard.vue'
 import GoalEvolutionChart from '@/features/goals/ui/GoalEvolutionChart.vue'
 import { Money } from '@element-plus/icons-vue'
 
@@ -10,9 +10,6 @@ const {
   selectedAnio,
   selectedMes,
   selectedHotelFilter,
-  getSemaforoTagType,
-  getSemaforoText,
-  getProgressColor,
   formatCurrency,
   supervisorHotels,
   supervisorMonthlyCommissions,
@@ -88,77 +85,22 @@ const {
       </div>
     </el-card>
 
-    <!-- Barra de Progreso del Hotel -->
+    <!-- Metas Agrupadas por Hotel con Rendimiento de Fotógrafos -->
     <div class="goals-summary-block">
-      <div v-for="hotelProg in goalStore.progresoHoteles" :key="hotelProg.hotelId">
-        <GoalProgressCard
-          :titulo="`Meta del Hotel: ${hotelProg.hotelNombre}`"
-          :subtitulo="`${hotelProg.areaNombre} — ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio}`"
-          :meta-importe="hotelProg.metaImporte"
-          :ventas-reales-usd="hotelProg.ventasRealesUsd"
-          :porcentaje-cumplimiento="hotelProg.porcentajeCumplimiento"
-          :meta-esperada-hoy="hotelProg.metaEsperadaHoy"
-          :desviacion-monetaria="hotelProg.desviacionMonetaria"
-          :semaforo="hotelProg.semaforo"
-          :num-ventas="hotelProg.numVentas"
-          :num-sesiones="hotelProg.numSesiones"
-          class="mb-4"
-        />
-
-        <!-- Tabla de Desglose por Fotógrafo en este Hotel -->
-        <el-card
-          class="dashboard-card mb-4"
-          :header="`Rendimiento Individual de Fotógrafos — ${hotelProg.hotelNombre}`"
-          shadow="hover"
-        >
-          <div v-if="hotelProg.fotografos.length === 0" class="empty-hint p-3">
-            No hay fotógrafos asignados a este hotel.
-          </div>
-          <el-table v-else :data="hotelProg.fotografos" style="width: 100%" size="small" stripe>
-            <el-table-column prop="nombreCompleto" label="Fotógrafo" min-width="160" />
-            <el-table-column label="Meta Asignada" width="130" align="right">
-              <template #default="{ row }">
-                <span class="font-semibold">{{ formatCurrency(row.metaImporte) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Ventas Reales" width="130" align="right">
-              <template #default="{ row }">
-                <span class="font-bold text-primary">{{
-                  formatCurrency(row.ventasRealesUsd)
-                }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Ritmo a Hoy" width="120" align="right">
-              <template #default="{ row }">
-                <span>{{ formatCurrency(row.metaEsperadaHoy) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Avance" min-width="170">
-              <template #default="{ row }">
-                <div class="table-progress-cell">
-                  <el-progress
-                    :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
-                    :color="getProgressColor(row.semaforo, row.metaImporte)"
-                    :stroke-width="8"
-                  />
-                  <span class="progress-pct-label">{{ row.porcentajeCumplimiento }}%</span>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="Semáforo" width="130" align="center">
-              <template #default="{ row }">
-                <el-tag
-                  size="small"
-                  effect="dark"
-                  :type="getSemaforoTagType(row.semaforo, row.metaImporte)"
-                >
-                  {{ getSemaforoText(row.semaforo, row.metaImporte) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
+      <div v-if="goalStore.progresoHoteles.length === 0" class="mb-4">
+        <el-card class="dashboard-card" shadow="hover">
+          <el-empty
+            description="No hay información de metas disponible para el período seleccionado."
+          />
         </el-card>
       </div>
+      <SupervisorHotelGoalCard
+        v-for="hotelProg in goalStore.progresoHoteles"
+        :key="hotelProg.hotelId"
+        :hotel-progreso="hotelProg"
+        :month-label="monthsOptions.find((m) => m.value === selectedMes)?.label || ''"
+        :selected-anio="selectedAnio"
+      />
     </div>
 
     <!-- Gráficas de Línea -->
