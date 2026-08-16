@@ -752,7 +752,7 @@ async function handleUpdateCommissionStatus(id: number, nuevoEstado: string) {
               <el-icon style="vertical-align: middle; margin-right: 6px; color: #2563eb"
                 ><Money
               /></el-icon>
-              Tus Comisiones de Gerencia —
+              Tus Comisiones —
               {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
             </span>
             <el-tag type="primary" effect="light">2% sobre ventas de tus áreas</el-tag>
@@ -769,7 +769,7 @@ async function handleUpdateCommissionStatus(id: number, nuevoEstado: string) {
         >
           <div>
             <div style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
-              Tu Comisión Acumulada de Gerente:
+              Tu comisión acumulada:
             </div>
             <div style="font-size: 1.8rem; font-weight: 800; color: #2563eb">
               {{ formatCurrency(gerenteMonthlyCommissions) }}
@@ -972,7 +972,7 @@ async function handleUpdateCommissionStatus(id: number, nuevoEstado: string) {
               <el-icon style="vertical-align: middle; margin-right: 6px; color: #c026d3"
                 ><Money
               /></el-icon>
-              Tus Comisiones de Supervisión —
+              Tus Comisiones —
               {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
             </span>
             <el-tag type="info" effect="light">2% sobre ventas del hotel</el-tag>
@@ -989,7 +989,7 @@ async function handleUpdateCommissionStatus(id: number, nuevoEstado: string) {
         >
           <div>
             <div style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
-              Tu Comisión Acumulada de Supervisión:
+              Tu comisión acumulada:
             </div>
             <div style="font-size: 1.8rem; font-weight: 800; color: #c026d3">
               {{ formatCurrency(supervisorMonthlyCommissions) }}
