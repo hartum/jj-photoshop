@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useDashboard, monthsOptions } from '@/features/home/composables/useDashboard'
 import GoalProgressCard from '@/features/goals/ui/GoalProgressCard.vue'
 import GoalEvolutionChart from '@/features/goals/ui/GoalEvolutionChart.vue'
 import { User, Location, Setting, Money } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
 import type { HotelProgresoResumen } from '@/features/goals/domain/goal.model'
+import type { Hotel } from '@/features/hotels/domain/hotel.model'
 
 const {
+  countryStore,
   hotelStore,
   goalStore,
   commissionStore,
@@ -31,6 +34,60 @@ const {
   globalMonthlyCommissions,
 } = useDashboard()
 
+interface AreaGroup {
+  id: number
+  nombre: string
+  hoteles: Hotel[]
+}
+
+interface CountryGroup {
+  id: number
+  nombre: string
+  codigo: string
+  areas: AreaGroup[]
+}
+
+const groupedHotelsByCountry = computed<CountryGroup[]>(() => {
+  const hotels = hotelStore.hotels
+  const groupsMap = new Map<number, CountryGroup>()
+
+  for (const h of hotels) {
+    const countryId = h.paisId || 0
+    const countryName = h.paisNombre || 'Sin País'
+    const countryObj = countryStore.countries.find(
+      (c) => c.id === countryId || c.nombre === countryName,
+    )
+    const countryCode = countryObj?.codigo || h.paisCodigo || ''
+
+    if (!groupsMap.has(countryId)) {
+      groupsMap.set(countryId, {
+        id: countryId,
+        nombre: countryName,
+        codigo: countryCode,
+        areas: [],
+      })
+    }
+
+    const countryGroup = groupsMap.get(countryId)!
+    const areaId = h.areaId || 0
+    const areaName = h.areaNombre || 'Sin Área'
+
+    let areaGroup = countryGroup.areas.find((a) => a.id === areaId)
+    if (!areaGroup) {
+      areaGroup = {
+        id: areaId,
+        nombre: areaName,
+        hoteles: [],
+      }
+      countryGroup.areas.push(areaGroup)
+    }
+
+    areaGroup.hoteles.push(h)
+  }
+
+  return Array.from(groupsMap.values())
+})
+
 function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): number {
   const getScore = (row: HotelProgresoResumen) => {
     if (row.metaImporte <= 0 || row.semaforo === 'SIN_META') return 0
@@ -52,11 +109,46 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
         <el-select
           v-model="selectedHotelFilter"
           placeholder="Todos los Hoteles"
+          filterable
           clearable
           size="default"
-          style="width: 220px"
+          style="width: 250px"
+          popper-class="custom-group-select-dropdown"
         >
-          <el-option v-for="h in hotelStore.hotels" :key="h.id" :label="h.nombre" :value="h.id" />
+          <el-option-group
+            v-for="pais in groupedHotelsByCountry"
+            :key="pais.id"
+            :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
+          >
+            <template v-for="area in pais.areas" :key="area.id">
+              <!-- Item no seleccionable por cada Área -->
+              <el-option
+                :value="`area-${area.id}`"
+                :label="area.nombre"
+                disabled
+                class="area-header-option"
+              >
+                <div class="area-option-header">
+                  <el-icon :size="18" class="area-icon"><Location /></el-icon>
+                  <span class="area-title">{{ area.nombre }}</span>
+                </div>
+              </el-option>
+
+              <!-- Hoteles pertenecientes a este área -->
+              <el-option
+                v-for="h in area.hoteles"
+                :key="h.id"
+                :label="`${h.nombre} (${area.nombre})`"
+                :value="h.id"
+                class="hotel-sub-option"
+              >
+                <div class="option-item-content hotel-option-item">
+                  <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
+                  <span class="hotel-name">{{ h.nombre }}</span>
+                </div>
+              </el-option>
+            </template>
+          </el-option-group>
         </el-select>
         <el-select v-model="selectedMes" size="default" style="width: 140px">
           <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
@@ -296,3 +388,92 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
     </el-row>
   </div>
 </template>
+
+<style>
+/* Estilos globales para el dropdown personalizado de hoteles con áreas no seleccionables */
+.custom-group-select-dropdown .el-select-group__title {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.3rem !important;
+  letter-spacing: 0.02em;
+}
+
+.custom-group-select-dropdown .area-header-option {
+  height: 30px !important;
+  line-height: 30px !important;
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  margin: 2px 0 !important;
+  padding: 0 12px !important;
+}
+
+.custom-group-select-dropdown .area-header-option.is-disabled {
+  color: var(--heading-color, #0f172a) !important;
+  cursor: default !important;
+  background-color: transparent !important;
+  background: none !important;
+}
+
+.custom-group-select-dropdown .area-option-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.custom-group-select-dropdown .area-icon {
+  font-size: 1.15rem !important;
+  color: #e6a23c !important;
+  flex-shrink: 0;
+}
+
+.custom-group-select-dropdown .area-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+
+html.dark .custom-group-select-dropdown .area-header-option {
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+}
+
+html.dark .custom-group-select-dropdown .area-title {
+  color: #94a3b8 !important;
+}
+
+html.dark .custom-group-select-dropdown .el-select-group__title {
+  color: #f1f5f9 !important;
+}
+
+.custom-group-select-dropdown .hotel-sub-option {
+  padding-left: 28px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+
+.custom-group-select-dropdown .hotel-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-group-select-dropdown .hotel-option-icon {
+  color: #94a3b8 !important;
+  font-size: 1.15rem !important;
+}
+
+.custom-group-select-dropdown .hotel-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--app-text, #334155);
+}
+</style>
+
