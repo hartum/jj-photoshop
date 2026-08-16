@@ -38,18 +38,30 @@ Este archivo define el contexto obligatorio, la estructura de negocio, los roles
 
 ---
 
-## 3. Módulos Funcionales Clave
+## 3. Módulos Funcionales Clave y Reglas de Negocio
+
+> [!NOTE]
+> Documentación detallada en la base de conocimiento del proyecto:
+> - [docs/detalles_perfil_fotografos.md](file:///Users/hartumia/workspace/JJ%20Photoshop/docs/detalles_perfil_fotografos.md) (Detalles de pantalla de fotógrafo, agenda completa del hotel y matriz de comisiones).
+> - [docs/requisitos_y_plan_trabajo.md](file:///Users/hartumia/workspace/JJ%20Photoshop/docs/requisitos_y_plan_trabajo.md) (Análisis completo de requisitos, diseño DB, flujos de usuario y plan de 8 fases).
 
 1. **Gestión de Agenda & Sesiones Fotográficas**:
-   - Registro de sesiones por hotel, fecha y franja horaria.
+   - Pantalla inicial del fotógrafo: Muestra el **calendario completo del hotel** para coordinación de equipo y evitar solapes de sesiones grandes (ej. familias de 8 pax).
+   - **Datos requeridos para agendar**: Nombre cliente, Email, Teléfono/Contacto, Nº Habitación, Nº Personas, Fecha/Hora, Motivo (Boda, Familia, Pareja, Pedida de mano, Cumpleaños, Revelación género, "Otro").
    - **Control de Capacidad**: Validación del número máximo configurable de sesiones por hora/hotel.
-   - **Sincronización externa**: Integración unidireccional con Google Calendar.
+   - **Sincronización externa**: Integración unidireccional hacia Google Calendar.
 2. **Control de Ventas & Cálculo de Comisiones**:
    - Registro de ventas asociadas a sesiones, asignando fotógrafo, supervisor y agendador/captador.
-   - Cálculo automático de comisiones personalizables por rol/persona.
+   - Momento de cálculo: Al pasar el cargo a la habitación o confirmar la venta.
+   - **Matriz de Comisiones Base (Ejemplo México)**:
+     - **Gerente**: 2% de venta en todos los hoteles de su área.
+     - **Supervisor**: 2% de la venta total de su hotel.
+     - **Fotógrafo**: 14% (Asalariado con sueldo) | 20% (Sin salario / comisión pura).
+     - **Vendedor / Agendador**: 6% (Asalariado) | 8% (Sin salario).
+   - **Permisos de Edición**: Únicamente editable por Administrador (`ADMIN`) y Contable (`CONTABLE`) desde un panel configurable.
 3. **Metas y Objetivos (KPIs)**:
-   - Definición de metas mensuales por hotel y usuario.
-   - Indicadores semafóricos (verde/rojo) de progreso monetario y porcentaje de cumplimiento.
+   - Definición de metas mensuales por hotel y usuario. Reparto igualitario de la meta del hotel entre fotógrafos activos.
+   - Indicadores semafóricos (Verde/Amarillo/Rojo) de progreso monetario y pacing diario.
 4. **Dashboards & Reporting**:
    - Métricas de ventas totales, promedio por sesión, número de ventas y rendimiento por fotógrafo.
    - Vistas comparativas y reportes de cierre diario/mensual.

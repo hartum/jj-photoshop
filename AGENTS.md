@@ -34,6 +34,13 @@ Este archivo contiene el contexto del proyecto, la arquitectura tecnológica, lo
 
 ---
 
+## 📚 Base de Conocimiento del Proyecto (`docs/`)
+- **[docs/detalles_perfil_fotografos.md](file:///Users/hartumia/workspace/JJ%20Photoshop/docs/detalles_perfil_fotografos.md)**: Requisitos acordados para el módulo de fotógrafos, visibilidad completa del calendario del hotel, datos mínimos para agendar sesiones y la matriz de comisiones (incluyendo tabla de porcentajes para México).
+- **[docs/requisitos_y_plan_trabajo.md](file:///Users/hartumia/workspace/JJ%20Photoshop/docs/requisitos_y_plan_trabajo.md)**: Documento integral de análisis de requisitos, arquitectura de base de datos (ERD), flujos de usuario detallados y plan de desarrollo en 8 fases.
+- **[Control_acceso segun roles.md](file:///Users/hartumia/workspace/JJ%20Photoshop/Control_acceso%20segun%20roles.md)**: Resumen de la matriz de permisos RBAC y multi-tenancy.
+
+---
+
 ## ⚠️ Reglas Inviolables de Entornos y Despliegue (Local vs VPS Producción)
 
 ### 1. Gestión de `.env` (NUNCA SUBIR A GIT):
