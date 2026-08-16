@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { useDashboard, monthsOptions } from '@/features/home/composables/useDashboard'
 import PhotographerHotelGoalCard from '@/features/goals/ui/PhotographerHotelGoalCard.vue'
-import {
-  Camera,
-  Calendar,
-  Money,
-} from '@element-plus/icons-vue'
+import { Camera, Calendar, Money } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
 
 const {
-  currentUser,
   commissionStore,
   selectedMes,
   photographerHotels,
@@ -19,7 +14,6 @@ const {
   formatTime,
   goToAgenda,
   formatCurrency,
-  myContractBadge,
   myMonthlyCommissions,
 } = useDashboard()
 </script>
@@ -52,17 +46,6 @@ const {
             <div class="comm-card-title">Tus Comisiones Acumuladas del Mes</div>
             <div class="comm-card-amount text-success">
               {{ formatCurrency(myMonthlyCommissions) }}
-            </div>
-            <div class="comm-card-hint">
-              Calculadas sobre las ventas cerradas según tu contrato:
-              <el-tag
-                size="small"
-                :type="currentUser?.tipoContrato === 'SIN_SALARIO' ? 'primary' : 'success'"
-                effect="light"
-                class="ml-1"
-              >
-                {{ myContractBadge }}
-              </el-tag>
             </div>
           </div>
         </div>
@@ -138,13 +121,7 @@ const {
 
     <div v-else class="photographer-goals-container mb-4">
       <el-row :gutter="20">
-        <el-col
-          v-for="g in photographerPersonalGoals"
-          :key="g.hotelId"
-          :xs="24"
-          :md="12"
-          :lg="12"
-        >
+        <el-col v-for="g in photographerPersonalGoals" :key="g.hotelId" :xs="24" :md="12" :lg="12">
           <PhotographerHotelGoalCard
             :hotel-nombre="g.hotelNombre"
             :hotel-progreso="g.hotel"
@@ -158,7 +135,7 @@ const {
     <!-- Trabajo de hoy por hotel e instrucciones -->
     <h3 class="subsection-title mt-4">Tu trabajo para hoy</h3>
     <el-row :gutter="20" class="photographer-grid">
-      <el-col :xs="24" :md="16">
+      <el-col :xs="24" :md="12">
         <div class="hotels-cards-container">
           <el-card
             v-for="hotel in photographerHotels"
@@ -202,10 +179,7 @@ const {
                     <div v-if="s.numeroHabitacion" class="room-tag">
                       Hab: {{ s.numeroHabitacion }}
                     </div>
-                    <el-tag
-                      size="small"
-                      :type="s.estado === 'COMPLETADA' ? 'success' : 'primary'"
-                    >
+                    <el-tag size="small" :type="s.estado === 'COMPLETADA' ? 'success' : 'primary'">
                       {{ s.estado }}
                     </el-tag>
                   </div>
@@ -243,10 +217,7 @@ const {
                     <div v-if="c.numeroHabitacion" class="room-tag">
                       Hab: {{ c.numeroHabitacion }}
                     </div>
-                    <el-tag
-                      size="small"
-                      :type="c.estado === 'COMPLETADA' ? 'success' : 'warning'"
-                    >
+                    <el-tag size="small" :type="c.estado === 'COMPLETADA' ? 'success' : 'warning'">
                       {{ c.estado }}
                     </el-tag>
                   </div>
@@ -263,9 +234,23 @@ const {
             description="No tienes ningún hotel asignado actualmente."
           />
         </div>
-      </el-col>
 
-      <el-col :xs="24" :md="8">
+        <!-- Botón para versión móvil justo después de las tarjetas de trabajo de hoy -->
+        <div class="mobile-agenda-btn-container mb-4">
+          <el-button
+            type="primary"
+            :icon="Calendar"
+            size="large"
+            class="btn-agenda-hotel"
+            @click="goToAgenda"
+          >
+            Ir a la Agenda del Hotel
+          </el-button>
+        </div>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20">
+      <el-col :xs="24" :md="12">
         <el-card class="dashboard-card instructions-card" shadow="hover">
           <template #header>
             <div class="instructions-header">
@@ -288,3 +273,21 @@ const {
     </el-row>
   </div>
 </template>
+
+<style scoped>
+.mobile-agenda-btn-container {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-agenda-btn-container {
+    display: block;
+    width: 100%;
+  }
+
+  .mobile-agenda-btn-container .btn-agenda-hotel {
+    width: 100%;
+  }
+}
+</style>
+
