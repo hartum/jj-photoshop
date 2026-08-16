@@ -9,6 +9,7 @@ import {
   Money,
 } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
+import type { HotelProgresoResumen } from '@/features/goals/domain/goal.model'
 
 const {
   hotelStore,
@@ -34,6 +35,17 @@ const {
   handleNavigateToGoalForm,
   globalMonthlyCommissions,
 } = useDashboard()
+
+function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): number {
+  const getScore = (row: HotelProgresoResumen) => {
+    if (row.metaImporte <= 0 || row.semaforo === 'SIN_META') return 0
+    if (row.semaforo === 'ROJO') return 1
+    if (row.semaforo === 'AMARILLO') return 2
+    if (row.semaforo === 'VERDE') return 3
+    return 0
+  }
+  return getScore(a) - getScore(b)
+}
 </script>
 
 <template>
@@ -169,37 +181,47 @@ const {
       header="Desglose y Estado de Metas por Hotel"
       shadow="hover"
     >
-      <el-table :data="goalStore.progresoHoteles" style="width: 100%" size="small" stripe>
-        <el-table-column prop="hotelNombre" label="Hotel" min-width="160" />
-        <el-table-column prop="areaNombre" label="Área" min-width="120" />
-        <el-table-column label="Meta Mensual" width="130" align="right">
+      <el-table
+        :data="goalStore.progresoHoteles"
+        :default-sort="{ prop: 'porcentajeCumplimiento', order: 'descending' }"
+        style="width: 100%"
+        size="small"
+        stripe
+      >
+        <el-table-column prop="hotelNombre" label="Hotel" min-width="160" sortable />
+        <el-table-column prop="areaNombre" label="Área" min-width="120" sortable />
+        <el-table-column prop="metaImporte" label="Meta Mensual" width="140" align="right" sortable>
           <template #default="{ row }">
             <span class="font-semibold">{{ formatCurrency(row.metaImporte) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Ventas Reales" width="130" align="right">
+        <el-table-column prop="ventasRealesUsd" label="Ventas Reales" width="140" align="right" sortable>
           <template #default="{ row }">
             <span class="font-bold text-primary">{{ formatCurrency(row.ventasRealesUsd) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Ritmo a Hoy" width="120" align="right">
+        <el-table-column prop="metaEsperadaHoy" label="Ritmo a Hoy" width="130" align="right" sortable>
           <template #default="{ row }">
             <span>{{ formatCurrency(row.metaEsperadaHoy) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Avance" min-width="170">
+        <el-table-column prop="porcentajeCumplimiento" label="Avance" min-width="170" sortable>
           <template #default="{ row }">
-            <div class="table-progress-cell">
-              <el-progress
-                :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
-                :color="getProgressColor(row.semaforo, row.metaImporte)"
-                :stroke-width="8"
-              />
-              <span class="progress-pct-label">{{ row.porcentajeCumplimiento }}%</span>
-            </div>
+            <el-progress
+              :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
+              :color="getProgressColor(row.semaforo, row.metaImporte)"
+              :stroke-width="8"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="Semáforo" width="130" align="center">
+        <el-table-column
+          prop="semaforo"
+          label="Semáforo"
+          width="140"
+          align="center"
+          sortable
+          :sort-method="semaforoSortMethod"
+        >
           <template #default="{ row }">
             <el-tag
               size="small"

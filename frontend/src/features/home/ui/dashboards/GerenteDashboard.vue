@@ -181,14 +181,11 @@ const {
         </el-table-column>
         <el-table-column label="Avance" min-width="170">
           <template #default="{ row }">
-            <div class="table-progress-cell">
-              <el-progress
-                :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
-                :color="getProgressColor(row.semaforo, row.metaImporte)"
-                :stroke-width="8"
-              />
-              <span class="progress-pct-label">{{ row.porcentajeCumplimiento }}%</span>
-            </div>
+            <el-progress
+              :percentage="Math.min(100, Math.max(0, row.porcentajeCumplimiento))"
+              :color="getProgressColor(row.semaforo, row.metaImporte)"
+              :stroke-width="8"
+            />
           </template>
         </el-table-column>
         <el-table-column label="Semáforo" width="130" align="center">
