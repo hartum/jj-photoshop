@@ -2,12 +2,7 @@
 import { useDashboard, monthsOptions } from '@/features/home/composables/useDashboard'
 import GoalProgressCard from '@/features/goals/ui/GoalProgressCard.vue'
 import GoalEvolutionChart from '@/features/goals/ui/GoalEvolutionChart.vue'
-import {
-  User,
-  Location,
-  Setting,
-  Money,
-} from '@element-plus/icons-vue'
+import { User, Location, Setting, Money } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
 import type { HotelProgresoResumen } from '@/features/goals/domain/goal.model'
 
@@ -64,12 +59,7 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
           <el-option v-for="h in hotelStore.hotels" :key="h.id" :label="h.nombre" :value="h.id" />
         </el-select>
         <el-select v-model="selectedMes" size="default" style="width: 140px">
-          <el-option
-            v-for="m in monthsOptions"
-            :key="m.value"
-            :label="m.label"
-            :value="m.value"
-          />
+          <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
         </el-select>
         <el-select v-model="selectedAnio" size="default" style="width: 100px">
           <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
@@ -98,7 +88,7 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
     <div class="goals-summary-block">
       <GoalProgressCard
         v-if="!selectedHotelFilter"
-        titulo="Objetivo Comercial Global de la Cadena"
+        titulo="Objetivo Global"
         :subtitulo="`Mes de ${monthsOptions.find((m) => m.value === selectedMes)?.label} ${selectedAnio} — Consolidado de ${globalProgresoTotals.numHoteles} hoteles`"
         :meta-importe="globalProgresoTotals.metaTotal"
         :ventas-reales-usd="globalProgresoTotals.ventasTotal"
@@ -195,12 +185,24 @@ function semaforoSortMethod(a: HotelProgresoResumen, b: HotelProgresoResumen): n
             <span class="font-semibold">{{ formatCurrency(row.metaImporte) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="ventasRealesUsd" label="Ventas Reales" width="140" align="right" sortable>
+        <el-table-column
+          prop="ventasRealesUsd"
+          label="Ventas Reales"
+          width="140"
+          align="right"
+          sortable
+        >
           <template #default="{ row }">
             <span class="font-bold text-primary">{{ formatCurrency(row.ventasRealesUsd) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="metaEsperadaHoy" label="Ritmo a Hoy" width="130" align="right" sortable>
+        <el-table-column
+          prop="metaEsperadaHoy"
+          label="Ritmo a Hoy"
+          width="130"
+          align="right"
+          sortable
+        >
           <template #default="{ row }">
             <span>{{ formatCurrency(row.metaEsperadaHoy) }}</span>
           </template>
