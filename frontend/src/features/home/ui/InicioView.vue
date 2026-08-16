@@ -9,6 +9,7 @@ import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
 import { useSessionStore } from '@/features/photo-sessions/stores/session.store'
 import { useSaleStore } from '@/features/sales/stores/sale.store'
+import { useCommissionStore } from '@/features/commissions/stores/commission.store'
 import type { FotografoProgreso, HotelProgresoResumen } from '@/features/goals/domain/goal.model'
 import GoalProgressCard from '@/features/goals/ui/GoalProgressCard.vue'
 import PhotographerHotelGoalCard from '@/features/goals/ui/PhotographerHotelGoalCard.vue'
@@ -22,7 +23,10 @@ import {
   Calendar,
   Edit,
   Money,
+  Wallet,
+  Tickets,
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -33,6 +37,7 @@ const hotelStore = useHotelStore()
 const goalStore = useGoalStore()
 const sessionStore = useSessionStore()
 const saleStore = useSaleStore()
+const commissionStore = useCommissionStore()
 
 const currentUser = computed(() => authStore.user)
 const userRole = computed(() => currentUser.value?.roleCode?.toUpperCase() || '')
@@ -76,6 +81,16 @@ async function loadGoalsData() {
       mes: selectedMes.value,
     }),
     goalStore.fetchEvolucion({
+      hotelId: selectedHotelFilter.value || undefined,
+      anio: selectedAnio.value,
+      mes: selectedMes.value,
+    }),
+    commissionStore.fetchResumen({
+      hotelId: selectedHotelFilter.value || undefined,
+      anio: selectedAnio.value,
+      mes: selectedMes.value,
+    }),
+    commissionStore.fetchComisiones({
       hotelId: selectedHotelFilter.value || undefined,
       anio: selectedAnio.value,
       mes: selectedMes.value,
@@ -386,6 +401,58 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
   if (selectedAnio.value) query.anio = selectedAnio.value
   router.push({ path: '/configuracion', query })
 }
+
+// --- COMISIONES COMPUTED & ACTIONS ---
+
+const myContractBadge = computed(() => {
+  const c = currentUser.value?.tipoContrato
+  return c === 'SIN_SALARIO' ? '🔵 Sin Salario (20% Comisión)' : '🟢 Asalariado (14% Comisión)'
+})
+
+const myMonthlyCommissions = computed(() => {
+  return commissionStore.resumen?.totalComisionesUsd || 0
+})
+
+const supervisorMonthlyCommissions = computed(() => {
+  if (currentUser.value?.id) {
+    const u = commissionStore.resumen?.porUsuario.find(
+      (item) => item.usuarioId === currentUser.value?.id,
+    )
+    if (u) return u.totalUsd
+  }
+  const r = commissionStore.resumen?.porRol.find((item) => item.rol === 'SUPERVISOR')
+  return r?.totalUsd || 0
+})
+
+const gerenteMonthlyCommissions = computed(() => {
+  if (currentUser.value?.id) {
+    const u = commissionStore.resumen?.porUsuario.find(
+      (item) => item.usuarioId === currentUser.value?.id,
+    )
+    if (u) return u.totalUsd
+  }
+  const r = commissionStore.resumen?.porRol.find((item) => item.rol === 'GERENTE')
+  return r?.totalUsd || 0
+})
+
+const globalMonthlyCommissions = computed(() => {
+  return commissionStore.resumen?.totalComisionesUsd || 0
+})
+
+async function handleUpdateCommissionStatus(id: number, nuevoEstado: string) {
+  try {
+    await commissionStore.updateEstadoComision(id, nuevoEstado)
+    ElMessage.success(`Comisión marcada como ${nuevoEstado}`)
+    await commissionStore.fetchResumen({
+      hotelId: selectedHotelFilter.value || undefined,
+      anio: selectedAnio.value,
+      mes: selectedMes.value,
+    })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar estado'
+    ElMessage.error(message)
+  }
+}
 </script>
 
 <template>
@@ -440,6 +507,15 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           >
             Configurar Metas
           </el-button>
+          <el-button
+            type="success"
+            plain
+            :icon="Money"
+            size="default"
+            @click="goToConfig('comisiones')"
+          >
+            Matriz Comisiones
+          </el-button>
         </div>
       </div>
 
@@ -471,6 +547,51 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           :num-sesiones="currentHotelProgreso.numSesiones"
         />
       </div>
+
+      <!-- Resumen Ejecutivo Financiero de Comisiones para Admin -->
+      <el-card class="dashboard-card mb-4" shadow="hover">
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span class="font-bold">
+              <el-icon style="vertical-align: middle; margin-right: 6px; color: #10b981"
+                ><Money
+              /></el-icon>
+              Resumen Financiero de Comisiones —
+              {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
+            </span>
+            <el-button type="primary" link @click="goToConfig('comisiones')">
+              Editar Matriz de Comisiones
+            </el-button>
+          </div>
+        </template>
+        <el-row :gutter="20">
+          <el-col :xs="24" :sm="8">
+            <div class="stat-box-comm">
+              <span class="stat-box-label">Total Comisiones Generadas</span>
+              <span class="stat-box-val text-success">{{
+                formatCurrency(globalMonthlyCommissions)
+              }}</span>
+            </div>
+          </el-col>
+          <el-col :xs="24" :sm="8">
+            <div class="stat-box-comm">
+              <span class="stat-box-label">Ventas con Comisión</span>
+              <span class="stat-box-val">{{
+                formatCurrency(commissionStore.resumen?.totalVentasUsd || 0)
+              }}</span>
+            </div>
+          </el-col>
+          <el-col :xs="24" :sm="8">
+            <div class="stat-box-comm">
+              <span class="stat-box-label">Comisiones Pendientes de Pago</span>
+              <span class="stat-box-val text-warning">
+                {{ commissionStore.comisiones.filter((c) => c.estado === 'PENDIENTE').length }}
+                pendientes
+              </span>
+            </div>
+          </el-col>
+        </el-row>
+      </el-card>
 
       <!-- Gráficas de Línea (Line Charts): Mes a Día y Año a Mes -->
       <GoalEvolutionChart
@@ -593,7 +714,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
     <!-- ========================================== -->
     <div v-else-if="userRole === 'GERENTE'" class="dashboard-section">
       <div class="section-header-row">
-        <h2 class="section-title">Control de Áreas y Metas</h2>
+        <h2 class="section-title">Control de Áreas, Metas y Comisiones</h2>
         <div class="controls-bar">
           <el-select
             v-model="selectedHotelFilter"
@@ -622,6 +743,70 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           </el-button>
         </div>
       </div>
+
+      <!-- Tarjeta de Comisiones del Gerente -->
+      <el-card class="dashboard-card mb-4" shadow="hover">
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span class="font-bold">
+              <el-icon style="vertical-align: middle; margin-right: 6px; color: #2563eb"
+                ><Money
+              /></el-icon>
+              Tus Comisiones de Gerencia —
+              {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
+            </span>
+            <el-tag type="primary" effect="light">2% sobre ventas de tus áreas</el-tag>
+          </div>
+        </template>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+          "
+        >
+          <div>
+            <div style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
+              Tu Comisión Acumulada de Gerente:
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #2563eb">
+              {{ formatCurrency(gerenteMonthlyCommissions) }}
+            </div>
+          </div>
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap">
+            <div>
+              <div
+                style="
+                  font-size: 0.825rem;
+                  color: var(--el-text-color-secondary);
+                  margin-bottom: 4px;
+                "
+              >
+                Ventas en tus áreas:
+              </div>
+              <div style="font-size: 1.3rem; font-weight: 700; color: #0f172a">
+                {{ formatCurrency(commissionStore.resumen?.totalVentasUsd || 0) }}
+              </div>
+            </div>
+            <div>
+              <div
+                style="
+                  font-size: 0.825rem;
+                  color: var(--el-text-color-secondary);
+                  margin-bottom: 4px;
+                "
+              >
+                Total comisiones en tus hoteles:
+              </div>
+              <div style="font-size: 1.3rem; font-weight: 700; color: #0f172a">
+                {{ formatCurrency(commissionStore.resumen?.totalComisionesUsd || 0) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
 
       <!-- Barra de Progreso Semafórica Consolidada de las Áreas -->
       <div class="goals-summary-block">
@@ -757,7 +942,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
     <!-- ========================================== -->
     <div v-else-if="userRole === 'SUPERVISOR'" class="dashboard-section">
       <div class="section-header-row">
-        <h2 class="section-title">Control de Metas de tus Hoteles</h2>
+        <h2 class="section-title">Control de Metas y Comisiones</h2>
         <div class="controls-bar">
           <el-select
             v-model="selectedHotelFilter"
@@ -778,6 +963,50 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           </el-select>
         </div>
       </div>
+
+      <!-- Tarjeta de Comisiones del Supervisor -->
+      <el-card class="dashboard-card mb-4" shadow="hover">
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span class="font-bold">
+              <el-icon style="vertical-align: middle; margin-right: 6px; color: #c026d3"
+                ><Money
+              /></el-icon>
+              Tus Comisiones de Supervisión —
+              {{ monthsOptions.find((m) => m.value === selectedMes)?.label }} {{ selectedAnio }}
+            </span>
+            <el-tag type="info" effect="light">2% sobre ventas del hotel</el-tag>
+          </div>
+        </template>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+          "
+        >
+          <div>
+            <div style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
+              Tu Comisión Acumulada de Supervisión:
+            </div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #c026d3">
+              {{ formatCurrency(supervisorMonthlyCommissions) }}
+            </div>
+          </div>
+          <div>
+            <div
+              style="font-size: 0.825rem; color: var(--el-text-color-secondary); margin-bottom: 4px"
+            >
+              Total comisiones generadas en tus hoteles:
+            </div>
+            <div style="font-size: 1.3rem; font-weight: 700; color: #0f172a">
+              {{ formatCurrency(commissionStore.resumen?.totalComisionesUsd || 0) }}
+            </div>
+          </div>
+        </div>
+      </el-card>
 
       <!-- Barra de Progreso del Hotel -->
       <div class="goals-summary-block">
@@ -865,7 +1094,7 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
     <!-- ========================================== -->
     <div v-else-if="userRole === 'FOTOGRAFO'" class="dashboard-section">
       <div class="section-header-row photographer-header-row">
-        <h2 class="section-title">Tus Metas del Mes</h2>
+        <h2 class="section-title">Tu Rendimiento y Comisiones</h2>
         <div class="controls-bar photographer-controls">
           <el-button
             type="primary"
@@ -878,6 +1107,92 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
           </el-button>
         </div>
       </div>
+
+      <!-- Widget de Comisiones del Fotógrafo -->
+      <el-card class="dashboard-card mb-4 commission-banner-card" shadow="hover">
+        <div class="commission-banner-content">
+          <div class="commission-banner-left">
+            <div class="comm-icon-wrapper">
+              <el-icon><Money /></el-icon>
+            </div>
+            <div>
+              <div class="comm-card-title">Tus Comisiones Acumuladas del Mes</div>
+              <div class="comm-card-amount text-success">
+                {{ formatCurrency(myMonthlyCommissions) }}
+              </div>
+              <div class="comm-card-hint">
+                Calculadas sobre las ventas cerradas según tu contrato:
+                <el-tag
+                  size="small"
+                  :type="currentUser?.tipoContrato === 'SIN_SALARIO' ? 'primary' : 'success'"
+                  effect="light"
+                  class="ml-1"
+                >
+                  {{ myContractBadge }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+          <div class="commission-banner-right">
+            <div class="stat-pill">
+              <span class="pill-label">Ventas con Comisión:</span>
+              <span class="pill-val">{{ commissionStore.comisiones.length }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini tabla de comisiones recientes si hay registros -->
+        <div v-if="commissionStore.comisiones.length > 0" class="mt-3">
+          <el-divider style="margin: 0.75rem 0" />
+          <div
+            style="
+              font-size: 0.825rem;
+              font-weight: 600;
+              color: var(--el-text-color-secondary);
+              margin-bottom: 6px;
+            "
+          >
+            Desglose de tus comisiones en
+            {{ monthsOptions.find((m) => m.value === selectedMes)?.label }}:
+          </div>
+          <el-table :data="commissionStore.comisiones" size="small" stripe style="width: 100%">
+            <el-table-column prop="fechaVenta" label="Fecha" width="110" />
+            <el-table-column prop="clienteNombre" label="Cliente" min-width="140" />
+            <el-table-column prop="hotelNombre" label="Hotel" min-width="140" />
+            <el-table-column label="Venta Total" width="110" align="right">
+              <template #default="{ row }">
+                <span>{{ formatCurrency(row.baseCalculoUsd) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Tasa" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" type="info">{{ row.porcentajeAplicado }}%</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Tu Comisión" width="120" align="right">
+              <template #default="{ row }">
+                <strong class="text-success">{{ formatCurrency(row.importeComisionUsd) }}</strong>
+              </template>
+            </el-table-column>
+            <el-table-column prop="estado" label="Estado" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag
+                  size="small"
+                  :type="
+                    row.estado === 'PAGADA'
+                      ? 'success'
+                      : row.estado === 'APROBADA'
+                        ? 'warning'
+                        : 'info'
+                  "
+                >
+                  {{ row.estado }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </el-card>
 
       <!-- Tarjetas de Metas Agrupadas por Hotel (Meta Colectiva + Meta Personal) -->
       <div v-if="photographerPersonalGoals.length === 0" class="mb-4">
@@ -1044,79 +1359,194 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
     <!-- 5. VISTA CONTABLE -->
     <!-- ========================================== -->
     <div v-else-if="userRole === 'CONTABLE'" class="dashboard-section">
-      <h2 class="section-title">Destinos y Red Hotelera</h2>
+      <div class="section-header-row">
+        <h2 class="section-title">Liquidación y Control de Comisiones</h2>
+        <div class="controls-bar">
+          <el-select
+            v-model="selectedHotelFilter"
+            placeholder="Todos los Hoteles"
+            clearable
+            size="default"
+            style="width: 220px"
+          >
+            <el-option v-for="h in hotelStore.hotels" :key="h.id" :label="h.nombre" :value="h.id" />
+          </el-select>
+          <el-select v-model="selectedMes" size="default" style="width: 140px">
+            <el-option
+              v-for="m in monthsOptions"
+              :key="m.value"
+              :label="m.label"
+              :value="m.value"
+            />
+          </el-select>
+          <el-select v-model="selectedAnio" size="default" style="width: 100px">
+            <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
+          </el-select>
+        </div>
+      </div>
 
-      <el-row :gutter="20" class="stats-row">
+      <!-- Tarjetas KPIs para Contable -->
+      <el-row :gutter="20" class="stats-row mb-4">
+        <el-col :xs="24" :sm="8">
+          <el-card class="dashboard-card stat-card" shadow="hover">
+            <div class="card-icon bg-success">
+              <el-icon><Money /></el-icon>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Comisiones a Liquidar (Mes)</span>
+              <span class="stat-value text-success">{{
+                formatCurrency(globalMonthlyCommissions)
+              }}</span>
+            </div>
+          </el-card>
+        </el-col>
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
             <div class="card-icon bg-primary">
-              <el-icon><Location /></el-icon>
+              <el-icon><Wallet /></el-icon>
             </div>
             <div class="stat-content">
-              <span class="stat-label">Países Conectados</span>
-              <span class="stat-value">{{ totalCountries }}</span>
+              <span class="stat-label">Ventas Procesadas</span>
+              <span class="stat-value">{{
+                formatCurrency(commissionStore.resumen?.totalVentasUsd || 0)
+              }}</span>
             </div>
           </el-card>
         </el-col>
         <el-col :xs="24" :sm="8">
           <el-card class="dashboard-card stat-card" shadow="hover">
             <div class="card-icon bg-warning">
-              <el-icon><Location /></el-icon>
+              <el-icon><Tickets /></el-icon>
             </div>
             <div class="stat-content">
-              <span class="stat-label">Áreas de Operación</span>
-              <span class="stat-value">{{ totalAreas }}</span>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :xs="24" :sm="8">
-          <el-card class="dashboard-card stat-card" shadow="hover">
-            <div class="card-icon bg-success">
-              <el-icon><OfficeBuilding /></el-icon>
-            </div>
-            <div class="stat-content">
-              <span class="stat-label">Destinos (Hoteles)</span>
-              <span class="stat-value">{{ totalHotels }}</span>
+              <span class="stat-label">Comisiones Pendientes</span>
+              <span class="stat-value text-warning">
+                {{ commissionStore.comisiones.filter((c) => c.estado === 'PENDIENTE').length }}
+              </span>
             </div>
           </el-card>
         </el-col>
       </el-row>
 
-      <el-row :gutter="20" class="details-row">
-        <el-col :span="24">
-          <el-card
-            class="dashboard-card"
-            header="Catálogo de Hoteles por Países y Áreas"
-            shadow="hover"
-          >
-            <el-collapse>
-              <el-collapse-item
-                v-for="pais in countryStore.countries"
-                :key="pais.id"
-                :title="`${pais.nombre} (${pais.areas?.length || 0} áreas)`"
+      <!-- Tabla de Liquidación de Comisiones -->
+      <el-card
+        class="dashboard-card mb-4"
+        header="Listado de Comisiones por Venta y Usuario"
+        shadow="hover"
+      >
+        <div v-if="commissionStore.comisiones.length === 0" class="empty-hint p-4">
+          No hay registros de comisiones para el período seleccionado.
+        </div>
+        <el-table v-else :data="commissionStore.comisiones" stripe style="width: 100%">
+          <el-table-column prop="fechaVenta" label="Fecha" width="110" />
+          <el-table-column label="Beneficiario" min-width="170">
+            <template #default="{ row }">
+              <strong>{{ row.usuarioNombre }} {{ row.usuarioApellidos }}</strong>
+            </template>
+          </el-table-column>
+          <el-table-column label="Rol / Contrato" width="180">
+            <template #default="{ row }">
+              <div style="display: flex; gap: 4px; align-items: center">
+                <el-tag size="small">{{ row.rolEnVenta }}</el-tag>
+                <el-tag
+                  size="small"
+                  :type="row.tipoContrato === 'SIN_SALARIO' ? 'primary' : 'success'"
+                >
+                  {{ row.tipoContrato === 'SIN_SALARIO' ? 'Sin Salario' : 'Asalariado' }}
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="hotelNombre" label="Hotel" min-width="150" />
+          <el-table-column label="Base Venta" width="120" align="right">
+            <template #default="{ row }">
+              <span>{{ formatCurrency(row.baseCalculoUsd) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Tasa" width="90" align="center">
+            <template #default="{ row }">
+              <span>{{ row.porcentajeAplicado }}%</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Importe Comisión" width="140" align="right">
+            <template #default="{ row }">
+              <strong class="text-success">{{ formatCurrency(row.importeComisionUsd) }}</strong>
+            </template>
+          </el-table-column>
+          <el-table-column label="Estado" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag
+                size="small"
+                :type="
+                  row.estado === 'PAGADA'
+                    ? 'success'
+                    : row.estado === 'APROBADA'
+                      ? 'warning'
+                      : 'info'
+                "
               >
-                <div class="pais-collapse-content">
-                  <div v-for="area in pais.areas" :key="area.id" class="area-item-box">
-                    <span class="area-title">{{ area.nombre }}</span>
-                    <el-table
-                      :data="area.hoteles || []"
-                      style="width: 100%; margin-top: 0.5rem"
-                      size="small"
-                    >
-                      <el-table-column prop="nombre" label="Hotel" />
-                      <el-table-column label="Cadena / Características">
-                        <template #default="{ row }">
-                          <span>{{ row.cadenaHotelera || 'Hotel Independiente' }}</span>
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                  </div>
-                </div>
-              </el-collapse-item>
-            </el-collapse>
-          </el-card>
-        </el-col>
-      </el-row>
+                {{ row.estado }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="Acciones" width="170" align="center" fixed="right">
+            <template #default="{ row }">
+              <div style="display: flex; gap: 4px; justify-content: center">
+                <el-button
+                  v-if="row.estado === 'PENDIENTE'"
+                  type="warning"
+                  size="small"
+                  @click="handleUpdateCommissionStatus(row.id, 'APROBADA')"
+                >
+                  Aprobar
+                </el-button>
+                <el-button
+                  v-if="row.estado !== 'PAGADA'"
+                  type="success"
+                  size="small"
+                  @click="handleUpdateCommissionStatus(row.id, 'PAGADA')"
+                >
+                  Pagar
+                </el-button>
+                <span v-else class="text-xs text-muted">Liquidada</span>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <!-- Catálogo de Países y Áreas -->
+      <el-card
+        class="dashboard-card"
+        header="Estructura de Hoteles por Países y Áreas"
+        shadow="hover"
+      >
+        <el-collapse>
+          <el-collapse-item
+            v-for="pais in countryStore.countries"
+            :key="pais.id"
+            :title="`${pais.nombre} (${pais.areas?.length || 0} áreas)`"
+          >
+            <div class="pais-collapse-content">
+              <div v-for="area in pais.areas" :key="area.id" class="area-item-box">
+                <span class="area-title">{{ area.nombre }}</span>
+                <el-table
+                  :data="area.hoteles || []"
+                  style="width: 100%; margin-top: 0.5rem"
+                  size="small"
+                >
+                  <el-table-column prop="nombre" label="Hotel" />
+                  <el-table-column label="Cadena / Características">
+                    <template #default="{ row }">
+                      <span>{{ row.cadenaHotelera || 'Hotel Independiente' }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </el-card>
     </div>
   </div>
 </template>
@@ -1502,6 +1932,104 @@ function handleNavigateToGoalForm(hotelId?: number | null) {
 
 .btn-agenda-hotel {
   font-weight: 600;
+}
+
+.stat-box-comm {
+  background: var(--app-bg, #f8fafc);
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-box-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+
+.stat-box-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--heading-color, #0f172a);
+}
+
+.commission-banner-card {
+  border-left: 4px solid #10b981;
+}
+
+.commission-banner-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.commission-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.comm-icon-wrapper {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  font-size: 1.8rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comm-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+
+.comm-card-amount {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.comm-card-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+  margin-top: 0.2rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.commission-banner-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stat-pill {
+  background: var(--app-bg, #f8fafc);
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-color, #e2e8f0);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pill-label {
+  color: var(--text-muted, #64748b);
+}
+
+.pill-val {
+  font-weight: 700;
+  color: var(--heading-color, #0f172a);
 }
 
 @media (max-width: 768px) {

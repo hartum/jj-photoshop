@@ -28,6 +28,7 @@ model Usuario {
   telefono              String?
   passwordHash          String?             @map("password_hash")
   imagen                String?             @db.LongText
+  tipoContrato          String              @default("ASALARIADO") @map("tipo_contrato")
   activo                Boolean             @default(true)
   roleId                Int                 @map("role_id")
   role                  Role                @relation(fields: [roleId], references: [id])
@@ -40,6 +41,7 @@ model Usuario {
   sesionesComoCreador   SesionFotografica[] @relation("CreadorSesiones")
   colorAsignado         UsuarioColor?
   metas                 Meta[]
+  comisiones            Comision[]
 
   @@map("usuarios")
 }
@@ -58,14 +60,15 @@ model UsuarioColor {
 }
 
 model Pais {
-  id             Int       @id @default(autoincrement())
-  codigo         String    @unique
-  nombre         String
-  codigoTelefono String?   @map("codigo_telefono")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
-  areas          Area[]
+  id              Int              @id @default(autoincrement())
+  codigo          String           @unique
+  nombre          String
+  codigoTelefono  String?          @map("codigo_telefono")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  deletedAt       DateTime?        @map("deleted_at")
+  areas           Area[]
+  comisionConfigs ComisionConfig[]
 
   @@map("paises")
 }
@@ -105,6 +108,8 @@ model Hotel {
   sesiones           SesionFotografica[]
   citasVenta         CitaVenta[]
   metas              Meta[]
+  comisiones         Comision[]
+  comisionConfigs    ComisionConfig[]
 
   @@map("hoteles")
 }
@@ -166,20 +171,21 @@ model SesionFotografica {
 }
 
 model CitaVenta {
-  id               Int       @id @default(autoincrement())
-  sesionId         Int       @unique @map("sesion_id")
-  hotelId          Int       @map("hotel_id")
-  fechaHoraCita    DateTime  @map("fecha_hora_cita")
-  estado           String    @default("PROGRAMADA")
-  numFotosVendidas Int?      @map("num_fotos_vendidas")
-  totalVentaUsd    Float?    @map("total_venta_usd")
-  notas            String?   @db.Text
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
+  id               Int        @id @default(autoincrement())
+  sesionId         Int        @unique @map("sesion_id")
+  hotelId          Int        @map("hotel_id")
+  fechaHoraCita    DateTime   @map("fecha_hora_cita")
+  estado           String     @default("PROGRAMADA")
+  numFotosVendidas Int?       @map("num_fotos_vendidas")
+  totalVentaUsd    Float?     @map("total_venta_usd")
+  notas            String?    @db.Text
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  deletedAt        DateTime?  @map("deleted_at")
 
-  sesion SesionFotografica @relation(fields: [sesionId], references: [id])
-  hotel  Hotel             @relation(fields: [hotelId], references: [id])
+  sesion     SesionFotografica @relation(fields: [sesionId], references: [id])
+  hotel      Hotel             @relation(fields: [hotelId], references: [id])
+  comisiones Comision[]
 
   @@map("citas_venta")
 }
@@ -204,4 +210,50 @@ model Meta {
 
   @@unique([hotelId, usuarioId, anio, mes, alcanceTipo])
   @@map("metas")
+}
+
+model ComisionConfig {
+  id                     Int       @id @default(autoincrement())
+  paisId                 Int?      @map("pais_id")
+  hotelId                Int?      @map("hotel_id")
+  gerentePct             Float     @default(2.0) @map("gerente_pct")
+  supervisorPct          Float     @default(2.0) @map("supervisor_pct")
+  fotografoAsalariadoPct Float     @default(14.0) @map("fotografo_asalariado_pct")
+  fotografoSinSalarioPct Float     @default(20.0) @map("fotografo_sin_salario_pct")
+  vendedorAsalariadoPct  Float     @default(6.0) @map("vendedor_asalariado_pct")
+  vendedorSinSalarioPct  Float     @default(8.0) @map("vendedor_sin_salario_pct")
+  activo                 Boolean   @default(true)
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  deletedAt              DateTime? @map("deleted_at")
+
+  pais  Pais?  @relation(fields: [paisId], references: [id], onDelete: Cascade)
+  hotel Hotel? @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([paisId, hotelId])
+  @@map("comision_config")
+}
+
+model Comision {
+  id                 Int       @id @default(autoincrement())
+  citaVentaId        Int       @map("cita_venta_id")
+  hotelId            Int       @map("hotel_id")
+  usuarioId          String    @map("usuario_id")
+  rolEnVenta         String    @map("rol_en_venta") // "FOTOGRAFO" | "VENDEDOR" | "SUPERVISOR" | "GERENTE"
+  tipoContrato       String?   @map("tipo_contrato") // "ASALARIADO" | "SIN_SALARIO"
+  porcentajeAplicado Float     @map("porcentaje_aplicado")
+  baseCalculoUsd     Float     @map("base_calculo_usd")
+  importeComisionUsd Float     @map("importe_comision_usd")
+  estado             String    @default("PENDIENTE") // "PENDIENTE" | "APROBADA" | "PAGADA"
+  fechaVenta         DateTime  @map("fecha_venta")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  citaVenta CitaVenta @relation(fields: [citaVentaId], references: [id], onDelete: Cascade)
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([citaVentaId, usuarioId, rolEnVenta])
+  @@map("comisiones")
 }

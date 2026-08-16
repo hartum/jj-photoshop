@@ -12,6 +12,7 @@ export interface AuthUser {
   profileId: number
   roleCode: string
   roleName: string
+  tipoContrato?: string
   imagen?: string | null
   areaIds?: number[]
   hotelIds?: number[]

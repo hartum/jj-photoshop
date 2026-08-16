@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../../shared/db.js'
+import { calculateAndSaveCommissionsForSale } from '../../commissions/application/commission.service.js'
 
 const SALES_APPOINTMENT_DURATION_MS = 60 * 60 * 1000 // 1 hour
 
@@ -365,6 +366,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
         include: { sesion: true },
       })
 
+      // Recalcular comisiones automáticamente
+      try {
+        await calculateAndSaveCommissionsForSale(actualizada.id)
+      } catch (commErr) {
+        fastify.log.error(commErr, 'Error al calcular comisiones para la venta')
+      }
+
       const response: any = {
         id: actualizada.id,
         sesionId: actualizada.sesionId,
@@ -407,6 +415,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
       await prisma.citaVenta.update({
         where: { id },
         data: { deletedAt: new Date() },
+      })
+
+      // Limpiar comisiones asociadas a la venta eliminada
+      await prisma.comision.deleteMany({
+        where: { citaVentaId: id },
       })
 
       return reply.send({ success: true, id })

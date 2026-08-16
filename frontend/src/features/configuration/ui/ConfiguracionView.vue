@@ -5,6 +5,7 @@ import { useAuthStore } from '@/features/auth/stores/auth.store'
 import PaisesConfig from '@/features/countries/ui/PaisesConfig.vue'
 import HotelesConfig from '@/features/hotels/ui/HotelesConfig.vue'
 import GoalFormView from '@/features/goals/ui/GoalFormView.vue'
+import ComisionesConfig from '@/features/commissions/ui/ComisionesConfig.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,7 +45,7 @@ function handleTabChange(paneName: string | number) {
       <p class="page-subtitle">
         {{
           isSuperOrAdmin
-            ? 'Gestiona las opciones generales, estructura geográfica y parámetros de la plataforma'
+            ? 'Gestiona las opciones generales, estructura geográfica, comisiones y parámetros de la plataforma'
             : 'Establece y gestiona los objetivos comerciales y metas de tus hoteles y equipo'
         }}
       </p>
@@ -65,6 +66,11 @@ function handleTabChange(paneName: string | number) {
       <el-tab-pane v-if="isSuperOrAdmin" label="Hoteles" name="hoteles">
         <!-- Componente modular de la feature 'hotels' -->
         <HotelesConfig />
+      </el-tab-pane>
+
+      <el-tab-pane v-if="isSuperOrAdmin" label="Comisiones" name="comisiones">
+        <!-- Componente modular de comisiones -->
+        <ComisionesConfig />
       </el-tab-pane>
 
       <el-tab-pane label="Metas y Objetivos" name="metas">

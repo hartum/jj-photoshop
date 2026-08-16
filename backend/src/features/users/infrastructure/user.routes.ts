@@ -90,6 +90,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           profileId: user.roleId,
           roleCode: user.role.codigo,
           roleName: user.role.nombre,
+          tipoContrato: user.tipoContrato || 'ASALARIADO',
           imagen: user.imagen || null,
           color: user.colorAsignado?.color || null,
           areaIds: user.areasAsignadas.map((a) => a.areaId),
@@ -190,6 +191,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         telefono: u.telefono || '',
         profileId: u.roleId,
         status: u.activo ? 'Activo' : 'Inactivo',
+        tipoContrato: u.tipoContrato || 'ASALARIADO',
         imagen: u.imagen || null,
         color: u.colorAsignado?.color || null,
         areaIds: u.areasAsignadas.map((a) => a.areaId),
@@ -216,6 +218,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         password?: string
         profileId: number | string
         status?: string
+        tipoContrato?: string
         imagen?: string | null
         color?: string | null
         areaIds?: number[]
@@ -313,6 +316,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           passwordHash,
           imagen: body.imagen || null,
           roleId: Number(body.profileId),
+          tipoContrato: body.tipoContrato === 'SIN_SALARIO' ? 'SIN_SALARIO' : 'ASALARIADO',
           activo: body.status !== 'Inactivo',
           ...(areaIds.length > 0 && {
             areasAsignadas: {
@@ -349,6 +353,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         telefono: nuevo.telefono || '',
         profileId: nuevo.roleId,
         status: nuevo.activo ? 'Activo' : 'Inactivo',
+        tipoContrato: nuevo.tipoContrato,
         imagen: nuevo.imagen || null,
         color: body.color || null,
         areaIds: nuevo.areasAsignadas.map((a) => a.areaId),
@@ -380,6 +385,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         password?: string
         profileId?: number | string
         status?: string
+        tipoContrato?: string
         imagen?: string | null
         color?: string | null
         areaIds?: number[]
@@ -510,6 +516,7 @@ export async function userRoutes(fastify: FastifyInstance) {
           ...(passwordHash && { passwordHash }),
           ...(body.imagen !== undefined && { imagen: body.imagen }),
           ...(body.profileId !== undefined && { roleId: Number(body.profileId) }),
+          ...(body.tipoContrato !== undefined && { tipoContrato: body.tipoContrato }),
           ...(body.status !== undefined && { activo: body.status === 'Activo' }),
         },
         include: {
@@ -528,6 +535,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         telefono: actualizado.telefono || '',
         profileId: actualizado.roleId,
         status: actualizado.activo ? 'Activo' : 'Inactivo',
+        tipoContrato: actualizado.tipoContrato,
         imagen: actualizado.imagen || null,
         color: actualizado.colorAsignado?.color || null,
         areaIds: actualizado.areasAsignadas.map((a) => a.areaId),

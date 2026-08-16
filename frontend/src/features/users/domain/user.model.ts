@@ -1,6 +1,7 @@
 import type { Perfil } from './profile.model'
 
 export type UserStatus = 'Activo' | 'Inactivo'
+export type TipoContrato = 'ASALARIADO' | 'SIN_SALARIO'
 
 export interface User {
   id: string
@@ -10,6 +11,7 @@ export interface User {
   telefono: string
   profileId: number
   status: UserStatus
+  tipoContrato?: TipoContrato | string
   password?: string
   imagen?: string | null
   color?: string | null
@@ -19,6 +21,9 @@ export interface User {
   deletedAt?: string | null
 }
 
+export type UserInput = Omit<User, 'id' | 'createdAt' | 'deletedAt'>
+
 export interface UserWithProfile extends User {
   perfil?: Perfil
 }
+

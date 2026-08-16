@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
-import type { UserStatus } from '@/features/users/domain/user.model'
+import type { UserStatus, UserInput } from '@/features/users/domain/user.model'
 import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
 import {
   ArrowLeft,
@@ -53,6 +53,7 @@ const formData = ref({
   telefono: '',
   profileId: null as number | null,
   status: 'Activo' as UserStatus,
+  tipoContrato: 'ASALARIADO' as string,
   imagen: null as string | null,
   color: '#3b82f6' as string | null,
   areaIds: [] as number[],
@@ -260,6 +261,7 @@ onMounted(async () => {
         telefono: existing.telefono,
         profileId: existing.profileId,
         status: existing.status,
+        tipoContrato: existing.tipoContrato || 'ASALARIADO',
         imagen: existing.imagen || null,
         color: existing.color || '#3b82f6',
         areaIds: existing.areaIds ? [...existing.areaIds] : [],
@@ -311,9 +313,11 @@ function applyCrop() {
   }
 }
 
-function removeCustomImage() {
+function removeAvatar() {
   formData.value.imagen = null
-  ElMessage.info('Imagen personalizada removida. Se asignará la imagen según perfil.')
+  imageToCrop.value = null
+  cropperDialogVisible.value = false
+  ElMessage.info('Imagen eliminada. Se usará el avatar por defecto.')
 }
 
 function zoom(factor: number) {
@@ -329,24 +333,38 @@ function handleCancel() {
 }
 
 async function handleSave() {
-  if (!formData.value.nombre || !formData.value.email || formData.value.profileId === null) {
-    ElMessage.warning('Por favor completa todos los campos requeridos (*)')
+  if (!formData.value.nombre.trim()) {
+    ElMessage.warning('El nombre es obligatorio')
     return
   }
-
+  if (!formData.value.email.trim()) {
+    ElMessage.warning('El email es obligatorio')
+    return
+  }
   if (!isEditing.value && !formData.value.password) {
-    ElMessage.warning('La contraseña es obligatoria para nuevos usuarios (*)')
+    ElMessage.warning('La contraseña es obligatoria para nuevos usuarios')
+    return
+  }
+  if (!formData.value.profileId) {
+    ElMessage.warning('Debes seleccionar un perfil para el usuario')
     return
   }
 
   isSaving.value = true
   try {
-    const payload = {
-      ...formData.value,
+    const payload: UserInput = {
+      nombre: formData.value.nombre,
+      apellidos: formData.value.apellidos,
+      email: formData.value.email,
+      telefono: formData.value.telefono,
+      profileId: formData.value.profileId!,
+      status: formData.value.status,
+      tipoContrato: formData.value.tipoContrato || 'ASALARIADO',
+      imagen: formData.value.imagen,
       color: isFotografo.value ? formData.value.color : null,
-      profileId: formData.value.profileId,
       areaIds: isGerente.value ? formData.value.areaIds : [],
       hotelIds: isSupervisorOrFotografo.value ? formData.value.hotelIds : [],
+      ...(formData.value.password ? { password: formData.value.password } : {}),
     }
 
     if (isEditing.value && userId.value) {
@@ -416,7 +434,7 @@ async function handleSave() {
                 type="danger"
                 plain
                 :icon="Delete"
-                @click="removeCustomImage"
+                @click="removeAvatar"
               >
                 Quitar Imagen
               </el-button>
@@ -636,6 +654,17 @@ async function handleSave() {
           />
         </el-form-item>
       </template>
+
+      <el-form-item label="Tipo Contrato">
+        <el-switch
+          v-model="formData.tipoContrato"
+          active-value="ASALARIADO"
+          inactive-value="SIN_SALARIO"
+          active-text="Contratado"
+          inactive-text="Freelance"
+        />
+        <small class="assignment-hint"> &nbsp; *Necesario para calcular tipo comisión </small>
+      </el-form-item>
 
       <el-form-item v-if="!isStatusDisabled" label="Estado">
         <el-switch v-model="isActivo" active-text="Activo" inactive-text="Inactivo" />
