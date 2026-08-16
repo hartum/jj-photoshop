@@ -206,27 +206,6 @@ async function handleDeleteUser() {
           </template>
         </el-table-column>
 
-        <el-table-column label="Contrato" width="140" align="center">
-          <template #default="{ row }">
-            <el-tag
-              v-if="row.tipoContrato === 'SIN_SALARIO'"
-              type="primary"
-              effect="light"
-              round
-            >
-              🔵 Sin Salario
-            </el-tag>
-            <el-tag
-              v-else
-              type="success"
-              effect="light"
-              round
-            >
-              🟢 Asalariado
-            </el-tag>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="status" label="Estado" sortable width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'Activo' ? 'success' : 'info'">
