@@ -310,76 +310,75 @@ function formatCurrency(val: number): string {
 
 <template>
   <div class="metas-config-container">
-    <!-- Header & Selectors Card -->
-    <el-card class="config-filter-card" shadow="never">
-      <div class="filter-grid">
-        <div class="filter-field">
-          <label class="filter-label">Hotel</label>
-          <el-select
-            v-model="selectedHotelId"
-            placeholder="Selecciona un hotel..."
-            filterable
-            clearable
-            class="full-width"
-            popper-class="custom-group-select-dropdown"
+    <!-- Toolbar superior de Filtros -->
+    <div class="filter-grid">
+      <div class="filter-field hotel-field">
+        <label class="filter-label">Hotel</label>
+        <el-select
+          v-model="selectedHotelId"
+          placeholder="Selecciona un hotel..."
+          filterable
+          clearable
+          size="large"
+          class="full-width"
+          popper-class="custom-group-select-dropdown"
+        >
+          <el-option-group
+            v-for="pais in groupedHotelsByCountry"
+            :key="pais.id"
+            :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
           >
-            <el-option-group
-              v-for="pais in groupedHotelsByCountry"
-              :key="pais.id"
-              :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
-            >
-              <template v-for="area in pais.areas" :key="area.id">
-                <!-- Item no seleccionable por cada Área -->
-                <el-option
-                  :value="`area-${area.id}`"
-                  :label="area.nombre"
-                  disabled
-                  class="area-header-option"
-                >
-                  <div class="area-option-header">
-                    <el-icon :size="18" class="area-icon"><Location /></el-icon>
-                    <span class="area-title">{{ area.nombre }}</span>
-                  </div>
-                </el-option>
+            <template v-for="area in pais.areas" :key="area.id">
+              <!-- Item no seleccionable por cada Área -->
+              <el-option
+                :value="`area-${area.id}`"
+                :label="area.nombre"
+                disabled
+                class="area-header-option"
+              >
+                <div class="area-option-header">
+                  <el-icon :size="18" class="area-icon"><Location /></el-icon>
+                  <span class="area-title">{{ area.nombre }}</span>
+                </div>
+              </el-option>
 
-                <!-- Hoteles pertenecientes a este área -->
-                <el-option
-                  v-for="h in area.hoteles"
-                  :key="h.id"
-                  :label="`${h.nombre} (${area.nombre})`"
-                  :value="h.id"
-                  class="hotel-sub-option"
-                >
-                  <div class="option-item-content hotel-option-item">
-                    <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
-                    <span class="hotel-name">{{ h.nombre }}</span>
-                  </div>
-                </el-option>
-              </template>
-            </el-option-group>
-          </el-select>
-        </div>
-
-        <div class="filter-field">
-          <label class="filter-label">Año</label>
-          <el-select v-model="selectedAnio" class="full-width">
-            <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
-          </el-select>
-        </div>
-
-        <div class="filter-field">
-          <label class="filter-label">Mes</label>
-          <el-select v-model="selectedMes" class="full-width">
-            <el-option
-              v-for="m in monthsOptions"
-              :key="m.value"
-              :label="m.label"
-              :value="m.value"
-            />
-          </el-select>
-        </div>
+              <!-- Hoteles pertenecientes a este área -->
+              <el-option
+                v-for="h in area.hoteles"
+                :key="h.id"
+                :label="`${h.nombre} (${area.nombre})`"
+                :value="h.id"
+                class="hotel-sub-option"
+              >
+                <div class="option-item-content hotel-option-item">
+                  <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
+                  <span class="hotel-name">{{ h.nombre }}</span>
+                </div>
+              </el-option>
+            </template>
+          </el-option-group>
+        </el-select>
       </div>
-    </el-card>
+
+      <div class="filter-field year-field">
+        <label class="filter-label">Año</label>
+        <el-select v-model="selectedAnio" size="large" class="full-width">
+          <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
+        </el-select>
+      </div>
+
+      <div class="filter-field month-field">
+        <label class="filter-label">Mes</label>
+        <el-select v-model="selectedMes" size="large" class="full-width">
+          <el-option
+            v-for="m in monthsOptions"
+            :key="m.value"
+            :label="m.label"
+            :value="m.value"
+          />
+        </el-select>
+      </div>
+    </div>
 
     <!-- Empty State -->
     <div v-if="!currentHotel" class="empty-hotel-box">
@@ -531,15 +530,10 @@ function formatCurrency(val: number): string {
   gap: 1.5rem;
 }
 
-.config-filter-card {
-  border-radius: 10px;
-  background-color: var(--el-bg-color-overlay, #ffffff);
-}
-
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
 }
 
 .filter-field {

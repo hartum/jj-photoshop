@@ -99,12 +99,13 @@ async function handleDeleteHotel() {
 <template>
   <div v-loading="hotelStore.isLoading" class="hoteles-config-container">
     <!-- Toolbar superior: Búsqueda, Filtro por Área y Botón Nuevo Hotel -->
-    <div class="toolbar-card">
+    <div class="toolbar-bar">
       <div class="toolbar-left">
         <el-input
           v-model="searchQuery"
           placeholder="Buscar por hotel, área o cadena..."
           :prefix-icon="Search"
+          size="large"
           clearable
           class="search-input"
         />
@@ -112,6 +113,7 @@ async function handleDeleteHotel() {
         <el-select
           v-model="areaFilter"
           placeholder="Todas las áreas"
+          size="large"
           clearable
           class="area-filter-select"
         >
@@ -231,21 +233,20 @@ async function handleDeleteHotel() {
   padding-top: 0.5rem;
 }
 
-.toolbar-card {
+.toolbar-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: var(--toolbar-bg, #ffffff);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .toolbar-left {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .search-input {
