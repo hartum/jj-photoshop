@@ -5,7 +5,7 @@ import GoalEvolutionChart from '@/features/goals/ui/GoalEvolutionChart.vue'
 import {
   User,
   Location,
-  Edit,
+  Setting,
   Money,
 } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
@@ -16,6 +16,7 @@ const {
   selectedAnio,
   selectedMes,
   selectedHotelFilter,
+  yearsOptions,
   currentHotelProgreso,
   globalProgresoTotals,
   getSemaforoTagType,
@@ -52,14 +53,9 @@ const {
             :value="m.value"
           />
         </el-select>
-        <el-button
-          type="primary"
-          :icon="Edit"
-          size="default"
-          @click="handleNavigateToGoalForm(selectedHotelFilter)"
-        >
-          Establecer Meta
-        </el-button>
+        <el-select v-model="selectedAnio" size="default" style="width: 100px">
+          <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
+        </el-select>
       </div>
     </div>
 
@@ -139,7 +135,18 @@ const {
         :meta-esperada-hoy="globalProgresoTotals.metaEsperadaTotal"
         :desviacion-monetaria="globalProgresoTotals.desviacion"
         :semaforo="globalProgresoTotals.semaforo"
-      />
+      >
+        <template #actions>
+          <el-button
+            type="primary"
+            :icon="Setting"
+            size="default"
+            @click="handleNavigateToGoalForm(selectedHotelFilter)"
+          >
+            Configurar Metas
+          </el-button>
+        </template>
+      </GoalProgressCard>
       <GoalProgressCard
         v-else-if="currentHotelProgreso"
         :titulo="`Meta Mensual: ${currentHotelProgreso.hotelNombre}`"
@@ -150,7 +157,18 @@ const {
         :meta-esperada-hoy="currentHotelProgreso.metaEsperadaHoy"
         :desviacion-monetaria="currentHotelProgreso.desviacionMonetaria"
         :semaforo="currentHotelProgreso.semaforo"
-      />
+      >
+        <template #actions>
+          <el-button
+            type="primary"
+            :icon="Setting"
+            size="default"
+            @click="handleNavigateToGoalForm(selectedHotelFilter)"
+          >
+            Configurar Metas
+          </el-button>
+        </template>
+      </GoalProgressCard>
     </div>
 
     <!-- Gráficas de Línea -->
@@ -199,16 +217,16 @@ const {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="Acción" width="130" align="center">
+        <el-table-column label="Acción" width="140" align="center">
           <template #default="{ row }">
             <el-button
               size="small"
               type="primary"
               link
-              :icon="Edit"
+              :icon="Setting"
               @click="handleNavigateToGoalForm(row.hotelId)"
             >
-              Establecer Meta
+              Configurar Meta
             </el-button>
           </template>
         </el-table-column>
