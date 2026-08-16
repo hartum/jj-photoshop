@@ -146,12 +146,11 @@ async function handleRecalculate() {
           </label>
           <el-select
             v-model="selectedPaisId"
-            placeholder="Global (Por defecto)"
+            placeholder="🌐 Configuración Global (Por defecto)"
             clearable
             class="full-width"
             @change="onPaisChange"
           >
-            <el-option :value="null" label="🌐 Configuración Global (Por defecto)" />
             <el-option
               v-for="pais in countryStore.countries"
               :key="pais.id"
@@ -167,12 +166,11 @@ async function handleRecalculate() {
           </label>
           <el-select
             v-model="selectedHotelId"
-            placeholder="Aplica a todos los hoteles del país"
+            placeholder="Todos los hoteles del país seleccionado"
             clearable
             class="full-width"
             :disabled="!selectedPaisId"
           >
-            <el-option :value="null" label="Todos los hoteles del país seleccionado" />
             <el-option
               v-for="hotel in availableHotels"
               :key="hotel.id"
