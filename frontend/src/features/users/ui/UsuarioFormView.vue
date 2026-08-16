@@ -607,25 +607,40 @@ async function handleSave() {
             style="width: 100%"
             popper-class="custom-group-select-dropdown"
           >
-            <template v-for="pais in availableCountriesForHotelSelect" :key="pais.id">
-              <el-option-group
-                v-for="area in pais.areas || []"
-                :key="area.id"
-                :label="`${pais.nombre} — ${area.nombre}`"
-              >
+            <el-option-group
+              v-for="pais in availableCountriesForHotelSelect"
+              :key="pais.id"
+              :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
+            >
+              <template v-for="area in pais.areas || []" :key="area.id">
+                <!-- Item no seleccionable por cada Área -->
+                <el-option
+                  :value="`area-${area.id}`"
+                  :label="area.nombre"
+                  disabled
+                  class="area-header-option"
+                >
+                  <div class="area-option-header">
+                    <el-icon :size="18" class="area-icon"><Location /></el-icon>
+                    <span class="area-title">{{ area.nombre }}</span>
+                  </div>
+                </el-option>
+
+                <!-- Hoteles pertenecientes a este área -->
                 <el-option
                   v-for="hotel in area.hoteles || []"
                   :key="hotel.id"
-                  :label="hotel.nombre"
+                  :label="`${hotel.nombre} (${area.nombre})`"
                   :value="hotel.id"
+                  class="hotel-sub-option"
                   :disabled="
                     selectedRoleCode === 'SUPERVISOR' &&
                     assignedHotelIdsByOtherSupervisores.has(hotel.id)
                   "
                 >
-                  <div class="option-item-content">
-                    <el-icon class="hotel-option-icon"><Building2 /></el-icon>
-                    <span>{{ hotel.nombre }}</span>
+                  <div class="option-item-content hotel-option-item">
+                    <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
+                    <span class="hotel-name">{{ hotel.nombre }}</span>
                     <small
                       v-if="
                         selectedRoleCode === 'SUPERVISOR' &&
@@ -637,8 +652,8 @@ async function handleSave() {
                     </small>
                   </div>
                 </el-option>
-              </el-option-group>
-            </template>
+              </template>
+            </el-option-group>
           </el-select>
         </el-form-item>
       </template>
@@ -935,7 +950,7 @@ async function handleSave() {
 </style>
 
 <style>
-/* Estilos globales para los títulos de grupos de los desplegables */
+/* Estilos globales para el dropdown personalizado de hoteles con áreas no seleccionables */
 .custom-group-select-dropdown .el-select-group__title {
   font-size: 0.95rem !important;
   font-weight: 700 !important;
@@ -943,5 +958,81 @@ async function handleSave() {
   padding-top: 0.6rem !important;
   padding-bottom: 0.3rem !important;
   letter-spacing: 0.02em;
+}
+
+.custom-group-select-dropdown .area-header-option {
+  height: 30px !important;
+  line-height: 30px !important;
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  margin: 2px 0 !important;
+  padding: 0 12px !important;
+}
+
+.custom-group-select-dropdown .area-header-option.is-disabled {
+  color: var(--heading-color, #0f172a) !important;
+  cursor: default !important;
+  background-color: transparent !important;
+  background: none !important;
+}
+
+.custom-group-select-dropdown .area-option-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.custom-group-select-dropdown .area-icon {
+  font-size: 1.15rem !important;
+  color: #e6a23c !important;
+  flex-shrink: 0;
+}
+
+.custom-group-select-dropdown .area-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+
+html.dark .custom-group-select-dropdown .area-header-option {
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+}
+
+html.dark .custom-group-select-dropdown .area-title {
+  color: #94a3b8 !important;
+}
+
+html.dark .custom-group-select-dropdown .el-select-group__title {
+  color: #f1f5f9 !important;
+}
+
+.custom-group-select-dropdown .hotel-sub-option {
+  padding-left: 28px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+
+.custom-group-select-dropdown .hotel-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-group-select-dropdown .hotel-option-icon {
+  color: #94a3b8 !important;
+  font-size: 1.15rem !important;
+}
+
+.custom-group-select-dropdown .hotel-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--app-text, #334155);
 }
 </style>
