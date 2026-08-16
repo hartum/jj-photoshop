@@ -4,14 +4,8 @@ import { useCommissionStore } from '../stores/commission.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { ElMessage } from 'element-plus'
-import {
-  Money,
-  Check,
-  Refresh,
-  Location,
-  InfoFilled,
-} from '@element-plus/icons-vue'
-import { Building2 } from '@lucide/vue'
+import { Check, Refresh, InfoFilled } from '@element-plus/icons-vue'
+import { getRoleSvg } from '@/features/users/utils/user-avatar'
 
 const commissionStore = useCommissionStore()
 const countryStore = useCountryStore()
@@ -21,14 +15,16 @@ const selectedPaisId = ref<number | null>(null)
 const selectedHotelId = ref<number | null>(null)
 
 const formData = ref({
-  gerentePct: 2.0,
-  supervisorPct: 2.0,
-  fotografoAsalariadoPct: 14.0,
-  fotografoSinSalarioPct: 20.0,
-  vendedorAsalariadoPct: 6.0,
-  vendedorSinSalarioPct: 8.0,
+  gerentePct: 2,
+  supervisorPct: 2,
+  fotografoAsalariadoPct: 14,
+  fotografoSinSalarioPct: 20,
+  vendedorAsalariadoPct: 6,
+  vendedorSinSalarioPct: 8,
   activo: true,
 })
+
+const formatPercentTooltip = (val: number) => `${val}%`
 
 const isRecalculating = ref(false)
 
@@ -36,9 +32,7 @@ const availableHotels = computed(() => {
   if (!selectedPaisId.value) return []
   return hotelStore.hotels.filter((h) => {
     // Find area of hotel and check if its country is selectedPaisId
-    const country = countryStore.countries.find((c) =>
-      c.areas?.some((a) => a.id === h.areaId),
-    )
+    const country = countryStore.countries.find((c) => c.areas?.some((a) => a.id === h.areaId))
     return country?.id === selectedPaisId.value
   })
 })
@@ -51,22 +45,19 @@ async function loadConfig() {
   const eff = commissionStore.effectiveConfig
   if (eff) {
     formData.value = {
-      gerentePct: eff.gerentePct,
-      supervisorPct: eff.supervisorPct,
-      fotografoAsalariadoPct: eff.fotografoAsalariadoPct,
-      fotografoSinSalarioPct: eff.fotografoSinSalarioPct,
-      vendedorAsalariadoPct: eff.vendedorAsalariadoPct,
-      vendedorSinSalarioPct: eff.vendedorSinSalarioPct,
+      gerentePct: Math.round(eff.gerentePct),
+      supervisorPct: Math.round(eff.supervisorPct),
+      fotografoAsalariadoPct: Math.round(eff.fotografoAsalariadoPct),
+      fotografoSinSalarioPct: Math.round(eff.fotografoSinSalarioPct),
+      vendedorAsalariadoPct: Math.round(eff.vendedorAsalariadoPct),
+      vendedorSinSalarioPct: Math.round(eff.vendedorSinSalarioPct),
       activo: eff.activo ?? true,
     }
   }
 }
 
 onMounted(async () => {
-  await Promise.all([
-    countryStore.fetchCountries(),
-    hotelStore.fetchHotels(),
-  ])
+  await Promise.all([countryStore.fetchCountries(), hotelStore.fetchHotels()])
   // Default to first country if available (e.g., México)
   if (countryStore.countries.length > 0 && countryStore.countries[0]) {
     selectedPaisId.value = countryStore.countries[0].id
@@ -112,266 +103,258 @@ async function handleRecalculate() {
 
 <template>
   <div class="comisiones-config-container">
-    <!-- Header y Scope Selector -->
-    <div class="scope-card">
-      <div class="scope-header">
-        <div class="scope-title-group">
-          <el-icon class="icon-header"><Money /></el-icon>
-          <div>
-            <h3 class="scope-title">Matriz de Porcentajes de Comisión</h3>
-            <p class="scope-desc">
-              Configura los porcentajes automáticos para cada rol según país, hotel y tipo de contratación.
-            </p>
-          </div>
-        </div>
-
-        <el-button
-          type="warning"
-          plain
-          :icon="Refresh"
-          :loading="isRecalculating"
-          @click="handleRecalculate"
+    <!-- Toolbar superior de Selección Geográfica y Recálculo -->
+    <div class="toolbar-bar">
+      <div class="toolbar-left">
+        <el-select
+          v-model="selectedPaisId"
+          placeholder="🌐 Configuración Global (Por defecto)"
+          clearable
+          size="large"
+          class="country-select"
+          @change="onPaisChange"
         >
-          Recalcular Ventas Pasadas
-        </el-button>
-      </div>
+          <el-option
+            v-for="pais in countryStore.countries"
+            :key="pais.id"
+            :value="pais.id"
+            :label="pais.nombre"
+          />
+        </el-select>
 
-      <el-divider style="margin: 1.25rem 0;" />
-
-      <!-- Selectores de Alcance Geográfico -->
-      <div class="scope-selectors">
-        <div class="selector-item">
-          <label class="selector-label">
-            <el-icon><Location /></el-icon> País / Territorio:
-          </label>
-          <el-select
-            v-model="selectedPaisId"
-            placeholder="🌐 Configuración Global (Por defecto)"
-            clearable
-            class="full-width"
-            @change="onPaisChange"
-          >
-            <el-option
-              v-for="pais in countryStore.countries"
-              :key="pais.id"
-              :value="pais.id"
-              :label="pais.nombre"
-            />
-          </el-select>
-        </div>
-
-        <div class="selector-item">
-          <label class="selector-label">
-            <el-icon><Building2 /></el-icon> Hotel Específico (Opcional):
-          </label>
-          <el-select
-            v-model="selectedHotelId"
-            placeholder="Todos los hoteles del país seleccionado"
-            clearable
-            class="full-width"
-            :disabled="!selectedPaisId"
-          >
-            <el-option
-              v-for="hotel in availableHotels"
-              :key="hotel.id"
-              :value="hotel.id"
-              :label="hotel.nombre"
-            />
-          </el-select>
-        </div>
-      </div>
-    </div>
-
-    <!-- Formulario de Configuración de Porcentajes -->
-    <div class="form-grid">
-      <!-- Sección Fotógrafo -->
-      <el-card shadow="never" class="role-card photographer-card">
-        <template #header>
-          <div class="card-header-role">
-            <span class="role-tag tag-photographer">Fotógrafo</span>
-            <span class="role-desc-header">Comisión sobre las ventas de sus sesiones</span>
-          </div>
-        </template>
-
-        <div class="inputs-row">
-          <div class="input-block">
-            <div class="contract-label">
-              <span class="contract-badge salaried">🟢 Con Salario (Asalariado)</span>
-              <span class="contract-hint">Fotógrafo en plantilla con sueldo base</span>
-            </div>
-            <div class="input-with-symbol">
-              <el-input-number
-                v-model="formData.fotografoAsalariadoPct"
-                :min="0"
-                :max="100"
-                :step="0.5"
-                :precision="1"
-                class="pct-input"
-              />
-              <span class="symbol-pct">%</span>
-            </div>
-          </div>
-
-          <div class="input-block">
-            <div class="contract-label">
-              <span class="contract-badge commission-only">🔵 Sin Salario (Comisión Pura)</span>
-              <span class="contract-hint">Fotógrafo freelance o sin sueldo fijo</span>
-            </div>
-            <div class="input-with-symbol">
-              <el-input-number
-                v-model="formData.fotografoSinSalarioPct"
-                :min="0"
-                :max="100"
-                :step="0.5"
-                :precision="1"
-                class="pct-input"
-              />
-              <span class="symbol-pct">%</span>
-            </div>
-          </div>
-        </div>
-      </el-card>
-
-      <!-- Sección Vendedor / Agendador -->
-      <el-card shadow="never" class="role-card seller-card">
-        <template #header>
-          <div class="card-header-role">
-            <span class="role-tag tag-seller">Vendedor / Agendador</span>
-            <span class="role-desc-header">Comisión por captación y apertura de sesión</span>
-          </div>
-        </template>
-
-        <div class="inputs-row">
-          <div class="input-block">
-            <div class="contract-label">
-              <span class="contract-badge salaried">🟢 Con Salario (Asalariado)</span>
-              <span class="contract-hint">Agendador en plantilla con sueldo base</span>
-            </div>
-            <div class="input-with-symbol">
-              <el-input-number
-                v-model="formData.vendedorAsalariadoPct"
-                :min="0"
-                :max="100"
-                :step="0.5"
-                :precision="1"
-                class="pct-input"
-              />
-              <span class="symbol-pct">%</span>
-            </div>
-          </div>
-
-          <div class="input-block">
-            <div class="contract-label">
-              <span class="contract-badge commission-only">🔵 Sin Salario (Comisión Pura)</span>
-              <span class="contract-hint">Captador o comisionista externo</span>
-            </div>
-            <div class="input-with-symbol">
-              <el-input-number
-                v-model="formData.vendedorSinSalarioPct"
-                :min="0"
-                :max="100"
-                :step="0.5"
-                :precision="1"
-                class="pct-input"
-              />
-              <span class="symbol-pct">%</span>
-            </div>
-          </div>
-        </div>
-      </el-card>
-
-      <!-- Sección Supervisión y Gerencia -->
-      <div class="management-grid">
-        <el-card shadow="never" class="role-card supervisor-card">
-          <template #header>
-            <div class="card-header-role">
-              <span class="role-tag tag-supervisor">Supervisor de Hotel</span>
-            </div>
-          </template>
-          <div class="input-block">
-            <div class="contract-label">
-              <span class="contract-hint">Comisión fija sobre la venta total de su hotel asignado</span>
-            </div>
-            <div class="input-with-symbol">
-              <el-input-number
-                v-model="formData.supervisorPct"
-                :min="0"
-                :max="100"
-                :step="0.5"
-                :precision="1"
-                class="pct-input"
-              />
-              <span class="symbol-pct">%</span>
-            </div>
-          </div>
-        </el-card>
-
-        <el-card shadow="never" class="role-card manager-card">
-          <template #header>
-            <div class="card-header-role">
-              <span class="role-tag tag-manager">Gerente de Área</span>
-            </div>
-          </template>
-          <div class="input-block">
-            <div class="contract-label">
-              <span class="contract-hint">Comisión fija sobre las ventas de todos los hoteles de su área</span>
-            </div>
-            <div class="input-with-symbol">
-              <el-input-number
-                v-model="formData.gerentePct"
-                :min="0"
-                :max="100"
-                :step="0.5"
-                :precision="1"
-                class="pct-input"
-              />
-              <span class="symbol-pct">%</span>
-            </div>
-          </div>
-        </el-card>
-      </div>
-    </div>
-
-    <!-- Tabla Resumen y Botón Guardar -->
-    <div class="save-actions-card">
-      <div class="summary-info">
-        <el-icon><InfoFilled /></el-icon>
-        <span>
-          Las modificaciones afectarán de manera inmediata a las nuevas ventas que se completen. Las ventas ya cerradas mantienen su snapshot original a menos que se use el botón "Recalcular".
-        </span>
+        <el-select
+          v-model="selectedHotelId"
+          placeholder="Todos los hoteles del país seleccionado"
+          clearable
+          size="large"
+          class="hotel-select"
+          :disabled="!selectedPaisId"
+        >
+          <el-option
+            v-for="hotel in availableHotels"
+            :key="hotel.id"
+            :value="hotel.id"
+            :label="hotel.nombre"
+          />
+        </el-select>
       </div>
 
       <el-button
-        type="primary"
+        type="warning"
+        plain
         size="large"
-        :icon="Check"
-        :loading="commissionStore.isSaving"
-        class="save-btn"
-        @click="handleSave"
+        :icon="Refresh"
+        :loading="isRecalculating"
+        @click="handleRecalculate"
       >
-        Guardar Configuración de Comisiones
+        Recalcular Ventas Pasadas
       </el-button>
     </div>
+
+    <!-- Card Unificada de Configuración de Porcentajes -->
+    <el-card shadow="never" class="matrix-card">
+      <div class="matrix-sections-container">
+        <!-- 1. Sección Fotógrafo -->
+        <div class="role-section">
+          <div class="section-header-role">
+            <img :src="getRoleSvg('FOTOGRAFO')" class="role-header-icon" alt="Fotógrafo" />
+            <el-tag type="success" size="large" effect="light" class="role-tag">Fotógrafo</el-tag>
+            <span class="role-desc-header">Comisión sobre las ventas de sus sesiones</span>
+          </div>
+
+          <div class="inputs-row">
+            <div class="input-block">
+              <div class="contract-label">
+                <span class="contract-badge salaried">Contratado</span>
+                <span class="contract-hint">Fotógrafo en plantilla con sueldo base</span>
+              </div>
+              <div class="slider-container">
+                <el-slider
+                  v-model="formData.fotografoAsalariadoPct"
+                  :min="0"
+                  :max="100"
+                  :step="1"
+                  :format-tooltip="formatPercentTooltip"
+                  show-input
+                />
+                <span class="pct-unit">%</span>
+              </div>
+            </div>
+
+            <div class="input-block">
+              <div class="contract-label">
+                <span class="contract-badge commission-only">Freelance</span>
+                <span class="contract-hint">Fotógrafo freelance o sin sueldo fijo</span>
+              </div>
+              <div class="slider-container">
+                <el-slider
+                  v-model="formData.fotografoSinSalarioPct"
+                  :min="0"
+                  :max="100"
+                  :step="1"
+                  :format-tooltip="formatPercentTooltip"
+                  show-input
+                />
+                <span class="pct-unit">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <el-divider class="section-divider" />
+
+        <!-- 2. Sección Vendedor / Agendador -->
+        <div class="role-section">
+          <div class="section-header-role">
+            <img
+              :src="getRoleSvg('AGENDADOR')"
+              class="role-header-icon"
+              alt="Vendedor / Agendador"
+            />
+            <el-tag type="primary" size="large" effect="light" class="role-tag"
+              >Vendedor / Agendador</el-tag
+            >
+            <span class="role-desc-header">Comisión por captación y apertura de sesión</span>
+          </div>
+
+          <div class="inputs-row">
+            <div class="input-block">
+              <div class="contract-label">
+                <span class="contract-badge salaried">Contratado</span>
+                <span class="contract-hint">Agendador en plantilla con sueldo base</span>
+              </div>
+              <div class="slider-container">
+                <el-slider
+                  v-model="formData.vendedorAsalariadoPct"
+                  :min="0"
+                  :max="100"
+                  :step="1"
+                  :format-tooltip="formatPercentTooltip"
+                  show-input
+                />
+                <span class="pct-unit">%</span>
+              </div>
+            </div>
+
+            <div class="input-block">
+              <div class="contract-label">
+                <span class="contract-badge commission-only">Freelance</span>
+                <span class="contract-hint">Captador o comisionista externo</span>
+              </div>
+              <div class="slider-container">
+                <el-slider
+                  v-model="formData.vendedorSinSalarioPct"
+                  :min="0"
+                  :max="100"
+                  :step="1"
+                  :format-tooltip="formatPercentTooltip"
+                  show-input
+                />
+                <span class="pct-unit">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <el-divider class="section-divider" />
+
+        <!-- 3. Sección Supervisor de Hotel -->
+        <div class="role-section">
+          <div class="section-header-role">
+            <img
+              :src="getRoleSvg('SUPERVISOR')"
+              class="role-header-icon"
+              alt="Supervisor de Hotel"
+            />
+            <el-tag type="warning" size="large" effect="light" class="role-tag"
+              >Supervisor de Hotel</el-tag
+            >
+            <span class="role-desc-header"
+              >Comisión fija sobre la venta total de su hotel asignado</span
+            >
+          </div>
+
+          <div class="slider-container">
+            <el-slider
+              v-model="formData.supervisorPct"
+              :min="0"
+              :max="100"
+              :step="1"
+              :format-tooltip="formatPercentTooltip"
+              show-input
+            />
+            <span class="pct-unit">%</span>
+          </div>
+        </div>
+
+        <el-divider class="section-divider" />
+
+        <!-- 4. Sección Gerente de Área -->
+        <div class="role-section">
+          <div class="section-header-role">
+            <img :src="getRoleSvg('GERENTE')" class="role-header-icon" alt="Gerente de Área" />
+            <el-tag type="danger" size="large" effect="light" class="role-tag"
+              >Gerente de Área</el-tag
+            >
+            <span class="role-desc-header"
+              >Comisión fija sobre las ventas de todos los hoteles de su área</span
+            >
+          </div>
+
+          <div class="slider-container">
+            <el-slider
+              v-model="formData.gerentePct"
+              :min="0"
+              :max="100"
+              :step="1"
+              :format-tooltip="formatPercentTooltip"
+              show-input
+            />
+            <span class="pct-unit">%</span>
+          </div>
+        </div>
+
+        <el-divider class="section-divider" />
+
+        <!-- 4. Footer con Info y Botón Guardar -->
+        <div class="card-footer-actions">
+          <div class="summary-info">
+            <el-icon><InfoFilled /></el-icon>
+            <span>
+              Las modificaciones afectarán de manera inmediata a las nuevas ventas que se completen.
+              Las ventas ya cerradas mantienen su snapshot original a menos que se use el botón
+              "Recalcular".
+            </span>
+          </div>
+
+          <el-button
+            type="primary"
+            size="large"
+            :icon="Check"
+            :loading="commissionStore.isSaving"
+            class="save-btn"
+            @click="handleSave"
+          >
+            Guardar Configuración de Comisiones
+          </el-button>
+        </div>
+      </div>
+    </el-card>
 
     <!-- Lista de Configuraciones Activas Guardadas -->
     <div v-if="commissionStore.configs.length > 0" class="saved-configs-section">
       <h4 class="section-subtitle">Configuraciones Guardadas en el Sistema</h4>
-      <el-table :data="commissionStore.configs" border stripe style="width: 100%;">
+      <el-table :data="commissionStore.configs" border stripe style="width: 100%">
         <el-table-column prop="paisNombre" label="País" min-width="150" />
         <el-table-column prop="hotelNombre" label="Hotel" min-width="160" />
-        <el-table-column label="Fotógrafo Asalariado" align="center" width="160">
+        <el-table-column label="Fotógrafo Contratado | Freelance" align="center" width="220">
           <template #default="{ row }">
-            <strong>{{ row.fotografoAsalariadoPct }}%</strong>
+            <span>{{ row.fotografoAsalariadoPct }}% | <strong>{{ row.fotografoSinSalarioPct }}%</strong></span>
           </template>
         </el-table-column>
-        <el-table-column label="Fotógrafo Sin Salario" align="center" width="160">
+        <el-table-column label="Vendedor Contratado | Freelance" align="center" width="220">
           <template #default="{ row }">
-            <strong style="color: #3b82f6;">{{ row.fotografoSinSalarioPct }}%</strong>
-          </template>
-        </el-table-column>
-        <el-table-column label="Vendedor (Asal / Sin Sal)" align="center" width="180">
-          <template #default="{ row }">
-            <span>{{ row.vendedorAsalariadoPct }}% / <strong>{{ row.vendedorSinSalarioPct }}%</strong></span>
+            <span>{{ row.vendedorAsalariadoPct }}% | <strong>{{ row.vendedorSinSalarioPct }}%</strong></span>
           </template>
         </el-table-column>
         <el-table-column label="Supervisor" align="center" width="110">
@@ -396,117 +379,68 @@ async function handleRecalculate() {
   gap: 1.5rem;
 }
 
-.scope-card {
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.scope-header {
+.toolbar-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   flex-wrap: wrap;
-  gap: 1rem;
 }
 
-.scope-title-group {
+.toolbar-left {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1;
+  flex-wrap: wrap;
 }
 
-.icon-header {
-  font-size: 2rem;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  padding: 0.75rem;
-  border-radius: 10px;
+.country-select {
+  width: 320px;
 }
 
-.scope-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--heading-color, #0f172a);
+.hotel-select {
+  width: 360px;
 }
 
-.scope-desc {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.875rem;
-  color: var(--text-muted, #64748b);
-}
-
-.scope-selectors {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.selector-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.selector-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--heading-color, #334155);
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.role-card {
+.matrix-card {
   border-radius: 12px;
   border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--card-bg, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.card-header-role {
+.matrix-card :deep(.el-card__body) {
+  padding: 1.5rem;
+}
+
+.matrix-sections-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-header-role {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
+.role-header-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .role-tag {
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
+  font-weight: 700 !important;
   text-transform: uppercase;
-}
-
-.tag-photographer {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.tag-seller {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.tag-supervisor {
-  background: #fdf4ff;
-  color: #c026d3;
-}
-
-.tag-manager {
-  background: #fffbeb;
-  color: #d97706;
 }
 
 .role-desc-header {
@@ -524,6 +458,10 @@ async function handleRecalculate() {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
 }
 
 .contract-label {
@@ -550,39 +488,36 @@ async function handleRecalculate() {
   color: var(--text-muted, #64748b);
 }
 
-.input-with-symbol {
+.slider-container {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0 0.5rem;
 }
 
-.pct-input {
-  width: 160px;
+.slider-container :deep(.el-slider) {
+  flex: 1;
 }
 
-.symbol-pct {
-  font-size: 1.1rem;
+.pct-unit {
   font-weight: 700;
+  font-size: 0.95rem;
   color: var(--heading-color, #0f172a);
+  user-select: none;
 }
 
-.management-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.25rem;
+.section-divider {
+  margin: 1.5rem 0;
+  border-color: var(--el-border-color-lighter, #f1f5f9);
 }
 
-.save-actions-card {
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px;
-  padding: 1.5rem;
+.card-footer-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  gap: 1.25rem;
+  padding-top: 0.25rem;
 }
 
 .summary-info {
@@ -591,7 +526,8 @@ async function handleRecalculate() {
   gap: 0.75rem;
   font-size: 0.85rem;
   color: var(--text-muted, #64748b);
-  max-width: 700px;
+  max-width: 680px;
+  line-height: 1.4;
 }
 
 .summary-info .el-icon {
