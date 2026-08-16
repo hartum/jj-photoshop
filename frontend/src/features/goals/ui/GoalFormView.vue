@@ -7,6 +7,8 @@ import { useCountryStore } from '@/features/countries/stores/country.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
+import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import type { UserWithProfile } from '@/features/users/domain/user.model'
 import { ElMessage } from 'element-plus'
 import { Location, User, Check, Share } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
@@ -19,6 +21,11 @@ const hotelStore = useHotelStore()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
 const goalStore = useGoalStore()
+
+function getUserAvatar(user: UserWithProfile): string {
+  if (user.imagen) return user.imagen
+  return getDefaultAvatar()
+}
 
 const now = new Date()
 const selectedAnio = ref(now.getFullYear())
@@ -277,7 +284,10 @@ function applyRouteQueryParams() {
   }
 
   // Si no se especificó hotel o no es válido para este usuario, seleccionar el primero disponible
-  if (!selectedHotelId.value || !availableHotels.value.some((h) => h.id === selectedHotelId.value)) {
+  if (
+    !selectedHotelId.value ||
+    !availableHotels.value.some((h) => h.id === selectedHotelId.value)
+  ) {
     const firstHotel = availableHotels.value[0]
     if (firstHotel) {
       selectedHotelId.value = firstHotel.id
@@ -381,12 +391,7 @@ function formatCurrency(val: number): string {
       <div class="filter-field month-field">
         <label class="filter-label">Mes</label>
         <el-select v-model="selectedMes" size="large" class="full-width">
-          <el-option
-            v-for="m in monthsOptions"
-            :key="m.value"
-            :label="m.label"
-            :value="m.value"
-          />
+          <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
         </el-select>
       </div>
     </div>
@@ -398,8 +403,8 @@ function formatCurrency(val: number): string {
 
     <!-- Main Configuration Area -->
     <div v-else class="metas-work-area">
-      <!-- 1. Meta Global del Hotel -->
-      <el-card class="hotel-target-card" shadow="hover">
+      <!-- Tarjeta Unificada de Metas -->
+      <el-card class="goals-unified-card" shadow="never">
         <template #header>
           <div class="card-header-flex">
             <div class="header-left-title">
@@ -412,6 +417,7 @@ function formatCurrency(val: number): string {
           </div>
         </template>
 
+        <!-- 1. Meta Global del Hotel -->
         <div class="hotel-target-body">
           <el-row :gutter="24" align="middle">
             <el-col :xs="24" :md="8">
@@ -453,12 +459,12 @@ function formatCurrency(val: number): string {
             </el-col>
           </el-row>
         </div>
-      </el-card>
 
-      <!-- 2. Asignación Individual de Metas a Fotógrafos -->
-      <el-card class="photographers-target-card" shadow="hover">
-        <template #header>
-          <div class="card-header-flex">
+        <el-divider style="margin: 1.75rem 0 1.25rem 0" />
+
+        <!-- 2. Asignación Individual de Metas a Fotógrafos -->
+        <div class="photographers-section">
+          <div class="card-subheader-flex">
             <div class="header-left-title">
               <el-icon class="user-icon"><User /></el-icon>
               <span
@@ -474,60 +480,65 @@ function formatCurrency(val: number): string {
               @click="applySuggestedDivisionToAll"
               :disabled="assignedPhotographers.length === 0"
             >
-              Aplicar cuota sugerida a todos
+              Aplicar meta sugerida a todos
             </el-button>
           </div>
-        </template>
 
-        <div v-if="assignedPhotographers.length === 0" class="no-photographers">
-          <el-empty
-            description="No hay fotógrafos activos asignados a este hotel."
-            :image-size="70"
-          />
-        </div>
+          <div v-if="assignedPhotographers.length === 0" class="no-photographers">
+            <el-empty
+              description="No hay fotógrafos activos asignados a este hotel."
+              :image-size="70"
+            />
+          </div>
 
-        <div v-else class="photographers-table-wrapper">
-          <el-table :data="assignedPhotographers" style="width: 100%" stripe>
-            <el-table-column label="Fotógrafo" min-width="180">
-              <template #default="{ row }">
-                <div class="foto-info">
-                  <span class="foto-name">{{ row.nombre }} {{ row.apellidos }}</span>
-                  <span class="foto-email">{{ row.email }}</span>
-                </div>
-              </template>
-            </el-table-column>
+          <div v-else class="photographers-table-wrapper">
+            <el-table :data="assignedPhotographers" style="width: 100%" stripe>
+              <el-table-column label="Fotógrafo" min-width="240">
+                <template #default="{ row }">
+                  <div class="foto-cell">
+                    <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
+                    <div class="foto-info">
+                      <span class="foto-name">{{ row.nombre }} {{ row.apellidos }}</span>
+                      <span class="foto-email">{{ row.email }}</span>
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
 
-            <el-table-column label="Cuota Sugerida" width="160" align="center">
-              <template #default>
-                <span class="text-muted">{{ formatCurrency(suggestedQuotaPerPhotographer) }}</span>
-              </template>
-            </el-table-column>
+              <el-table-column label="Meta Sugerida" width="160" align="center">
+                <template #default>
+                  <span class="text-muted">{{
+                    formatCurrency(suggestedQuotaPerPhotographer)
+                  }}</span>
+                </template>
+              </el-table-column>
 
-            <el-table-column label="Meta Asignada (USD)" min-width="200">
-              <template #default="{ row }">
-                <el-input-number
-                  v-model="customPhotographerGoals[row.id]"
-                  :min="0"
-                  :step="200"
-                  size="default"
-                  class="user-target-input"
-                />
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+              <el-table-column label="Meta Asignada (USD)" min-width="200">
+                <template #default="{ row }">
+                  <el-input-number
+                    v-model="customPhotographerGoals[row.id]"
+                    :min="0"
+                    :step="200"
+                    size="default"
+                    class="user-target-input"
+                  />
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
 
-        <!-- Botón de Guardado -->
-        <div class="save-actions-bar">
-          <el-button
-            type="primary"
-            size="large"
-            :icon="Check"
-            :loading="isSaving"
-            @click="handleSaveHotelGoal"
-          >
-            Guardar Configuración de Metas
-          </el-button>
+          <!-- Botón de Guardado -->
+          <div class="save-actions-bar">
+            <el-button
+              type="primary"
+              size="large"
+              :icon="Check"
+              :loading="isSaving"
+              @click="handleSaveHotelGoal"
+            >
+              Guardar Configuración de Metas
+            </el-button>
+          </div>
         </div>
       </el-card>
     </div>
@@ -571,9 +582,11 @@ function formatCurrency(val: number): string {
   gap: 1.5rem;
 }
 
-.hotel-target-card,
-.photographers-target-card {
+.goals-unified-card {
   border-radius: 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--card-bg, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .card-header-flex {
@@ -582,6 +595,15 @@ function formatCurrency(val: number): string {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.card-subheader-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .header-left-title {
@@ -659,6 +681,12 @@ function formatCurrency(val: number): string {
 }
 
 /* Photographers Table */
+.foto-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .foto-info {
   display: flex;
   flex-direction: column;
