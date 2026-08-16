@@ -9,9 +9,9 @@ import {
   Check,
   Refresh,
   Location,
-  OfficeBuilding,
   InfoFilled,
 } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 
 const commissionStore = useCommissionStore()
 const countryStore = useCountryStore()
@@ -163,7 +163,7 @@ async function handleRecalculate() {
 
         <div class="selector-item">
           <label class="selector-label">
-            <el-icon><OfficeBuilding /></el-icon> Hotel Específico (Opcional):
+            <el-icon><Building2 /></el-icon> Hotel Específico (Opcional):
           </label>
           <el-select
             v-model="selectedHotelId"

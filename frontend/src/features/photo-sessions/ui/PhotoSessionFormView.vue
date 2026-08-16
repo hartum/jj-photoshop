@@ -15,10 +15,10 @@ import {
   Phone,
   Check,
   ArrowLeft,
-  OfficeBuilding,
   Close,
   WarnTriangleFilled,
 } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import { IosDatepicker } from 'vue-ios-style-datepicker'
 
@@ -540,7 +540,7 @@ async function handleSaveSession() {
             <el-input
               v-model="formData.numeroHabitacion"
               placeholder="Ej. 304B / Villa 12"
-              :prefix-icon="OfficeBuilding"
+              :prefix-icon="Building2"
             />
           </el-form-item>
         </div>

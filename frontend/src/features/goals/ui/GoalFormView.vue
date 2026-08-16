@@ -7,7 +7,8 @@ import { useCountryStore } from '@/features/countries/stores/country.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { ElMessage } from 'element-plus'
-import { OfficeBuilding, Location, User, Check, Share } from '@element-plus/icons-vue'
+import { Location, User, Check, Share } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 import type { Hotel } from '@/features/hotels/domain/hotel.model'
 
 const route = useRoute()
@@ -350,7 +351,7 @@ function formatCurrency(val: number): string {
                   class="hotel-sub-option"
                 >
                   <div class="option-item-content hotel-option-item">
-                    <el-icon :size="18" class="hotel-option-icon"><OfficeBuilding /></el-icon>
+                    <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
                     <span class="hotel-name">{{ h.nombre }}</span>
                   </div>
                 </el-option>
@@ -392,7 +393,7 @@ function formatCurrency(val: number): string {
         <template #header>
           <div class="card-header-flex">
             <div class="header-left-title">
-              <el-icon class="hotel-icon"><OfficeBuilding /></el-icon>
+              <el-icon class="hotel-icon"><Building2 /></el-icon>
               <span>Meta Mensual del Hotel: {{ currentHotel.nombre }}</span>
             </div>
             <el-tag type="primary" size="large">

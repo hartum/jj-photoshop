@@ -6,7 +6,7 @@ import {
   Calendar,
   Money,
 } from '@element-plus/icons-vue'
-import { Hotel } from '@lucide/vue'
+import { Building2 } from '@lucide/vue'
 
 const {
   currentUser,
@@ -169,7 +169,7 @@ const {
             <template #header>
               <div class="hotel-card-header">
                 <div class="hotel-title-area">
-                  <el-icon class="hotel-header-icon"><Hotel :size="18" /></el-icon>
+                  <el-icon class="hotel-header-icon"><Building2 :size="18" /></el-icon>
                   <span class="hotel-name font-bold">{{ hotel.nombre }}</span>
                 </div>
                 <span class="hotel-sub-info text-muted">

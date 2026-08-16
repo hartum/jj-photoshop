@@ -15,11 +15,11 @@ import {
   Moon,
   SwitchButton,
   Location,
-  OfficeBuilding,
   Menu,
   Close,
   Calendar,
 } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -182,7 +182,7 @@ onMounted(async () => {
                   title="Ver agenda del hotel"
                   @click="handleSelectHotelNode(hotel.id)"
                 >
-                  <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+                  <el-icon :size="18" class="node-icon hotel-icon"><Building2 /></el-icon>
                   <span class="node-text">{{ hotel.nombre }}</span>
                 </div>
               </div>
@@ -265,7 +265,7 @@ onMounted(async () => {
                     class="tree-node node-hotel clickable-node"
                     @click="handleSelectHotelNode(hotel.id)"
                   >
-                    <el-icon :size="18" class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+                    <el-icon :size="18" class="node-icon hotel-icon"><Building2 /></el-icon>
                     <span class="node-text">{{ hotel.nombre }}</span>
                   </div>
                 </div>

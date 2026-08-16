@@ -9,10 +9,10 @@ import {
   Delete,
   Warning,
   Location,
-  OfficeBuilding,
   Check,
   Close,
 } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 
 interface TreeNode {
@@ -306,7 +306,7 @@ async function handleDeleteArea() {
 
             <!-- Nodo Hotel (Hijo de Área) -->
             <template v-else-if="data.type === 'hotel' && data.rawHotel">
-              <el-icon class="node-icon hotel-icon"><OfficeBuilding /></el-icon>
+              <el-icon class="node-icon hotel-icon"><Building2 /></el-icon>
               <span class="node-title hotel-title">{{ data.rawHotel.nombre }}</span>
             </template>
           </div>

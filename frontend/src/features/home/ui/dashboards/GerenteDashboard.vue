@@ -8,7 +8,7 @@ import {
   Edit,
   Money,
 } from '@element-plus/icons-vue'
-import { Hotel } from '@lucide/vue'
+import { Building2 } from '@lucide/vue'
 
 const {
   goalStore,
@@ -234,7 +234,7 @@ const {
       <el-col :xs="24" :sm="8">
         <el-card class="dashboard-card stat-card" shadow="hover">
           <div class="card-icon bg-success">
-            <el-icon><Hotel :size="24" /></el-icon>
+            <el-icon><Building2 :size="24" /></el-icon>
           </div>
           <div class="stat-content">
             <span class="stat-label">Hoteles Asociados</span>

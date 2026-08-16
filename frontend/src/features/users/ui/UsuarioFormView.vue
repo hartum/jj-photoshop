@@ -17,8 +17,8 @@ import {
   RefreshLeft,
   RefreshRight,
   Location,
-  OfficeBuilding,
 } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { getRolePermissions, canEditUser, type RoleCode } from '@/shared/permissions'
@@ -589,7 +589,7 @@ async function handleSave() {
               size="large"
             >
               <el-icon style="margin-right: 4px; vertical-align: middle"
-                ><OfficeBuilding
+                ><Building2 :size="16"
               /></el-icon>
               <span>{{ hotel.nombre }} ({{ hotel.paisNombre }} — {{ hotel.areaNombre }})</span>
             </el-tag>
@@ -624,7 +624,7 @@ async function handleSave() {
                   "
                 >
                   <div class="option-item-content">
-                    <el-icon class="hotel-option-icon"><OfficeBuilding /></el-icon>
+                    <el-icon class="hotel-option-icon"><Building2 /></el-icon>
                     <span>{{ hotel.nombre }}</span>
                     <small
                       v-if="

@@ -5,7 +5,8 @@ import { useHotelStore } from '../stores/hotel.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { Hotel } from '../domain/hotel.model'
 import { getFlagEmoji } from '@/components/flagEmoji'
-import { Search, Plus, EditPen, Delete, Warning, OfficeBuilding, Location } from '@element-plus/icons-vue'
+import { Search, Plus, EditPen, Delete, Warning, Location } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -134,7 +135,7 @@ async function handleDeleteHotel() {
         <el-table-column label="Nombre Hotel" sortable prop="nombre">
           <template #default="{ row }">
             <div class="hotel-name-cell">
-              <el-icon class="hotel-cell-icon"><OfficeBuilding /></el-icon>
+              <el-icon class="hotel-cell-icon"><Building2 /></el-icon>
               <strong class="hotel-fullname">{{ row.nombre }}</strong>
             </div>
           </template>

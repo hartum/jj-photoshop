@@ -15,7 +15,8 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
 import type { EventContentArg, DatesSetArg, EventClickArg } from '@fullcalendar/core'
-import { Plus, Bell, OfficeBuilding, User, InfoFilled } from '@element-plus/icons-vue'
+import { Plus, Bell, User, InfoFilled } from '@element-plus/icons-vue'
+import { Building2 } from '@lucide/vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -836,7 +837,7 @@ function handleEventClick(clickInfo: EventClickArg) {
           <!-- Cabecera: Nombre Hotel + Nombre Fotógrafo (Solo Nombre) -->
           <div class="tooltip-header">
             <div class="header-hotel" title="Hotel">
-              <el-icon :size="16"><OfficeBuilding /></el-icon>
+              <el-icon :size="16"><Building2 /></el-icon>
               <span>{{ activeTooltipInfo.hotelNombre }}</span>
             </div>
             <div class="header-photographer" title="Fotógrafo asignado">
@@ -916,7 +917,7 @@ function handleEventClick(clickInfo: EventClickArg) {
         <template #header>
           <div v-if="activeTooltipInfo" class="dialog-custom-header">
             <div class="header-hotel" title="Hotel">
-              <el-icon :size="18"><OfficeBuilding /></el-icon>
+              <el-icon :size="18"><Building2 /></el-icon>
               <span>{{ activeTooltipInfo.hotelNombre }}</span>
             </div>
             <div class="header-photographer" title="Fotógrafo asignado">

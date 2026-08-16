@@ -10,7 +10,7 @@ import {
   TrendCharts,
   Calendar,
 } from '@element-plus/icons-vue'
-import { Hotel } from '@lucide/vue'
+import { Building2 } from '@lucide/vue'
 
 const props = defineProps<{
   hotelNombre: string
@@ -77,7 +77,7 @@ const displayHotelTitle = computed(() => {
   <el-card class="combined-goal-card" shadow="hover">
     <!-- TÍTULO CON ICONO DE HOTEL -->
     <div class="card-hotel-main-header">
-      <el-icon class="hotel-header-icon"><Hotel :size="20" /></el-icon>
+      <el-icon class="hotel-header-icon"><Building2 :size="20" /></el-icon>
       <h3 class="card-hotel-main-title">{{ displayHotelTitle }}</h3>
     </div>
 
