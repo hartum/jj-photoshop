@@ -443,14 +443,15 @@ async function handleSave() {
 
         <!-- Date/time -->
         <el-form-item label="Fecha y Hora de la Cita *" required>
-          <el-date-picker
-            v-model="formData.fechaHoraCita"
-            type="datetime"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DDTHH:mm"
-            placeholder="Selecciona fecha y hora"
-            style="width: 100%"
-          />
+          <div class="desktop-picker-panel-wrapper">
+            <el-date-picker-panel
+              v-model="formData.fechaHoraCita"
+              type="datetime"
+              value-format="YYYY-MM-DDTHH:mm"
+              date-format="YYYY-MM-DD"
+              time-format="HH:mm"
+            />
+          </div>
         </el-form-item>
 
         <!-- Sales fields -->
@@ -646,6 +647,17 @@ async function handleSave() {
 :deep(.status-radio--cancelada.is-checked .el-radio__inner) {
   border-color: #f56c6c !important;
   background: #f56c6c !important;
+}
+
+.desktop-picker-panel-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.desktop-picker-panel-wrapper :deep(.el-picker-panel) {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .form-row-2 {

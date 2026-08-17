@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session.store'
 import { useSaleStore } from '@/features/sales/stores/sale.store'
@@ -17,8 +17,12 @@ import {
   ArrowLeft,
   Close,
   WarnTriangleFilled,
+  Camera,
+  Money,
+  Calendar,
+  Edit,
 } from '@element-plus/icons-vue'
-import { Building2 } from '@lucide/vue'
+import { Building2, PlaneTakeoff, CircleUserRound, Baby, UserX } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import { IosDatepicker } from 'vue-ios-style-datepicker'
 
@@ -38,11 +42,11 @@ const loadedSession = ref<SesionFotografica | null>(null)
 const fechaHoraCitaVenta = ref('')
 const conflictsCitaVenta = ref<ConflictoCitaVenta[]>([])
 
-const estadoSesionOptions: { value: EstadoSesion; label: string; color: string }[] = [
-  { value: 'PROGRAMADA', label: 'Programada', color: '#409eff' },
-  { value: 'COMPLETADA', label: 'Completada', color: '#67c23a' },
-  { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c' },
-  { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c' },
+const estadoSesionOptions: { value: EstadoSesion; label: string; color: string; icon: Component }[] = [
+  { value: 'PROGRAMADA', label: 'Programada', color: '#409eff', icon: Calendar },
+  { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c', icon: UserX },
+  { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c', icon: Close },
+  { value: 'COMPLETADA', label: 'Completada', color: '#67c23a', icon: Check },
 ]
 
 const alertOverdue = computed(() => {
@@ -107,13 +111,6 @@ watch(
 
 // Current user context
 const currentUser = computed(() => authStore.user)
-
-// Formatted PAX display String (ej. "2.2 PAX")
-const paxDisplay = computed(() => {
-  const adultos = formData.value.numAdultos ?? 0
-  const ninos = formData.value.numNinos ?? 0
-  return `${adultos}.${ninos} PAX`
-})
 
 // Hotels list accessible by current user
 const userHotels = computed(() => {
@@ -474,22 +471,28 @@ async function handleSaveSession() {
         :size="isMobile ? 'large' : 'default'"
         class="session-form"
       >
-        <!-- Fila 0: Estado de la Sesión (Al principio, radio buttons normales con color por estado) -->
+        <!-- Fila 0: Estado de la Sesión (Radio Buttons centrados con colores e iconos por estado) -->
         <el-form-item label="Estado de la Sesión" class="status-form-item">
-          <el-radio-group v-model="formData.estado" class="status-radio-group">
-            <el-radio
-              v-for="opt in estadoSesionOptions"
-              :key="opt.value"
-              :value="opt.value"
-              size="large"
-              :class="['status-radio', `status-radio--${opt.value.toLowerCase()}`]"
-            >
-              <span class="status-radio-label" :style="{ color: opt.color }">
-                {{ opt.label }}
-              </span>
-            </el-radio>
-          </el-radio-group>
+          <div class="status-radio-container">
+            <el-radio-group v-model="formData.estado" class="status-radio-group" size="large">
+              <el-radio-button
+                v-for="opt in estadoSesionOptions"
+                :key="opt.value"
+                :value="opt.value"
+                :class="['status-radio-btn', `status-radio-btn--${opt.value.toLowerCase()}`]"
+              >
+                <span class="status-btn-content">
+                  <el-icon class="status-btn-icon"><component :is="opt.icon" /></el-icon>
+                  <span>{{ opt.label }}</span>
+                </span>
+              </el-radio-button>
+            </el-radio-group>
+          </div>
         </el-form-item>
+
+        <el-divider border-style="dashed">
+          <el-icon> <User /></el-icon>
+        </el-divider>
 
         <!-- Fila 1: Hotel y Fotógrafo -->
         <div class="form-row-2">
@@ -528,7 +531,7 @@ async function handleSaveSession() {
 
         <!-- Fila 2: Cliente y Nº de Habitación -->
         <div class="form-row-2">
-          <el-form-item label="Nombre del Cliente *" required>
+          <el-form-item label="Nombre del Cliente" required>
             <el-input
               v-model="formData.clienteNombre"
               placeholder="Ej. Familia López / Pareja Smith"
@@ -565,30 +568,37 @@ async function handleSaveSession() {
         </div>
 
         <!-- Fila 4: Nº de Personas (Adultos y Niños) y Nomenclatura PAX -->
-        <div class="pax-box">
-          <div class="pax-title">
-            <span>Nº de Personas</span>
-            <el-tag type="info" effect="dark" class="pax-badge">{{ paxDisplay }}</el-tag>
-          </div>
-          <div class="form-row-2">
-            <el-form-item label="Adultos">
-              <el-input-number
-                v-model="formData.numAdultos"
-                :min="0"
-                :step="1"
-                style="width: 100%"
-              />
-            </el-form-item>
+        <div class="form-row-2">
+          <el-form-item label="Adultos">
+            <el-input-number v-model="formData.numAdultos" :min="0" :step="1" style="width: 100%">
+              <template #prefix>
+                <el-icon><CircleUserRound /></el-icon>
+              </template>
+            </el-input-number>
+          </el-form-item>
 
-            <el-form-item label="Niños">
-              <el-input-number v-model="formData.numNinos" :min="0" :step="1" style="width: 100%" />
-            </el-form-item>
-          </div>
+          <el-form-item label="Niños">
+            <el-input-number v-model="formData.numNinos" :min="0" :step="1" style="width: 100%">
+              <template #prefix>
+                <el-icon><Baby /></el-icon>
+              </template>
+            </el-input-number>
+          </el-form-item>
         </div>
 
-        <!-- Fila 5: Fechas (Inicio, Salida) -->
+        <el-divider border-style="dashed">
+          <el-icon> <Calendar /></el-icon>
+        </el-divider>
+
+        <!-- Fila 5: Fechas de Sesión y Cita de Ventas -->
         <div class="form-row-2">
-          <el-form-item label="Fecha/Hora sesión de fotos" required>
+          <el-form-item required>
+            <template #label>
+              <span class="calendar-item-label">
+                <el-icon class="calendar-label-icon icon-camera"><Camera /></el-icon>
+                <span>Fecha/Hora sesión de fotos</span>
+              </span>
+            </template>
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->
             <div v-if="isMobile" class="ios-datepicker-container">
               <IosDatepicker
@@ -601,39 +611,26 @@ async function handleSaveSession() {
               />
             </div>
 
-            <!-- Selector para Desktop (Element Plus) -->
-            <el-date-picker
-              v-else
-              v-model="formData.fechaHoraInicio"
-              type="datetime"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DDTHH:mm"
-              placeholder="Selecciona fecha y hora"
-              style="width: 100%"
-            />
-          </el-form-item>
-
-          <el-form-item label="Fecha de checkout">
-            <!-- Selector para Móvil (vue-ios-style-datepicker) -->
-            <div v-if="isMobile" class="ios-datepicker-container">
-              <IosDatepicker v-model="mobileFechaSalidaValue" mode="date" locale="es" />
+            <!-- Selector para Desktop (Element Plus DatePickerPanel) -->
+            <div v-else class="desktop-picker-panel-wrapper">
+              <el-date-picker-panel
+                :border="false"
+                v-model="formData.fechaHoraInicio"
+                type="datetime"
+                value-format="YYYY-MM-DDTHH:mm"
+                date-format="YYYY-MM-DD"
+                time-format="HH:mm"
+              />
             </div>
-
-            <!-- Selector para Desktop (Element Plus) -->
-            <el-date-picker
-              v-else
-              v-model="formData.fechaSalida"
-              type="date"
-              value-format="YYYY-MM-DD"
-              placeholder="aaaa-mm-dd"
-              style="width: 100%"
-            />
           </el-form-item>
-        </div>
 
-        <!-- Fila 6: Cita de Ventas y Concepto -->
-        <div class="form-row-2">
-          <el-form-item label="Fecha/Hora Cita de Ventas (opcional)">
+          <el-form-item>
+            <template #label>
+              <span class="calendar-item-label">
+                <el-icon class="calendar-label-icon icon-money"><Money /></el-icon>
+                <span>Fecha/Hora Cita de Ventas</span>
+              </span>
+            </template>
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->
             <div v-if="isMobile" class="ios-datepicker-container">
               <IosDatepicker
@@ -646,40 +643,76 @@ async function handleSaveSession() {
               />
             </div>
 
-            <!-- Selector para Desktop (Element Plus) -->
-            <el-date-picker
-              v-else
-              v-model="fechaHoraCitaVenta"
-              type="datetime"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DDTHH:mm"
-              placeholder="Selecciona fecha y hora para la venta"
-              style="width: 100%"
-              clearable
-            />
+            <!-- Selector para Desktop (Element Plus DatePickerPanel) -->
+            <div v-else class="desktop-picker-panel-wrapper">
+              <el-date-picker-panel
+                :border="false"
+                v-model="fechaHoraCitaVenta"
+                type="datetime"
+                value-format="YYYY-MM-DDTHH:mm"
+                date-format="YYYY-MM-DD"
+                time-format="HH:mm"
+              />
+            </div>
             <div v-if="conflictsCitaVenta.length > 0" class="conflict-inline-warning">
-              <el-icon style="vertical-align: middle; margin-right: 4px; color: #e6a23c"><WarnTriangleFilled /></el-icon>
+              <el-icon style="vertical-align: middle; margin-right: 4px; color: #e6a23c"
+                ><WarnTriangleFilled
+              /></el-icon>
               {{ conflictsCitaVenta.length }} cita(s) de venta en el mismo hotel en esta franja
               (±1h)
             </div>
           </el-form-item>
+        </div>
 
-          <el-form-item label="Concepto / Motivo de la Sesión">
-            <el-select
-              v-model="formData.concepto"
-              filterable
-              allow-create
-              default-first-option
-              placeholder="Selecciona o escribe un concepto personalizado"
-              style="width: 100%"
-              clearable
-            >
-              <el-option v-for="item in defaultConceptos" :key="item" :label="item" :value="item" />
-            </el-select>
+        <!-- Fila 6: Checkout y Concepto -->
+        <div class="form-row-2">
+          <el-form-item>
+            <template #label>
+              <span class="calendar-item-label">
+                <el-icon class="calendar-label-icon icon-checkout"
+                  ><PlaneTakeoff :size="16"
+                /></el-icon>
+                <span>Fecha de checkout</span>
+              </span>
+            </template>
+            <!-- Selector para Móvil (vue-ios-style-datepicker) -->
+            <div v-if="isMobile" class="ios-datepicker-container">
+              <IosDatepicker v-model="mobileFechaSalidaValue" mode="date" locale="es" />
+            </div>
+
+            <!-- Selector para Desktop (Element Plus DatePickerPanel) -->
+            <div v-else class="desktop-picker-panel-wrapper">
+              <el-date-picker-panel
+                :border="false"
+                v-model="formData.fechaSalida"
+                type="date"
+                value-format="YYYY-MM-DD"
+                date-format="YYYY-MM-DD"
+              />
+            </div>
           </el-form-item>
         </div>
 
-        <!-- Fila 7: Notas Adicionales -->
+        <el-divider border-style="dashed">
+          <el-icon> <Edit /></el-icon>
+        </el-divider>
+
+        <!-- Fila 7: Concepto / Motivo de la Sesión -->
+        <el-form-item label="Concepto / Motivo de la Sesión">
+          <el-select
+            v-model="formData.concepto"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="Selecciona o escribe un concepto personalizado"
+            style="width: 100%"
+            clearable
+          >
+            <el-option v-for="item in defaultConceptos" :key="item" :label="item" :value="item" />
+          </el-select>
+        </el-form-item>
+
+        <!-- Fila 8: Notas Adicionales -->
         <el-form-item label="Notas Adicionales">
           <el-input
             v-model="formData.notas"
@@ -763,30 +796,6 @@ async function handleSaveSession() {
   gap: 1rem;
 }
 
-.pax-box {
-  background-color: var(--el-fill-color-blank, #f8fafc);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 6px;
-  padding: 1rem 1rem 0.25rem 1rem;
-  margin-bottom: 1rem;
-}
-
-.pax-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--heading-color, #334155);
-  margin-bottom: 0.75rem;
-}
-
-.pax-badge {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
 .form-actions {
   display: flex;
   gap: 0.75rem;
@@ -827,39 +836,119 @@ async function handleSaveSession() {
   line-height: 1.25;
 }
 
-.status-radio-group {
+.status-form-item :deep(.el-form-item__label) {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.status-radio-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
+  justify-content: center;
   width: 100%;
 }
 
-.status-radio {
-  margin-right: 0 !important;
+.status-radio-group {
+  display: inline-flex;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.status-radio-label {
+:deep(.status-radio-btn .el-radio-button__inner) {
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.status-btn-content {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+}
+
+.status-btn-icon {
+  font-size: 1.05rem;
+}
+
+/* Colores personalizados por estado */
+:deep(.status-radio-btn--programada.is-active .el-radio-button__inner) {
+  background-color: #409eff !important;
+  border-color: #409eff !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #409eff !important;
+}
+
+:deep(.status-radio-btn--completada.is-active .el-radio-button__inner) {
+  background-color: #67c23a !important;
+  border-color: #67c23a !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #67c23a !important;
+}
+
+:deep(.status-radio-btn--no_show.is-active .el-radio-button__inner) {
+  background-color: #e6a23c !important;
+  border-color: #e6a23c !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #e6a23c !important;
+}
+
+:deep(.status-radio-btn--cancelada.is-active .el-radio-button__inner) {
+  background-color: #f56c6c !important;
+  border-color: #f56c6c !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #f56c6c !important;
+}
+
+/* Hover sin activar */
+:deep(.status-radio-btn--programada:not(.is-active) .el-radio-button__inner:hover) {
+  color: #409eff !important;
+}
+:deep(.status-radio-btn--completada:not(.is-active) .el-radio-button__inner:hover) {
+  color: #67c23a !important;
+}
+:deep(.status-radio-btn--no_show:not(.is-active) .el-radio-button__inner:hover) {
+  color: #e6a23c !important;
+}
+:deep(.status-radio-btn--cancelada:not(.is-active) .el-radio-button__inner:hover) {
+  color: #f56c6c !important;
+}
+
+.calendar-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-weight: 600;
 }
 
-:deep(.status-radio--programada.is-checked .el-radio__inner) {
-  border-color: #409eff !important;
-  background: #409eff !important;
+.calendar-label-icon {
+  font-size: 1.05rem;
 }
-:deep(.status-radio--completada.is-checked .el-radio__inner) {
-  border-color: #67c23a !important;
-  background: #67c23a !important;
+/*
+.calendar-label-icon.icon-camera {
+  color: #3b82f6;
 }
-:deep(.status-radio--no_show.is-checked .el-radio__inner) {
-  border-color: #e6a23c !important;
-  background: #e6a23c !important;
+
+.calendar-label-icon.icon-money {
+  color: #10b981;
 }
-:deep(.status-radio--cancelada.is-checked .el-radio__inner) {
-  border-color: #f56c6c !important;
-  background: #f56c6c !important;
+
+.calendar-label-icon.icon-checkout {
+  color: #f59e0b;
+}
+*/
+.calendar-label-icon.icon-camera,
+.calendar-label-icon.icon-money,
+.calendar-label-icon.icon-checkout {
+  color: var(--el-input-icon-color, var(--el-text-color-placeholder));
+}
+.desktop-picker-panel-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.desktop-picker-panel-wrapper :deep(.el-picker-panel) {
+  border-radius: 8px;
 }
 
 @media (max-width: 768px) {
