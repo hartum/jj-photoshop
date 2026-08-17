@@ -4,6 +4,8 @@ export interface CitaVenta {
   id: number
   sesionId: number
   hotelId: number
+  vendedorId?: string | null
+  vendedorNombre?: string | null
   fechaHoraCita: string
   estado: EstadoCitaVenta
   numFotosVendidas?: number | null
@@ -27,11 +29,13 @@ export interface CitaVenta {
 export interface CreateCitaVentaPayload {
   sesionId: number
   hotelId: number
+  vendedorId?: string | null
   fechaHoraCita: string
   notas?: string | null
 }
 
 export interface UpdateCitaVentaPayload {
+  vendedorId?: string | null
   fechaHoraCita?: string
   estado?: EstadoCitaVenta
   numFotosVendidas?: number | null

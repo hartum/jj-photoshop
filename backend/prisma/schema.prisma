@@ -39,6 +39,7 @@ model Usuario {
   hotelesAsignados      UsuarioHotel[]
   sesionesComoFotografo SesionFotografica[] @relation("FotografoSesiones")
   sesionesComoCreador   SesionFotografica[] @relation("CreadorSesiones")
+  citasComoVendedor     CitaVenta[]         @relation("VendedorCitas")
   colorAsignado         UsuarioColor?
   metas                 Meta[]
   comisiones            Comision[]
@@ -174,6 +175,7 @@ model CitaVenta {
   id               Int        @id @default(autoincrement())
   sesionId         Int        @unique @map("sesion_id")
   hotelId          Int        @map("hotel_id")
+  vendedorId       String?    @map("vendedor_id")
   fechaHoraCita    DateTime   @map("fecha_hora_cita")
   estado           String     @default("PROGRAMADA")
   numFotosVendidas Int?       @map("num_fotos_vendidas")
@@ -185,6 +187,7 @@ model CitaVenta {
 
   sesion     SesionFotografica @relation(fields: [sesionId], references: [id])
   hotel      Hotel             @relation(fields: [hotelId], references: [id])
+  vendedor   Usuario?          @relation("VendedorCitas", fields: [vendedorId], references: [id])
   comisiones Comision[]
 
   @@map("citas_venta")

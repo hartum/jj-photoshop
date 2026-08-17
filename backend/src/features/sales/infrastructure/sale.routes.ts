@@ -113,6 +113,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         include: {
           sesion: true,
           hotel: true,
+          vendedor: true,
         },
         orderBy: { fechaHoraCita: 'asc' },
       })
@@ -122,6 +123,8 @@ export async function saleRoutes(fastify: FastifyInstance) {
         sesionId: c.sesionId,
         hotelId: c.sesion?.hotelId || c.hotelId,
         hotelNombre: c.hotel?.nombre || '',
+        vendedorId: c.vendedorId || null,
+        vendedorNombre: c.vendedor ? `${c.vendedor.nombre} ${c.vendedor.apellidos}` : null,
         fechaHoraCita: c.fechaHoraCita.toISOString().slice(0, 16),
         estado: c.estado,
         numFotosVendidas: c.numFotosVendidas,
@@ -145,28 +148,25 @@ export async function saleRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // GET /api/citas-venta/conflictos - Check for conflicts
+  // GET /api/citas-venta/conflictos - Check appointment conflicts for a datetime & hotel
   fastify.get('/api/citas-venta/conflictos', async (request, reply) => {
     try {
       const { hotelId, fechaHoraCita, excludeId } = request.query as {
-        hotelId: string
-        fechaHoraCita: string
+        hotelId?: string
+        fechaHoraCita?: string
         excludeId?: string
       }
 
       if (!hotelId || !fechaHoraCita) {
-        return reply.status(400).send({ error: 'hotelId y fechaHoraCita son requeridos' })
+        return reply.status(400).send({ error: 'hotelId y fechaHoraCita son obligatorios' })
       }
 
-      const conflicts = await findConflicts(
-        Number(hotelId),
-        parseLocalDateTime(fechaHoraCita),
-        excludeId ? Number(excludeId) : undefined,
-      )
+      const targetDate = parseLocalDateTime(fechaHoraCita)
+      const exclude = excludeId ? Number(excludeId) : undefined
+      const conflicts = await findConflicts(Number(hotelId), targetDate, exclude)
 
       const mapped = conflicts.map((c) => ({
         id: c.id,
-        sesionId: c.sesionId,
         fechaHoraCita: c.fechaHoraCita.toISOString().slice(0, 16),
         clienteNombre: c.sesion.clienteNombre,
         numeroHabitacion: c.sesion.numeroHabitacion || '',
@@ -187,7 +187,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
       const cita = await prisma.citaVenta.findUnique({
         where: { id },
-        include: { sesion: true, hotel: true },
+        include: { sesion: true, hotel: true, vendedor: true },
       })
 
       if (!cita || cita.deletedAt) {
@@ -198,6 +198,8 @@ export async function saleRoutes(fastify: FastifyInstance) {
         id: cita.id,
         sesionId: cita.sesionId,
         hotelId: cita.hotelId,
+        vendedorId: cita.vendedorId || null,
+        vendedorNombre: cita.vendedor ? `${cita.vendedor.nombre} ${cita.vendedor.apellidos}` : null,
         fechaHoraCita: cita.fechaHoraCita.toISOString().slice(0, 16),
         estado: cita.estado,
         numFotosVendidas: cita.numFotosVendidas,
@@ -229,6 +231,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const body = request.body as {
         sesionId: number
         hotelId: number
+        vendedorId?: string | null
         fechaHoraCita: string
         notas?: string
       }
@@ -271,17 +274,20 @@ export async function saleRoutes(fastify: FastifyInstance) {
         data: {
           sesionId: body.sesionId,
           hotelId: sesion.hotelId,
+          vendedorId: body.vendedorId || null,
           fechaHoraCita: fechaCita,
           estado: 'PROGRAMADA',
           notas: body.notas ? body.notas.trim() : null,
         },
-        include: { sesion: true },
+        include: { sesion: true, vendedor: true },
       })
 
       const response: any = {
         id: nueva.id,
         sesionId: nueva.sesionId,
         hotelId: nueva.hotelId,
+        vendedorId: nueva.vendedorId || null,
+        vendedorNombre: nueva.vendedor ? `${nueva.vendedor.nombre} ${nueva.vendedor.apellidos}` : null,
         fechaHoraCita: nueva.fechaHoraCita.toISOString().slice(0, 16),
         estado: nueva.estado,
         numFotosVendidas: nueva.numFotosVendidas,
@@ -313,6 +319,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     try {
       const id = Number((request.params as any).id)
       const body = request.body as {
+        vendedorId?: string | null
         fechaHoraCita?: string
         estado?: string
         numFotosVendidas?: number | null
@@ -352,6 +359,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
       }
 
       const data: any = {}
+      if (body.vendedorId !== undefined) data.vendedorId = body.vendedorId || null
       if (body.fechaHoraCita !== undefined) {
         data.fechaHoraCita = parseLocalDateTime(body.fechaHoraCita)
       }
@@ -363,7 +371,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const actualizada = await prisma.citaVenta.update({
         where: { id },
         data,
-        include: { sesion: true },
+        include: { sesion: true, vendedor: true },
       })
 
       // Recalcular comisiones automáticamente
@@ -377,6 +385,10 @@ export async function saleRoutes(fastify: FastifyInstance) {
         id: actualizada.id,
         sesionId: actualizada.sesionId,
         hotelId: actualizada.hotelId,
+        vendedorId: actualizada.vendedorId || null,
+        vendedorNombre: actualizada.vendedor
+          ? `${actualizada.vendedor.nombre} ${actualizada.vendedor.apellidos}`
+          : null,
         fechaHoraCita: actualizada.fechaHoraCita.toISOString().slice(0, 16),
         estado: actualizada.estado,
         numFotosVendidas: actualizada.numFotosVendidas,

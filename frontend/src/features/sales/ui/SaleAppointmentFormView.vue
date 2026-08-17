@@ -22,6 +22,7 @@ import {
 } from '@element-plus/icons-vue'
 import { UserX } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
+import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,6 +43,7 @@ const conflicts = ref<ConflictoCitaVenta[]>([])
 const formData = ref({
   sesionId: null as number | null,
   hotelId: 0,
+  vendedorId: null as string | null,
   fechaHoraCita: '',
   estado: 'PROGRAMADA' as EstadoCitaVenta,
   numFotosVendidas: null as number | null,
@@ -116,12 +118,67 @@ const excludedSessionsCount = computed(() => {
   }).length
 })
 
-// Photographer name for display
+// Photographer name and avatar for display
+const photographerUser = computed(() => {
+  if (!sessionInfo.value.fotografoId) return null
+  return userStore.users.find((u) => String(u.id) === String(sessionInfo.value.fotografoId)) || null
+})
+
+const photographerAvatar = computed(() => {
+  return photographerUser.value?.imagen || getDefaultAvatar()
+})
+
 const photographerName = computed(() => {
   if (!sessionInfo.value.fotografoId) return 'Sin asignar'
-  const user = userStore.users.find((u) => String(u.id) === String(sessionInfo.value.fotografoId))
+  const user = photographerUser.value
   return user ? `${user.nombre} ${user.apellidos}` : 'Desconocido'
 })
+
+// Sellers list for assignment (filtered by hotel: only Agendador and Fotógrafo)
+const sellers = computed(() => {
+  const selectedHotelId = Number(formData.value.hotelId)
+  if (!selectedHotelId) return []
+
+  return userStore.usersWithProfile
+    .filter((u) => {
+      if (u.status === 'Inactivo') return false
+      const perfilCode =
+        u.perfil?.code?.toUpperCase() || profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+      const allowedRoles = ['AGENDADOR', 'FOTOGRAFO']
+      if (!allowedRoles.includes(perfilCode || '')) return false
+      const assignedHotelIds = u.hotelIds || []
+      return assignedHotelIds.some((hId) => Number(hId) === selectedHotelId)
+    })
+    .map((u) => {
+      const perfil = u.perfil || profileStore.getProfileById(u.profileId)
+      return {
+        id: u.id,
+        nombre: u.nombre,
+        apellidos: u.apellidos,
+        perfilNombre: perfil?.name || perfil?.code || 'Vendedor',
+        avatar: u.imagen || getDefaultAvatar(),
+      }
+    })
+})
+
+const selectedSeller = computed(() => {
+  if (!formData.value.vendedorId) return null
+  return sellers.value.find((s) => String(s.id) === String(formData.value.vendedorId)) || null
+})
+
+// Reset vendedor selection when hotel changes if selected vendedor is not in the new hotel
+watch(
+  () => formData.value.hotelId,
+  () => {
+    if (!formData.value.vendedorId) return
+    const isAvailable = sellers.value.some(
+      (s) => String(s.id) === String(formData.value.vendedorId),
+    )
+    if (!isAvailable) {
+      formData.value.vendedorId = null
+    }
+  },
+)
 
 // PAX display
 const paxDisplay = computed(() => {
@@ -215,6 +272,7 @@ onMounted(async () => {
       formData.value = {
         sesionId: existing.sesionId,
         hotelId: existing.hotelId,
+        vendedorId: existing.vendedorId || null,
         fechaHoraCita: existing.fechaHoraCita,
         estado: existing.estado,
         numFotosVendidas: existing.numFotosVendidas ?? null,
@@ -275,6 +333,7 @@ async function handleSave() {
   try {
     if (isEditing.value && citaId.value) {
       const payload: UpdateCitaVentaPayload = {
+        vendedorId: formData.value.vendedorId || null,
         fechaHoraCita: formData.value.fechaHoraCita,
         estado: formData.value.estado,
         numFotosVendidas: formData.value.numFotosVendidas,
@@ -293,6 +352,7 @@ async function handleSave() {
       const result = await saleStore.addCitaVenta({
         sesionId: formData.value.sesionId,
         hotelId: formData.value.hotelId,
+        vendedorId: formData.value.vendedorId || null,
         fechaHoraCita: formData.value.fechaHoraCita,
         notas: formData.value.notas ? formData.value.notas.trim() : null,
       })
@@ -367,25 +427,61 @@ async function handleSave() {
           <span class="ref-label">Hotel</span>
           <span class="ref-value">{{ sessionInfo.hotelNombre }}</span>
         </div>
-        <div v-if="sessionInfo.numeroHabitacion" class="ref-item">
+        <div class="ref-item">
           <span class="ref-label">Habitación</span>
-          <span class="ref-value">{{ sessionInfo.numeroHabitacion }}</span>
+          <span class="ref-value">{{ sessionInfo.numeroHabitacion || '-' }}</span>
         </div>
         <div class="ref-item">
           <span class="ref-label">Fotógrafo</span>
-          <span class="ref-value">{{ photographerName }}</span>
+          <div class="ref-user-value">
+            <el-avatar
+              v-if="sessionInfo.fotografoId"
+              :src="photographerAvatar"
+              :size="22"
+              class="ref-user-avatar"
+            />
+            <span class="ref-value">{{ photographerName }}</span>
+          </div>
         </div>
         <div class="ref-item">
           <span class="ref-label">PAX</span>
           <span class="ref-value">{{ paxDisplay }}</span>
         </div>
-        <div v-if="sessionInfo.concepto" class="ref-item">
+        <div class="ref-item">
           <span class="ref-label">Concepto</span>
-          <span class="ref-value">{{ sessionInfo.concepto }}</span>
+          <span class="ref-value">{{ sessionInfo.concepto || '-' }}</span>
         </div>
         <div class="ref-item">
           <span class="ref-label">Sesión de fotos</span>
           <span class="ref-value">{{ formatDateTime(sessionInfo.fechaHoraInicio) }}</span>
+        </div>
+        <div class="ref-item ref-item--vendedor">
+          <span class="ref-label">Vendedor</span>
+          <el-select
+            v-model="formData.vendedorId"
+            placeholder="Selecciona vendedor"
+            clearable
+            filterable
+            style="width: 100%"
+            :disabled="isReadOnly"
+          >
+            <template #prefix v-if="selectedSeller">
+              <el-avatar :src="selectedSeller.avatar" :size="20" class="select-prefix-avatar" />
+            </template>
+            <el-option label="Sin vendedor asignado" :value="null" />
+            <el-option
+              v-for="seller in sellers"
+              :key="seller.id"
+              :label="`${seller.nombre} ${seller.apellidos}`"
+              :value="seller.id"
+            >
+              <div class="seller-option-item">
+                <el-avatar :src="seller.avatar" :size="24" class="seller-avatar" />
+                <span class="seller-option-name">{{ seller.nombre }} {{ seller.apellidos }}</span>
+                <span class="seller-option-role">({{ seller.perfilNombre }})</span>
+              </div>
+            </el-option>
+          </el-select>
         </div>
       </div>
     </el-card>
@@ -605,13 +701,55 @@ async function handleSave() {
 .ref-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 0.75rem 1rem;
+  align-items: flex-start;
 }
 
 .ref-item {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
+}
+
+.ref-item--vendedor {
+  margin-top: -0.15rem;
+}
+
+.ref-user-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ref-user-avatar {
+  flex-shrink: 0;
+}
+
+.select-prefix-avatar {
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
+.seller-option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.seller-avatar {
+  flex-shrink: 0;
+}
+
+.seller-option-name {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.seller-option-role {
+  font-size: 0.8rem;
+  color: var(--el-text-color-secondary);
+  margin-left: auto;
 }
 
 .ref-label {

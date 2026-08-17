@@ -257,33 +257,43 @@ export async function calculateAndSaveCommissionsForSale(citaVentaId: number): P
     }
   }
 
-  // 2. Vendedor / Agendador Commission (creador de la sesión)
-  if (cita.sesion.creadorId) {
-    const creador = await prisma.usuario.findUnique({
-      where: { id: cita.sesion.creadorId },
+  // 2. Vendedor / Agendador Commission (asignado a la cita o creador de la sesión)
+  const vendedorUsuarioId = cita.vendedorId || cita.sesion.creadorId
+  if (vendedorUsuarioId) {
+    const vendedor = await prisma.usuario.findUnique({
+      where: { id: vendedorUsuarioId },
       include: { role: true },
     })
-    // Apply seller commission if creator exists
-    if (creador) {
-      const tipoContrato = creador.tipoContrato || 'ASALARIADO'
+    // Apply seller commission if vendor exists
+    if (vendedor) {
+      const tipoContrato = vendedor.tipoContrato || 'ASALARIADO'
       const pct =
         tipoContrato === 'SIN_SALARIO'
           ? config.vendedorSinSalarioPct
           : config.vendedorAsalariadoPct
       const importe = (totalVentaUsd * pct) / 100
 
+      // Clean any other user previously marked as VENDEDOR for this sale
+      await prisma.comision.deleteMany({
+        where: {
+          citaVentaId: cita.id,
+          rolEnVenta: 'VENDEDOR',
+          usuarioId: { not: vendedor.id },
+        },
+      })
+
       await prisma.comision.upsert({
         where: {
           citaVentaId_usuarioId_rolEnVenta: {
             citaVentaId: cita.id,
-            usuarioId: creador.id,
+            usuarioId: vendedor.id,
             rolEnVenta: 'VENDEDOR',
           },
         },
         create: {
           citaVentaId: cita.id,
           hotelId,
-          usuarioId: creador.id,
+          usuarioId: vendedor.id,
           rolEnVenta: 'VENDEDOR',
           tipoContrato,
           porcentajeAplicado: pct,
@@ -302,6 +312,13 @@ export async function calculateAndSaveCommissionsForSale(citaVentaId: number): P
         },
       })
     }
+  } else {
+    await prisma.comision.deleteMany({
+      where: {
+        citaVentaId: cita.id,
+        rolEnVenta: 'VENDEDOR',
+      },
+    })
   }
 
   // 3. Supervisor Commission (Supervisores asignados al hotel)
