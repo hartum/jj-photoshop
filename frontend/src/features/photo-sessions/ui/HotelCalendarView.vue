@@ -294,14 +294,18 @@ const calendarEvents = computed(() => {
 })
 
 const CALENDAR_VIEW_STORAGE_KEY = 'jj_calendar_view'
+const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 
 function getInitialCalendarView(): string {
+  const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768
   const savedView = localStorage.getItem(CALENDAR_VIEW_STORAGE_KEY)
-  const validViews = ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek']
+  const validViews = isMobileView
+    ? ['timeGridDay', 'listWeek']
+    : ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek']
   if (savedView && validViews.includes(savedView)) {
     return savedView
   }
-  return window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek'
+  return isMobileView ? 'listWeek' : 'timeGridWeek'
 }
 
 function handleDatesSet(dateInfo: DatesSetArg) {
@@ -309,6 +313,18 @@ function handleDatesSet(dateInfo: DatesSetArg) {
     localStorage.setItem(CALENDAR_VIEW_STORAGE_KEY, dateInfo.view.type)
   }
 }
+
+watch(isMobile, (mobile) => {
+  if (mobile) {
+    const calendarApi = calendarRef.value?.getApi()
+    if (calendarApi) {
+      const currentView = calendarApi.view?.type
+      if (currentView === 'dayGridMonth' || currentView === 'timeGridWeek') {
+        calendarApi.changeView('listWeek')
+      }
+    }
+  }
+})
 
 // FullCalendar Configuration computed so reactivity works seamlessly
 const calendarOptions = computed(() => ({
@@ -318,7 +334,9 @@ const calendarOptions = computed(() => ({
   headerToolbar: {
     left: 'prev,next today',
     center: 'title',
-    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+    right: isMobile.value
+      ? 'timeGridDay,listWeek'
+      : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
   },
   eventDisplay: 'block',
   slotMinTime: '06:00:00',
@@ -820,7 +838,7 @@ function handleEventClick(clickInfo: EventClickArg) {
 
     <!-- Calendario de FullCalendar -->
     <div class="calendar-card">
-      <FullCalendar :options="calendarOptions" :events="calendarEvents" />
+      <FullCalendar ref="calendarRef" :options="calendarOptions" :events="calendarEvents" />
 
       <!-- Popover de Detalle del Evento (Solo Desktop) -->
       <el-popover
@@ -1343,7 +1361,13 @@ function handleEventClick(clickInfo: EventClickArg) {
     gap: 4px;
   }
 
-  /* Compact buttons on narrow viewports so all 4 views fit cleanly */
+  /* ── Ocultar vistas de Mes y Semana en móvil ── */
+  :deep(.fc-dayGridMonth-button),
+  :deep(.fc-timeGridWeek-button) {
+    display: none !important;
+  }
+
+  /* Compact buttons on narrow viewports */
   :deep(.fc-button-primary) {
     padding: 14px 18px !important;
     font-size: 0.75rem !important;
