@@ -55,6 +55,14 @@ const alertOverdue = computed(() => {
   return s.estado === 'PROGRAMADA' && new Date(s.fechaHoraInicio) < new Date()
 })
 
+// Role-based edit lock (only locks if session was already saved in DB with status other than PROGRAMADA)
+const isReadOnly = computed(() => {
+  if (!isEditing.value || !loadedSession.value) return false
+  if (loadedSession.value.estado === 'PROGRAMADA') return false
+  const role = currentUser.value?.roleCode?.toUpperCase() || ''
+  return !['SUPERVISOR', 'GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role)
+})
+
 const alertNoSaleAppointment = computed(() => {
   if (!isEditing.value || !loadedSession.value) return false
   const s = loadedSession.value
@@ -367,13 +375,15 @@ async function handleSaveSession() {
       ElMessage.success('Sesión fotográfica agendada correctamente')
     }
 
-    // Process Cita de Venta if fechaHoraCitaVenta is provided
+    // Process Cita de Venta if fechaHoraCitaVenta is provided AND changed
     if (fechaHoraCitaVenta.value) {
-      const existingCitaId = loadedSession.value?.citaVenta?.id
-      if (existingCitaId) {
-        await saleStore.updateCitaVenta(existingCitaId, {
-          fechaHoraCita: fechaHoraCitaVenta.value,
-        })
+      const existingCita = loadedSession.value?.citaVenta
+      if (existingCita) {
+        if (fechaHoraCitaVenta.value !== (existingCita.fechaHoraCita || '')) {
+          await saleStore.updateCitaVenta(existingCita.id, {
+            fechaHoraCita: fechaHoraCitaVenta.value,
+          })
+        }
       } else {
         await saleStore.addCitaVenta({
           sesionId: savedSessionId,
@@ -471,12 +481,18 @@ async function handleSaveSession() {
       </el-alert>
     </div>
 
+    <!-- Read-only lock banner -->
+    <el-alert v-if="isReadOnly" type="warning" :closable="false" show-icon class="lock-banner">
+      Esta sesión no está en estado programada. Para editarla contacta con tu supervisor o gerente de area.
+    </el-alert>
+
     <!-- Card Principal del Formulario -->
     <el-card class="form-card" shadow="never">
       <el-form
         :model="formData"
         label-position="top"
         :size="isMobile ? 'large' : 'default'"
+        :disabled="isReadOnly"
         class="session-form"
       >
         <!-- Fila 0: Estado de la Sesión (Radio Buttons centrados con colores e iconos por estado) -->
@@ -737,6 +753,7 @@ async function handleSaveSession() {
             :size="isMobile ? 'large' : 'default'"
             :icon="Check"
             :loading="isSaving"
+            :disabled="isReadOnly"
             @click="handleSaveSession"
           >
             {{ isEditing ? 'Guardar Cambios' : 'Agendar Sesión' }}
@@ -762,6 +779,10 @@ async function handleSaveSession() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.lock-banner {
+  margin-bottom: 1.25rem;
 }
 
 .header-left {

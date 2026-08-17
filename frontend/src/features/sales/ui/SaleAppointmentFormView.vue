@@ -87,10 +87,10 @@ const userHotels = computed(() => {
   return hotelStore.hotels.filter((h) => userHotelIds.has(h.id))
 })
 
-// Role-based edit lock (only locks if the appointment was already saved in DB as COMPLETADA)
+// Role-based edit lock (only locks if the appointment was already saved in DB with status other than PROGRAMADA)
 const isReadOnly = computed(() => {
   if (!isEditing.value || !loadedCita.value) return false
-  if (loadedCita.value.estado !== 'COMPLETADA') return false
+  if (loadedCita.value.estado === 'PROGRAMADA') return false
   const role = currentUser.value?.roleCode?.toUpperCase() || ''
   return !['SUPERVISOR', 'GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role)
 })
@@ -401,7 +401,7 @@ async function handleSave() {
 
     <!-- Read-only lock banner -->
     <el-alert v-if="isReadOnly" type="warning" :closable="false" show-icon class="lock-banner">
-      Esta cita está completada. Para editarla contacta con tu supervisor o gerente de area.
+      Para editar esta cita contacta con tu supervisor o gerente de area.
     </el-alert>
 
     <!-- Conflict banner -->

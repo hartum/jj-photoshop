@@ -293,6 +293,30 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         notas?: string
       }
 
+      const existing = await prisma.sesionFotografica.findUnique({ where: { id } })
+      if (!existing || existing.deletedAt) {
+        return reply.status(404).send({ error: 'Sesión fotográfica no encontrada' })
+      }
+
+      // Role check: if session in DB was NOT PROGRAMADA (COMPLETADA, CANCELADA, NO_SHOW), only SUPERVISOR/GERENTE/ADMIN/SUPERUSUARIO can edit
+      if (existing.estado !== 'PROGRAMADA') {
+        const userId = getAuthUserId(request)
+        if (!userId) {
+          return reply.status(403).send({ error: 'No autorizado para editar sesiones cerradas' })
+        }
+        const user = await prisma.usuario.findUnique({
+          where: { id: userId },
+          include: { role: true },
+        })
+        const role = user?.role?.codigo?.toUpperCase()
+        const canEdit = ['SUPERVISOR', 'GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role || '')
+        if (!canEdit) {
+          return reply
+            .status(403)
+            .send({ error: 'Solo supervisores, gerentes, administradores y superusuarios pueden editar sesiones cerradas' })
+        }
+      }
+
       const actualizada = await prisma.sesionFotografica.update({
         where: { id },
         data: {
