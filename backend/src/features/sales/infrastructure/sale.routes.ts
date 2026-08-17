@@ -332,18 +332,18 @@ export async function saleRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Cita de venta no encontrada' })
       }
 
-      // Role check: if COMPLETADA, only GERENTE/ADMIN/SUPERUSUARIO can edit
+      // Role check: if COMPLETADA, only SUPERVISOR/GERENTE/ADMIN/SUPERUSUARIO can edit
       if (existing.estado === 'COMPLETADA') {
         const userId = getAuthUserId(request)
         if (!userId) {
           return reply.status(403).send({ error: 'No autorizado para editar citas completadas' })
         }
         const role = await getUserRole(userId)
-        const canEdit = ['GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role || '')
+        const canEdit = ['SUPERVISOR', 'GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role || '')
         if (!canEdit) {
           return reply
             .status(403)
-            .send({ error: 'Solo gerentes, administradores y superusuarios pueden editar citas completadas' })
+            .send({ error: 'Solo supervisores, gerentes, administradores y superusuarios pueden editar citas completadas' })
         }
       }
 

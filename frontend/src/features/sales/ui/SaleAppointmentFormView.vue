@@ -38,6 +38,7 @@ const isEditing = computed(() => !!citaId.value)
 const isSaving = ref(false)
 const isMobile = ref(false)
 const conflicts = ref<ConflictoCitaVenta[]>([])
+const loadedCita = ref<CitaVenta | null>(null)
 
 // Form data
 const formData = ref({
@@ -86,13 +87,12 @@ const userHotels = computed(() => {
   return hotelStore.hotels.filter((h) => userHotelIds.has(h.id))
 })
 
-// Role-based edit lock
+// Role-based edit lock (only locks if the appointment was already saved in DB as COMPLETADA)
 const isReadOnly = computed(() => {
-  if (!isEditing.value) return false
-  const estado = formData.value.estado
-  if (estado !== 'COMPLETADA') return false
+  if (!isEditing.value || !loadedCita.value) return false
+  if (loadedCita.value.estado !== 'COMPLETADA') return false
   const role = currentUser.value?.roleCode?.toUpperCase() || ''
-  return !['GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role)
+  return !['SUPERVISOR', 'GERENTE', 'ADMIN', 'SUPERUSUARIO'].includes(role)
 })
 
 // Available completed sessions without a sales appointment (for session selector)
@@ -151,7 +151,8 @@ const sellers = computed(() => {
     .filter((u) => {
       if (u.status === 'Inactivo') return false
       const perfilCode =
-        u.perfil?.code?.toUpperCase() || profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
+        u.perfil?.code?.toUpperCase() ||
+        profileStore.getProfileById(u.profileId)?.code?.toUpperCase()
       const allowedRoles = ['AGENDADOR', 'FOTOGRAFO']
       if (!allowedRoles.includes(perfilCode || '')) return false
       const assignedHotelIds = u.hotelIds || []
@@ -270,6 +271,7 @@ onMounted(async () => {
   if (isEditing.value && citaId.value) {
     const existing = await saleStore.fetchCitaVenta(citaId.value)
     if (existing) {
+      loadedCita.value = existing
       const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
       if (!allowedHotelIds.has(Number(existing.hotelId))) {
         ElMessage.error('No tienes acceso a las citas de venta de este hotel')
@@ -399,7 +401,7 @@ async function handleSave() {
 
     <!-- Read-only lock banner -->
     <el-alert v-if="isReadOnly" type="warning" :closable="false" show-icon class="lock-banner">
-      Esta cita está completada. Solo gerentes, administradores y superusuarios pueden editarla.
+      Esta cita está completada. Para editarla contacta con tu supervisor o gerente de area.
     </el-alert>
 
     <!-- Conflict banner -->
