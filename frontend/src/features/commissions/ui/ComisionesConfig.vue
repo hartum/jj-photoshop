@@ -157,10 +157,13 @@ async function handleRecalculate() {
         <!-- 1. Sección Fotógrafo -->
         <div class="role-section">
           <div class="section-header-role">
-            <img :src="getRoleSvg('FOTOGRAFO')" class="role-header-icon" alt="Fotógrafo" />
-            <el-tag type="success" size="large" effect="light" class="role-tag">Fotógrafo</el-tag>
+            <el-tag type="success" size="large" effect="light" class="role-tag">
+              <img :src="getRoleSvg('FOTOGRAFO')" class="role-header-icon" alt="Fotógrafo" />
+              Fotógrafo
+            </el-tag>
             <span class="role-desc-header">Comisión sobre las ventas de sus sesiones</span>
           </div>
+          <el-divider border-style="dashed" class="section-divider" />
 
           <div class="inputs-row">
             <div class="input-block">
@@ -175,9 +178,8 @@ async function handleRecalculate() {
                   :max="100"
                   :step="1"
                   :format-tooltip="formatPercentTooltip"
-                  show-input
                 />
-                <span class="pct-unit">%</span>
+                <span class="pct-value">{{ formData.fotografoAsalariadoPct }} %</span>
               </div>
             </div>
 
@@ -193,29 +195,27 @@ async function handleRecalculate() {
                   :max="100"
                   :step="1"
                   :format-tooltip="formatPercentTooltip"
-                  show-input
                 />
-                <span class="pct-unit">%</span>
+                <span class="pct-value">{{ formData.fotografoSinSalarioPct }} %</span>
               </div>
             </div>
           </div>
         </div>
 
-        <el-divider class="section-divider" />
-
         <!-- 2. Sección Vendedor / Agendador -->
         <div class="role-section">
           <div class="section-header-role">
-            <img
-              :src="getRoleSvg('AGENDADOR')"
-              class="role-header-icon"
-              alt="Vendedor / Agendador"
-            />
-            <el-tag type="primary" size="large" effect="light" class="role-tag"
-              >Vendedor / Agendador</el-tag
-            >
-            <span class="role-desc-header">Comisión por captación y apertura de sesión</span>
+            <el-tag type="primary" size="large" effect="light" class="role-tag">
+              <img
+                :src="getRoleSvg('AGENDADOR')"
+                class="role-header-icon"
+                alt="Vendedor / Agendador"
+              />
+              Vendedor / Agendador
+            </el-tag>
+            <span class="role-desc-header"> Comisión por captación y apertura de sesión </span>
           </div>
+          <el-divider border-style="dashed" class="section-divider" />
 
           <div class="inputs-row">
             <div class="input-block">
@@ -230,9 +230,8 @@ async function handleRecalculate() {
                   :max="100"
                   :step="1"
                   :format-tooltip="formatPercentTooltip"
-                  show-input
                 />
-                <span class="pct-unit">%</span>
+                <span class="pct-value">{{ formData.vendedorAsalariadoPct }} %</span>
               </div>
             </div>
 
@@ -248,73 +247,74 @@ async function handleRecalculate() {
                   :max="100"
                   :step="1"
                   :format-tooltip="formatPercentTooltip"
-                  show-input
                 />
-                <span class="pct-unit">%</span>
+                <span class="pct-value">{{ formData.vendedorSinSalarioPct }} %</span>
               </div>
             </div>
           </div>
         </div>
 
-        <el-divider class="section-divider" />
-
         <!-- 3. Sección Supervisor de Hotel -->
         <div class="role-section">
           <div class="section-header-role">
-            <img
-              :src="getRoleSvg('SUPERVISOR')"
-              class="role-header-icon"
-              alt="Supervisor de Hotel"
-            />
-            <el-tag type="warning" size="large" effect="light" class="role-tag"
-              >Supervisor de Hotel</el-tag
-            >
-            <span class="role-desc-header"
-              >Comisión fija sobre la venta total de su hotel asignado</span
-            >
+            <el-tag type="warning" size="large" effect="light" class="role-tag">
+              <img
+                :src="getRoleSvg('SUPERVISOR')"
+                class="role-header-icon"
+                alt="Supervisor de Hotel"
+              />
+              Supervisor de Hotel
+            </el-tag>
+            <span class="role-desc-header">
+              Comisión fija sobre la venta total de su hotel asignado
+            </span>
           </div>
+          <el-divider border-style="dashed" class="section-divider" />
 
-          <div class="slider-container">
-            <el-slider
-              v-model="formData.supervisorPct"
-              :min="0"
-              :max="100"
-              :step="1"
-              :format-tooltip="formatPercentTooltip"
-              show-input
-            />
-            <span class="pct-unit">%</span>
+          <div class="inputs-row">
+            <div class="slider-container">
+              <el-slider
+                v-model="formData.supervisorPct"
+                :min="0"
+                :max="100"
+                :step="1"
+                :format-tooltip="formatPercentTooltip"
+              />
+              <span class="pct-value">{{ formData.supervisorPct }} %</span>
+            </div>
           </div>
         </div>
-
-        <el-divider class="section-divider" />
 
         <!-- 4. Sección Gerente de Área -->
         <div class="role-section">
           <div class="section-header-role">
-            <img :src="getRoleSvg('GERENTE')" class="role-header-icon" alt="Gerente de Área" />
-            <el-tag type="danger" size="large" effect="light" class="role-tag"
-              >Gerente de Área</el-tag
-            >
-            <span class="role-desc-header"
-              >Comisión fija sobre las ventas de todos los hoteles de su área</span
-            >
-          </div>
+            <el-tag type="danger" size="large" effect="light" class="role-tag">
+              <img :src="getRoleSvg('GERENTE')" class="role-header-icon" alt="Gerente de Área" />
+              Gerente de Área
+            </el-tag>
 
-          <div class="slider-container">
-            <el-slider
-              v-model="formData.gerentePct"
-              :min="0"
-              :max="100"
-              :step="1"
-              :format-tooltip="formatPercentTooltip"
-              show-input
-            />
-            <span class="pct-unit">%</span>
+            <span class="role-desc-header">
+              Comisión fija sobre las ventas de todos los hoteles de su área
+            </span>
+          </div>
+          <el-divider border-style="dashed" class="section-divider" />
+
+          <div class="inputs-row">
+            <div class="slider-container">
+              <el-slider
+                v-model="formData.gerentePct"
+                :min="0"
+                :max="100"
+                :step="1"
+                :format-tooltip="formatPercentTooltip"
+              />
+              <span class="pct-value">{{ formData.gerentePct }} %</span>
+            </div>
           </div>
         </div>
 
-        <el-divider class="section-divider" />
+        <!-- Divisor final antes del footer -->
+        <el-divider class="section-divider final-divider" />
 
         <!-- 4. Footer con Info y Botón Guardar -->
         <div class="card-footer-actions">
@@ -349,12 +349,18 @@ async function handleRecalculate() {
         <el-table-column prop="hotelNombre" label="Hotel" min-width="160" />
         <el-table-column label="Fotógrafo Contratado | Freelance" align="center" width="220">
           <template #default="{ row }">
-            <span>{{ row.fotografoAsalariadoPct }}% | <strong>{{ row.fotografoSinSalarioPct }}%</strong></span>
+            <span
+              >{{ row.fotografoAsalariadoPct }}% |
+              <strong>{{ row.fotografoSinSalarioPct }}%</strong></span
+            >
           </template>
         </el-table-column>
         <el-table-column label="Vendedor Contratado | Freelance" align="center" width="220">
           <template #default="{ row }">
-            <span>{{ row.vendedorAsalariadoPct }}% | <strong>{{ row.vendedorSinSalarioPct }}%</strong></span>
+            <span
+              >{{ row.vendedorAsalariadoPct }}% |
+              <strong>{{ row.vendedorSinSalarioPct }}%</strong></span
+            >
           </template>
         </el-table-column>
         <el-table-column label="Supervisor" align="center" width="110">
@@ -423,6 +429,7 @@ async function handleRecalculate() {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  margin-bottom: 4rem;
 }
 
 .section-header-role {
@@ -441,6 +448,10 @@ async function handleRecalculate() {
 .role-tag {
   font-weight: 700 !important;
   text-transform: uppercase;
+  img {
+    margin-top: -12px;
+    vertical-align: middle;
+  }
 }
 
 .role-desc-header {
@@ -450,8 +461,15 @@ async function handleRecalculate() {
 
 .inputs-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .inputs-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .input-block {
@@ -493,6 +511,14 @@ async function handleRecalculate() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.5rem 0 0.5rem;
+  .pct-value {
+    font-size: 3em;
+    font-weight: 700;
+    display: inline-block;
+    width: 140px;
+    text-align: right;
+    color: var(--text-muted, #64748b);
+  }
 }
 
 .slider-container :deep(.el-slider) {
@@ -507,8 +533,11 @@ async function handleRecalculate() {
 }
 
 .section-divider {
-  margin: 1.5rem 0;
-  border-color: var(--el-border-color-lighter, #f1f5f9);
+  margin: 0.3rem 0;
+}
+
+.final-divider {
+  margin: 0.85rem 0 1.25rem 0 !important;
 }
 
 .card-footer-actions {
@@ -517,7 +546,7 @@ async function handleRecalculate() {
   align-items: center;
   flex-wrap: wrap;
   gap: 1.25rem;
-  padding-top: 0.25rem;
+  padding-top: 0;
 }
 
 .summary-info {
