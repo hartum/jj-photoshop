@@ -7,8 +7,7 @@ import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
-import type { UpdateCitaVentaPayload, ConflictoCitaVenta } from '../domain/sale.model'
-import type { EstadoCitaVenta } from '../domain/sale.model'
+import type { CitaVenta, UpdateCitaVentaPayload, ConflictoCitaVenta, EstadoCitaVenta } from '../domain/sale.model'
 import {
   ArrowLeft,
   Check,
