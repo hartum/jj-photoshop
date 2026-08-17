@@ -127,6 +127,65 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // GET /api/sesiones/:id (Obtiene una sesión fotográfica por ID)
+  fastify.get('/api/sesiones/:id', async (request, reply) => {
+    try {
+      const id = Number((request.params as any).id)
+      if (isNaN(id)) {
+        return reply.status(400).send({ error: 'ID de sesión inválido' })
+      }
+
+      const s = await prisma.sesionFotografica.findUnique({
+        where: { id },
+        include: {
+          hotel: true,
+          fotografo: true,
+          creador: true,
+          citaVenta: true,
+        },
+      })
+
+      if (!s || s.deletedAt) {
+        return reply.status(404).send({ error: 'Sesión fotográfica no encontrada' })
+      }
+
+      return reply.send({
+        id: s.id,
+        hotelId: s.hotelId,
+        fotografoId: s.fotografoId || null,
+        creadorId: s.creadorId,
+        clienteNombre: s.clienteNombre,
+        clienteEmail: s.clienteEmail || '',
+        clienteTelefono: s.clienteTelefono || '',
+        numeroHabitacion: s.numeroHabitacion || '',
+        numAdultos: s.numAdultos ?? 1,
+        numNinos: s.numNinos ?? 0,
+        fechaSalida: s.fechaSalida ? s.fechaSalida.toISOString().slice(0, 10) : '',
+        concepto: s.concepto || '',
+        fechaHoraInicio: s.fechaHoraInicio.toISOString().slice(0, 16),
+        estado: s.estado,
+        origen: s.origen,
+        notas: s.notas || '',
+        googleCalendarEventId: s.googleCalendarEventId || null,
+        citaVenta: s.citaVenta && !s.citaVenta.deletedAt
+          ? {
+              id: s.citaVenta.id,
+              fechaHoraCita: s.citaVenta.fechaHoraCita.toISOString().slice(0, 16),
+              estado: s.citaVenta.estado,
+              numFotosVendidas: s.citaVenta.numFotosVendidas,
+              totalVentaUsd: s.citaVenta.totalVentaUsd,
+            }
+          : null,
+        createdAt: s.createdAt.toISOString(),
+        updatedAt: s.updatedAt.toISOString(),
+      })
+    } catch (err: unknown) {
+      fastify.log.error(err)
+      const message = err instanceof Error ? err.message : 'Error al obtener la sesión'
+      return reply.status(500).send({ error: message })
+    }
+  })
+
   // POST /api/sesiones (Crear nueva sesión fotográfica)
   fastify.post('/api/sesiones', async (request, reply) => {
     try {

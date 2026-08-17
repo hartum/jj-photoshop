@@ -3,52 +3,6 @@ import { ref } from 'vue'
 import type { SesionFotografica, CreateSesionPayload } from '../domain/session.model'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
-const LOCAL_STORAGE_KEY = 'jj_photoshop_sesiones_fotograficas'
-
-const MOCK_INITIAL_SESSIONS: SesionFotografica[] = [
-  {
-    id: 1,
-    hotelId: 9, // HRLC (Los Cabos)
-    fotografoId: 'user-fotografo-1',
-    creadorId: 'user-admin-1',
-    clienteNombre: 'Familia García',
-    clienteEmail: 'garcia@ejemplo.com',
-    clienteTelefono: '+34 611 223 344',
-    fechaHoraInicio: new Date(Date.now() + 86400000).toISOString().split('T')[0] + 'T10:00:00',
-    estado: 'PROGRAMADA',
-    origen: 'MANUAL',
-    notas: 'Sesión al atardecer en la playa de HRLC',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    hotelId: 10, // Nobu (Los Cabos)
-    fotografoId: 'user-fotografo-1',
-    creadorId: 'user-admin-1',
-    clienteNombre: 'Pareja Martínez',
-    clienteEmail: 'martinez@ejemplo.com',
-    clienteTelefono: '+34 699 887 766',
-    fechaHoraInicio: new Date(Date.now() + 172800000).toISOString().split('T')[0] + 'T16:00:00',
-    estado: 'PROGRAMADA',
-    origen: 'MANUAL',
-    notas: 'Sesión romántica cerca de la piscina en Nobu',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    hotelId: 1, // Ziva (Cancún)
-    fotografoId: 'user-fotografo-1',
-    creadorId: 'user-admin-1',
-    clienteNombre: 'Familia López',
-    clienteEmail: 'lopez@ejemplo.com',
-    clienteTelefono: '+34 622 334 455',
-    fechaHoraInicio: new Date(Date.now() + 86400000).toISOString().split('T')[0] + 'T12:00:00',
-    estado: 'PROGRAMADA',
-    origen: 'MANUAL',
-    notas: 'Sesión familiar en la terraza de Ziva',
-    createdAt: new Date().toISOString(),
-  },
-]
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -63,50 +17,38 @@ export const useSessionStore = defineStore('sessions', () => {
   const sessions = ref<SesionFotografica[]>([])
   const isLoading = ref(false)
 
-  function loadFromStorage() {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (raw) {
-      try {
-        const stored: SesionFotografica[] = JSON.parse(raw)
-        const storedIds = new Set(stored.map((s) => s.id))
-        const missingMocks = MOCK_INITIAL_SESSIONS.filter((m) => !storedIds.has(m.id))
-
-        if (missingMocks.length > 0) {
-          sessions.value = [...stored, ...missingMocks]
-          saveToStorage()
-        } else {
-          sessions.value = stored
-        }
-        return
-      } catch (err) {
-        console.error('Error al parsear sesiones de localStorage:', err)
-      }
-    }
-    sessions.value = [...MOCK_INITIAL_SESSIONS]
-    saveToStorage()
-  }
-
-  function saveToStorage() {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sessions.value))
-  }
-
   async function fetchSessions(hotelId?: number) {
     isLoading.value = true
     try {
       const url = hotelId ? `${API_URL}/sesiones?hotelId=${hotelId}` : `${API_URL}/sesiones`
       const res = await fetch(url, { headers: getAuthHeaders() })
       if (res.ok) {
-        const data = await res.json()
-        sessions.value = data
-        saveToStorage()
-        return
+        sessions.value = await res.json()
       }
-      loadFromStorage()
     } catch (err) {
-      console.warn('Backend API de sesiones no disponible, usando almacenamiento local:', err)
-      loadFromStorage()
+      console.warn('Error al obtener sesiones fotográficas:', err)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  async function fetchSession(id: number): Promise<SesionFotografica | null> {
+    try {
+      const res = await fetch(`${API_URL}/sesiones/${id}`, { headers: getAuthHeaders() })
+      if (res.ok) {
+        const data: SesionFotografica = await res.json()
+        const index = sessions.value.findIndex((s) => s.id === id)
+        if (index !== -1) {
+          sessions.value[index] = data
+        } else {
+          sessions.value.push(data)
+        }
+        return data
+      }
+      return null
+    } catch (err) {
+      console.warn(`Error al obtener sesión ${id}:`, err)
+      return null
     }
   }
 
@@ -119,59 +61,20 @@ export const useSessionStore = defineStore('sessions', () => {
         body: JSON.stringify(payload),
       })
 
-      if (res.ok) {
-        const created: SesionFotografica = await res.json()
-        sessions.value.push(created)
-        saveToStorage()
-        return created
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${res.status}: Error al crear la sesión`)
       }
 
-      // Fallback a memoria local si falla la API
-      const newSession: SesionFotografica = {
-        id: Date.now(),
-        hotelId: payload.hotelId,
-        fotografoId: payload.fotografoId,
-        creadorId: payload.creadorId || payload.fotografoId || 'user-admin-1',
-        clienteNombre: payload.clienteNombre.trim(),
-        clienteEmail: payload.clienteEmail?.trim(),
-        clienteTelefono: payload.clienteTelefono?.trim(),
-        fechaHoraInicio: payload.fechaHoraInicio,
-        estado: 'PROGRAMADA',
-        origen: 'MANUAL',
-        notas: payload.notas?.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-
-      sessions.value.push(newSession)
-      saveToStorage()
-      return newSession
-    } catch (err) {
-      console.warn('Error al conectar con API de sesiones, guardando localmente:', err)
-      const newSession: SesionFotografica = {
-        id: Date.now(),
-        hotelId: payload.hotelId,
-        fotografoId: payload.fotografoId,
-        creadorId: payload.creadorId || payload.fotografoId || 'user-admin-1',
-        clienteNombre: payload.clienteNombre.trim(),
-        clienteEmail: payload.clienteEmail?.trim(),
-        clienteTelefono: payload.clienteTelefono?.trim(),
-        fechaHoraInicio: payload.fechaHoraInicio,
-        estado: 'PROGRAMADA',
-        origen: 'MANUAL',
-        notas: payload.notas?.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      sessions.value.push(newSession)
-      saveToStorage()
-      return newSession
+      const created: SesionFotografica = await res.json()
+      sessions.value.push(created)
+      return created
     } finally {
       isLoading.value = false
     }
   }
 
-  async function updateSession(id: number, payload: Partial<SesionFotografica>): Promise<void> {
+  async function updateSession(id: number, payload: Partial<SesionFotografica>): Promise<SesionFotografica> {
     isLoading.value = true
     try {
       const res = await fetch(`${API_URL}/sesiones/${id}`, {
@@ -179,28 +82,18 @@ export const useSessionStore = defineStore('sessions', () => {
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
-      if (res.ok) {
-        const updated: SesionFotografica = await res.json()
-        const index = sessions.value.findIndex((s) => s.id === id)
-        if (index !== -1) {
-          sessions.value[index] = updated
-        }
-        saveToStorage()
-        return
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${res.status}: Error al actualizar la sesión`)
       }
 
-      const existing = sessions.value.find((s) => s.id === id)
-      if (existing) {
-        Object.assign(existing, payload, { updatedAt: new Date().toISOString() })
-        saveToStorage()
+      const updated: SesionFotografica = await res.json()
+      const index = sessions.value.findIndex((s) => s.id === id)
+      if (index !== -1) {
+        sessions.value[index] = updated
       }
-    } catch (err) {
-      console.warn('Error al actualizar sesión vía API, usando estado local:', err)
-      const existing = sessions.value.find((s) => s.id === id)
-      if (existing) {
-        Object.assign(existing, payload, { updatedAt: new Date().toISOString() })
-        saveToStorage()
-      }
+      return updated
     } finally {
       isLoading.value = false
     }
@@ -214,6 +107,7 @@ export const useSessionStore = defineStore('sessions', () => {
     sessions,
     isLoading,
     fetchSessions,
+    fetchSession,
     addSession,
     updateSession,
     cancelSession,

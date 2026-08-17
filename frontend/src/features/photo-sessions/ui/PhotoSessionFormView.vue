@@ -112,14 +112,19 @@ watch(
 // Current user context
 const currentUser = computed(() => authStore.user)
 
-// Hotels list accessible by current user
+// Hotels list accessible by current user based on role matrix
 const userHotels = computed(() => {
-  const user = authStore.user
-  if (!user) return []
+  const user = currentUser.value
+  if (!user) return hotelStore.hotels
 
   const roleCode = user.roleCode?.toUpperCase()
-  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'GERENTE') {
+  if (roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'CONTABLE') {
     return hotelStore.hotels
+  }
+
+  if (roleCode === 'GERENTE') {
+    const areaIds = new Set(user.areaIds || [])
+    return hotelStore.hotels.filter((h) => areaIds.has(h.areaId))
   }
 
   const userHotelIds = new Set(user.hotelIds || [])
@@ -230,10 +235,13 @@ onMounted(async () => {
   ])
 
   if (isEditing.value && sessionId.value) {
-    const existing = sessionStore.sessions.find((s) => String(s.id) === String(sessionId.value))
+    const existing = await sessionStore.fetchSession(Number(sessionId.value))
     if (existing) {
+      const roleCode = currentUser.value?.roleCode?.toUpperCase()
+      const isGlobalAccess = roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'CONTABLE'
       const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
-      if (!allowedHotelIds.has(Number(existing.hotelId))) {
+
+      if (!isGlobalAccess && userHotels.value.length > 0 && !allowedHotelIds.has(Number(existing.hotelId))) {
         ElMessage.error('No tienes acceso a las sesiones fotográficas de este hotel')
         handleGoBack()
         return
