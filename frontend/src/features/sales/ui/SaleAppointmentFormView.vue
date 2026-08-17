@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSaleStore } from '../stores/sale.store'
 import { useSessionStore } from '@/features/photo-sessions/stores/session.store'
@@ -16,8 +16,11 @@ import {
   Warning,
   Camera,
   Money,
+  Calendar,
+  Edit,
   WarnTriangleFilled,
 } from '@element-plus/icons-vue'
+import { UserX } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -130,11 +133,11 @@ function formatDateTime(dateStr?: string | null): string {
   return dateStr.replace('T', ' ').slice(0, 16)
 }
 
-const estadoOptions: { value: EstadoCitaVenta; label: string; color: string }[] = [
-  { value: 'PROGRAMADA', label: 'Programada', color: '#409eff' },
-  { value: 'COMPLETADA', label: 'Completada', color: '#67c23a' },
-  { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c' },
-  { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c' },
+const estadoOptions: { value: EstadoCitaVenta; label: string; color: string; icon: Component }[] = [
+  { value: 'PROGRAMADA', label: 'Programada', color: '#409eff', icon: Calendar },
+  { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c', icon: UserX },
+  { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c', icon: Close },
+  { value: 'COMPLETADA', label: 'Completada', color: '#67c23a', icon: Check },
 ]
 
 function checkMobile() {
@@ -403,20 +406,26 @@ async function handleSave() {
       >
         <!-- Estado de la Cita -->
         <el-form-item label="Estado de la Cita" class="status-form-item">
-          <el-radio-group v-model="formData.estado" class="status-radio-group">
-            <el-radio
-              v-for="opt in estadoOptions"
-              :key="opt.value"
-              :value="opt.value"
-              size="large"
-              :class="['status-radio', `status-radio--${opt.value.toLowerCase()}`]"
-            >
-              <span class="status-radio-label" :style="{ color: opt.color }">
-                {{ opt.label }}
-              </span>
-            </el-radio>
-          </el-radio-group>
+          <div class="status-radio-container">
+            <el-radio-group v-model="formData.estado" class="status-radio-group" size="large">
+              <el-radio-button
+                v-for="opt in estadoOptions"
+                :key="opt.value"
+                :value="opt.value"
+                :class="['status-radio-btn', `status-radio-btn--${opt.value.toLowerCase()}`]"
+              >
+                <span class="status-btn-content">
+                  <el-icon class="status-btn-icon"><component :is="opt.icon" /></el-icon>
+                  <span>{{ opt.label }}</span>
+                </span>
+              </el-radio-button>
+            </el-radio-group>
+          </div>
         </el-form-item>
+
+        <el-divider border-style="dashed">
+          <el-icon><Calendar /></el-icon>
+        </el-divider>
 
         <!-- Session selector (only when creating new) -->
         <el-form-item v-if="!isEditing" label="Sesión Fotográfica *" required>
@@ -435,52 +444,68 @@ async function handleSave() {
             />
           </el-select>
           <div v-if="excludedSessionsCount > 0" class="select-helper-notice">
-            <el-icon style="vertical-align: middle; margin-right: 4px; color: #e6a23c"><WarnTriangleFilled /></el-icon>
+            <el-icon style="vertical-align: middle; margin-right: 4px; color: #e6a23c"
+              ><WarnTriangleFilled
+            /></el-icon>
             Hay {{ excludedSessionsCount }} sesión(es) en tus hoteles no mostrada(s) porque están
             canceladas o el cliente no se presentó.
           </div>
         </el-form-item>
 
-        <!-- Date/time -->
-        <el-form-item label="Fecha y Hora de la Cita *" required>
-          <div class="desktop-picker-panel-wrapper">
-            <el-date-picker-panel
-              v-model="formData.fechaHoraCita"
-              type="datetime"
-              value-format="YYYY-MM-DDTHH:mm"
-              date-format="YYYY-MM-DD"
-              time-format="HH:mm"
-            />
-          </div>
-        </el-form-item>
-
-        <!-- Sales fields -->
+        <!-- Fila: Fecha y Hora de la Cita + Campos de Venta (form-row-2) -->
         <div class="form-row-2">
-          <el-form-item label="Nº de Fotos Vendidas *">
-            <el-input-number
-              v-model="formData.numFotosVendidas"
-              :min="0"
-              :step="1"
-              style="width: 100%"
-              placeholder="0"
-            />
+          <!-- Columna Izquierda: Selector Fecha/Hora -->
+          <el-form-item required>
+            <template #label>
+              <span class="calendar-item-label">
+                <el-icon class="calendar-label-icon icon-money"><Money /></el-icon>
+                <span>Fecha/Hora Cita de Ventas</span>
+              </span>
+            </template>
+            <div class="desktop-picker-panel-wrapper">
+              <el-date-picker-panel
+                :border="false"
+                v-model="formData.fechaHoraCita"
+                type="datetime"
+                value-format="YYYY-MM-DDTHH:mm"
+                date-format="YYYY-MM-DD"
+                time-format="HH:mm"
+              />
+            </div>
           </el-form-item>
 
-          <el-form-item label="Total en USD *">
-            <el-input-number
-              v-model="formData.totalVentaUsd"
-              :min="0"
-              :step="0.01"
-              :precision="2"
-              style="width: 100%"
-              placeholder="0.00"
-            >
-              <template #suffix>
-                <span>$ (USD)</span>
-              </template>
-            </el-input-number>
-          </el-form-item>
+          <!-- Columna Derecha: Fotos Vendidas y Total USD -->
+          <div class="sales-inputs-col">
+            <el-form-item label="Nº de Fotos Vendidas *">
+              <el-input-number
+                v-model="formData.numFotosVendidas"
+                :min="0"
+                :step="1"
+                style="width: 100%"
+                placeholder="0"
+              />
+            </el-form-item>
+
+            <el-form-item label="Total en USD *">
+              <el-input-number
+                v-model="formData.totalVentaUsd"
+                :min="0"
+                :step="0.01"
+                :precision="2"
+                style="width: 100%"
+                placeholder="0.00"
+              >
+                <template #suffix>
+                  <span>$ (USD)</span>
+                </template>
+              </el-input-number>
+            </el-form-item>
+          </div>
         </div>
+
+        <el-divider border-style="dashed">
+          <el-icon><Edit /></el-icon>
+        </el-divider>
 
         <!-- Notes -->
         <el-form-item label="Notas">
@@ -614,56 +639,118 @@ async function handleSave() {
   gap: 0.5rem;
 }
 
-.status-radio-group {
+.status-form-item :deep(.el-form-item__label) {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.status-radio-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
+  justify-content: center;
   width: 100%;
 }
 
-.status-radio {
-  margin-right: 0 !important;
+.status-radio-group {
+  display: inline-flex;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.status-radio-label {
+:deep(.status-radio-btn .el-radio-button__inner) {
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.status-btn-content {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
+  gap: 0.45rem;
 }
 
-:deep(.status-radio--programada.is-checked .el-radio__inner) {
+.status-btn-icon {
+  font-size: 1.05rem;
+}
+
+/* Colores personalizados por estado */
+:deep(.status-radio-btn--programada.is-active .el-radio-button__inner) {
+  background-color: #409eff !important;
   border-color: #409eff !important;
-  background: #409eff !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #409eff !important;
 }
-:deep(.status-radio--completada.is-checked .el-radio__inner) {
+
+:deep(.status-radio-btn--completada.is-active .el-radio-button__inner) {
+  background-color: #67c23a !important;
   border-color: #67c23a !important;
-  background: #67c23a !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #67c23a !important;
 }
-:deep(.status-radio--no_show.is-checked .el-radio__inner) {
+
+:deep(.status-radio-btn--no_show.is-active .el-radio-button__inner) {
+  background-color: #e6a23c !important;
   border-color: #e6a23c !important;
-  background: #e6a23c !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #e6a23c !important;
 }
-:deep(.status-radio--cancelada.is-checked .el-radio__inner) {
+
+:deep(.status-radio-btn--cancelada.is-active .el-radio-button__inner) {
+  background-color: #f56c6c !important;
   border-color: #f56c6c !important;
-  background: #f56c6c !important;
+  color: #ffffff !important;
+  box-shadow: -1px 0 0 0 #f56c6c !important;
 }
 
-.desktop-picker-panel-wrapper {
-  display: flex;
-  justify-content: flex-start;
-  width: 100%;
+/* Hover sin activar */
+:deep(.status-radio-btn--programada:not(.is-active) .el-radio-button__inner:hover) {
+  color: #409eff !important;
 }
-
-.desktop-picker-panel-wrapper :deep(.el-picker-panel) {
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+:deep(.status-radio-btn--completada:not(.is-active) .el-radio-button__inner:hover) {
+  color: #67c23a !important;
+}
+:deep(.status-radio-btn--no_show:not(.is-active) .el-radio-button__inner:hover) {
+  color: #e6a23c !important;
+}
+:deep(.status-radio-btn--cancelada:not(.is-active) .el-radio-button__inner:hover) {
+  color: #f56c6c !important;
 }
 
 .form-row-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.sales-inputs-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.calendar-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.calendar-label-icon {
+  font-size: 1.1rem;
+}
+
+.calendar-label-icon.icon-money {
+  color: var(--el-input-icon-color, var(--el-text-color-placeholder));
+}
+
+.desktop-picker-panel-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.desktop-picker-panel-wrapper :deep(.el-picker-panel) {
+  border-radius: 8px;
 }
 
 .form-actions {
