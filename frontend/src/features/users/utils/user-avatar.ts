@@ -1,4 +1,3 @@
-import userImg from '@/assets/users/user.png'
 import adminSvg from '@/assets/users/admin.svg'
 import agendadorSvg from '@/assets/users/agendador.svg'
 import contableSvg from '@/assets/users/contable.svg'
@@ -18,10 +17,33 @@ const svgMap: Record<string, string> = {
 }
 
 /**
- * Retorna la imagen por defecto genérica para cualquier usuario sin imagen.
+ * Genera un avatar SVG con las iniciales del usuario y el color de fondo asignado (o por defecto).
+ * @param nombre Nombre del usuario
+ * @param apellidos Apellidos del usuario
+ * @param color Color hexadecimal o CSS (ej. #3b82f6)
  */
-export function getDefaultAvatar(): string {
-  return userImg
+export function getDefaultAvatar(
+  nombre?: string | null,
+  apellidos?: string | null,
+  color?: string | null,
+): string {
+  const firstLetter = (nombre || '').trim().charAt(0).toUpperCase()
+  const secondLetter = (apellidos || '').trim().charAt(0).toUpperCase()
+  let initials = `${firstLetter}${secondLetter}`.trim()
+  if (!initials) {
+    initials = 'U'
+  }
+
+  const bgColor = color && color.trim() ? color.trim() : '#3b82f6'
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <rect width="100" height="100" fill="${bgColor}" rx="50" />
+  <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="${initials.length > 1 ? 38 : 46}" font-weight="600" letter-spacing="1">
+    ${initials}
+  </text>
+</svg>`
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 }
 
 /**

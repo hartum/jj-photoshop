@@ -34,7 +34,11 @@ const userAvatar = computed(() => {
   if (authStore.user?.imagen) {
     return authStore.user.imagen
   }
-  return getDefaultAvatar()
+  return getDefaultAvatar(
+    authStore.user?.nombre,
+    authStore.user?.apellidos,
+    authStore.user?.color,
+  )
 })
 
 const canSeeAgenda = computed(() => canAccessRoute(authStore.user?.roleCode, '/agenda'))

@@ -14,6 +14,7 @@ export interface AuthUser {
   roleName: string
   tipoContrato?: string
   imagen?: string | null
+  color?: string | null
   areaIds?: number[]
   hotelIds?: number[]
 }

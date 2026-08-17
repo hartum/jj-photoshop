@@ -111,7 +111,7 @@ const filteredUsers = computed(() => {
 
 function getUserAvatar(user: UserWithProfile): string {
   if (user.imagen) return user.imagen
-  return getDefaultAvatar()
+  return getDefaultAvatar(user.nombre, user.apellidos, user.color)
 }
 
 // Navigation Handlers

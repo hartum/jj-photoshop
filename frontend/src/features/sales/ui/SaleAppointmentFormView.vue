@@ -125,7 +125,15 @@ const photographerUser = computed(() => {
 })
 
 const photographerAvatar = computed(() => {
-  return photographerUser.value?.imagen || getDefaultAvatar()
+  if (!photographerUser.value) return getDefaultAvatar()
+  return (
+    photographerUser.value.imagen ||
+    getDefaultAvatar(
+      photographerUser.value.nombre,
+      photographerUser.value.apellidos,
+      photographerUser.value.color,
+    )
+  )
 })
 
 const photographerName = computed(() => {
@@ -156,7 +164,7 @@ const sellers = computed(() => {
         nombre: u.nombre,
         apellidos: u.apellidos,
         perfilNombre: perfil?.name || perfil?.code || 'Vendedor',
-        avatar: u.imagen || getDefaultAvatar(),
+        avatar: u.imagen || getDefaultAvatar(u.nombre, u.apellidos, u.color),
       }
     })
 })

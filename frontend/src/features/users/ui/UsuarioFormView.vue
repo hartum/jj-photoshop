@@ -226,7 +226,11 @@ const displayAvatar = computed(() => {
   if (formData.value.imagen) {
     return formData.value.imagen
   }
-  return getDefaultAvatar()
+  return getDefaultAvatar(
+    formData.value.nombre,
+    formData.value.apellidos,
+    isFotografo.value ? formData.value.color : null,
+  )
 })
 
 onMounted(async () => {

@@ -24,7 +24,7 @@ const goalStore = useGoalStore()
 
 function getUserAvatar(user: UserWithProfile): string {
   if (user.imagen) return user.imagen
-  return getDefaultAvatar()
+  return getDefaultAvatar(user.nombre, user.apellidos, user.color)
 }
 
 const now = new Date()
