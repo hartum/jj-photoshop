@@ -42,7 +42,12 @@ const loadedSession = ref<SesionFotografica | null>(null)
 const fechaHoraCitaVenta = ref('')
 const conflictsCitaVenta = ref<ConflictoCitaVenta[]>([])
 
-const estadoSesionOptions: { value: EstadoSesion; label: string; color: string; icon: Component }[] = [
+const estadoSesionOptions: {
+  value: EstadoSesion
+  label: string
+  color: string
+  icon: Component
+}[] = [
   { value: 'PROGRAMADA', label: 'Programada', color: '#409eff', icon: Calendar },
   { value: 'NO_SHOW', label: 'No se presentó', color: '#e6a23c', icon: UserX },
   { value: 'CANCELADA', label: 'Cancelada', color: '#f56c6c', icon: Close },
@@ -246,10 +251,15 @@ onMounted(async () => {
     const existing = await sessionStore.fetchSession(Number(sessionId.value))
     if (existing) {
       const roleCode = currentUser.value?.roleCode?.toUpperCase()
-      const isGlobalAccess = roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'CONTABLE'
+      const isGlobalAccess =
+        roleCode === 'SUPERUSUARIO' || roleCode === 'ADMIN' || roleCode === 'CONTABLE'
       const allowedHotelIds = new Set(userHotels.value.map((h) => Number(h.id)))
 
-      if (!isGlobalAccess && userHotels.value.length > 0 && !allowedHotelIds.has(Number(existing.hotelId))) {
+      if (
+        !isGlobalAccess &&
+        userHotels.value.length > 0 &&
+        !allowedHotelIds.has(Number(existing.hotelId))
+      ) {
         ElMessage.error('No tienes acceso a las sesiones fotográficas de este hotel')
         handleGoBack()
         return
@@ -483,7 +493,8 @@ async function handleSaveSession() {
 
     <!-- Read-only lock banner -->
     <el-alert v-if="isReadOnly" type="warning" :closable="false" show-icon class="lock-banner">
-      Esta sesión no está en estado programada. Para editarla contacta con tu supervisor o gerente de area.
+      Esta sesión no está en estado programada. Para editarla contacta con tu supervisor o gerente
+      de area.
     </el-alert>
 
     <!-- Card Principal del Formulario -->
@@ -652,7 +663,17 @@ async function handleSaveSession() {
             <template #label>
               <span class="calendar-item-label">
                 <el-icon class="calendar-label-icon icon-money"><Money /></el-icon>
-                <span>Fecha/Hora Cita de Ventas</span>
+                <el-button
+                  v-if="loadedSession?.citaVenta?.id"
+                  text
+                  type="primary"
+                  :disabled="false"
+                  class="calendar-label-btn"
+                  @click="router.push(`/ventas/${loadedSession?.citaVenta?.id}/editar`)"
+                >
+                  Fecha/Hora Cita de Ventas
+                </el-button>
+                <span v-else>Fecha/Hora Cita de Ventas</span>
               </span>
             </template>
             <!-- Selector para Móvil (vue-ios-style-datepicker) -->

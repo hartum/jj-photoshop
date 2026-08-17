@@ -424,9 +424,19 @@ async function handleSave() {
     <!-- Session Reference Card (read-only) -->
     <el-card v-if="sessionInfo.clienteNombre" class="session-ref-card" shadow="never">
       <template #header>
-        <span class="ref-card-title">
-          <el-icon :size="24"><Camera /></el-icon> Sesión Fotográfica Asociada
-        </span>
+        <div class="ref-card-header">
+          <span class="ref-card-title">
+            <el-icon :size="24"><Camera /></el-icon> Sesión Fotográfica Asociada
+          </span>
+          <el-button
+            v-if="formData.sesionId"
+            type="primary"
+            size="small"
+            @click="router.push(`/agenda/${formData.sesionId}/editar`)"
+          >
+            Ver sesión
+          </el-button>
+        </div>
       </template>
       <div class="ref-grid">
         <div class="ref-item">
@@ -697,6 +707,13 @@ async function handleSave() {
   margin-bottom: 1rem;
   border-radius: var(--el-card-border-radius, 8px);
   border: 1px solid var(--toolbar-border, #e2e8f0);
+}
+
+.ref-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
 .ref-card-title {
