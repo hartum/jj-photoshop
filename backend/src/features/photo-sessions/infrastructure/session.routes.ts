@@ -3,10 +3,16 @@ import { prisma } from '../../../shared/db.js'
 
 function parseLocalDateTime(dateStr: string): Date {
   if (!dateStr) return new Date()
-  const cleanStr = dateStr.replace(' ', 'T').slice(0, 19)
+  let cleanStr = dateStr.replace(' ', 'T').trim()
+  if (cleanStr.length === 10) {
+    cleanStr = `${cleanStr}T00:00:00`
+  } else if (cleanStr.length === 16) {
+    cleanStr = `${cleanStr}:00`
+  }
   const hasTimezone = cleanStr.includes('Z') || /[+-]\d{2}:\d{2}$/.test(cleanStr)
-  const isoStr = hasTimezone ? cleanStr : `${cleanStr}:00Z`.replace(':00:00Z', ':00Z')
-  return new Date(isoStr)
+  const isoStr = hasTimezone ? cleanStr : `${cleanStr}Z`
+  const d = new Date(isoStr)
+  return isNaN(d.getTime()) ? new Date(dateStr) : d
 }
 
 function getAuthUserId(request: any): string | null {
@@ -357,6 +363,34 @@ export async function sessionRoutes(fastify: FastifyInstance) {
             details: avail,
           })
         }
+
+        // Validar disponibilidad individual del fotógrafo asignado
+        if (fotografoId) {
+          const targetDateOnly = parseDateOnly(fechaHoraInicioDate.toISOString().slice(0, 10))
+          const ausencia = await prisma.calendarioLaboralFotografo.findFirst({
+            where: {
+              usuarioId: fotografoId,
+              fechaInicio: { lte: targetDateOnly },
+              fechaFin: { gte: targetDateOnly },
+            },
+            include: {
+              usuario: {
+                select: { nombre: true, apellidos: true },
+              },
+            },
+          })
+
+          if (ausencia) {
+            const nombreFotografo = ausencia.usuario
+              ? `${ausencia.usuario.nombre} ${ausencia.usuario.apellidos}`.trim()
+              : 'El fotógrafo seleccionado'
+            const motivoTxt = ausencia.motivo || 'Ausencia'
+            return reply.status(409).send({
+              error: `${nombreFotografo} no está disponible en la fecha seleccionada (${motivoTxt}).`,
+              ausencia,
+            })
+          }
+        }
       }
 
       const nueva = await prisma.sesionFotografica.create({
@@ -472,6 +506,36 @@ export async function sessionRoutes(fastify: FastifyInstance) {
             error: `Tope de sesiones simultáneas alcanzado: ya hay ${avail.sesionesSimultaneas} sesión/es programada/s para esa hora y solo hay ${avail.disponibles} fotógrafo/s disponible/s.`,
             details: avail,
           })
+        }
+
+        // Validar disponibilidad individual del fotógrafo asignado
+        const targetFotografoId =
+          body.fotografoId !== undefined ? body.fotografoId : existing.fotografoId
+        if (targetFotografoId) {
+          const targetDateOnly = parseDateOnly(targetFechaInicio.toISOString().slice(0, 10))
+          const ausencia = await prisma.calendarioLaboralFotografo.findFirst({
+            where: {
+              usuarioId: targetFotografoId,
+              fechaInicio: { lte: targetDateOnly },
+              fechaFin: { gte: targetDateOnly },
+            },
+            include: {
+              usuario: {
+                select: { nombre: true, apellidos: true },
+              },
+            },
+          })
+
+          if (ausencia) {
+            const nombreFotografo = ausencia.usuario
+              ? `${ausencia.usuario.nombre} ${ausencia.usuario.apellidos}`.trim()
+              : 'El fotógrafo seleccionado'
+            const motivoTxt = ausencia.motivo || 'Ausencia'
+            return reply.status(409).send({
+              error: `${nombreFotografo} no está disponible en la fecha seleccionada (${motivoTxt}).`,
+              ausencia,
+            })
+          }
         }
       }
 

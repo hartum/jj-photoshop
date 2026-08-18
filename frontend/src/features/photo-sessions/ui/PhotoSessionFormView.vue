@@ -7,8 +7,10 @@ import { useHotelStore } from '@/features/hotels/stores/hotel.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
+import { useCalendarioLaboralStore } from '@/features/users/stores/calendario-laboral.store'
 import type { CreateSesionPayload, EstadoSesion, SesionFotografica } from '../domain/session.model'
 import type { ConflictoCitaVenta } from '@/features/sales/domain/sale.model'
+import type { CalendarioLaboralFotografo } from '@/features/users/domain/calendario-laboral.model'
 import {
   User,
   Message,
@@ -34,6 +36,7 @@ const hotelStore = useHotelStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
+const calendarioLaboralStore = useCalendarioLaboralStore()
 
 const sessionId = computed(() => route.params.id as string | undefined)
 const isEditing = computed(() => !!sessionId.value)
@@ -144,8 +147,8 @@ const isCheckingDisponibilidad = ref(false)
 
 async function checkDisponibilidad() {
   const hotelId = Number(formData.value.hotelId)
-  const fecha = formData.value.fechaHoraInicio
-  if (!hotelId || !fecha) {
+  const fecha = formData.value.fechaHoraInicio?.trim()
+  if (!hotelId || !fecha || fecha.length < 10) {
     disponibilidadHotel.value = null
     return
   }
@@ -182,6 +185,7 @@ watch(
 
 const isTopeAlcanzado = computed(() => {
   if (formData.value.estado !== 'PROGRAMADA') return false
+  if (!formData.value.fechaHoraInicio?.trim()) return false
   if (!disponibilidadHotel.value) return false
   return disponibilidadHotel.value.topeAlcanzado || disponibilidadHotel.value.disponibles === 0
 })
@@ -236,6 +240,82 @@ watch(
     }
   },
 )
+
+// Ausencias laborales del fotógrafo seleccionado
+const fotografoAusencias = ref<CalendarioLaboralFotografo[]>([])
+
+watch(
+  () => formData.value.fotografoId,
+  async (newFotografoId) => {
+    if (!newFotografoId) {
+      fotografoAusencias.value = []
+      return
+    }
+    try {
+      await calendarioLaboralStore.fetchRegistros(newFotografoId)
+      fotografoAusencias.value = [...calendarioLaboralStore.registros]
+    } catch (err) {
+      console.warn('Error al obtener ausencias del fotógrafo:', err)
+      fotografoAusencias.value = []
+    }
+  },
+  { immediate: true },
+)
+
+const selectedPhotographerName = computed(() => {
+  if (!formData.value.fotografoId) return ''
+  const p = photographers.value.find((x) => String(x.id) === String(formData.value.fotografoId))
+  return p ? `${p.nombre} ${p.apellidos}`.trim() : 'El fotógrafo'
+})
+
+const ausenciaFotografoActual = computed<CalendarioLaboralFotografo | null>(() => {
+  const fotografoId = formData.value.fotografoId
+  const fecha = formData.value.fechaHoraInicio?.trim()
+  if (!fotografoId || !fecha || fecha.length < 10) return null
+  const dateStr = fecha.slice(0, 10)
+
+  const match = fotografoAusencias.value.find(
+    (a) => dateStr >= a.fechaInicio && dateStr <= a.fechaFin,
+  )
+  return match || null
+})
+
+const isFotografoAusente = computed(() => {
+  if (formData.value.estado !== 'PROGRAMADA') return false
+  if (!formData.value.fechaHoraInicio?.trim()) return false
+  return !!ausenciaFotografoActual.value
+})
+
+function formatDateDisplay(dateStr: string): string {
+  if (!dateStr) return ''
+  const parts = dateStr.slice(0, 10).split('-')
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+  return dateStr
+}
+
+function formatDateIso(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getFotografoCellClassName(cellDate: Date): string {
+  if (!formData.value.fotografoId || !fotografoAusencias.value.length) return ''
+  const cellIso = formatDateIso(cellDate)
+
+  for (const reg of fotografoAusencias.value) {
+    if (cellIso >= reg.fechaInicio && cellIso <= reg.fechaFin) {
+      if (reg.motivo === 'BAJA') return 'cell-highlight-baja'
+      if (reg.motivo === 'VACACIONES') return 'cell-highlight-vacaciones'
+      if (reg.motivo === 'PERMISO') return 'cell-highlight-permiso'
+      return 'cell-highlight-otro'
+    }
+  }
+  return ''
+}
 
 // Mobile detection state
 const isMobile = ref(false)
@@ -374,19 +454,13 @@ onMounted(async () => {
       }
     }
 
-    // Prefill start date/time if provided in query
+    // Prefill start date/time only if explicitly provided with time in route query (e.g. from calendar slot click)
     const queryStart = route.query.start ? String(route.query.start) : ''
-
-    const getLocalIsoString = (d: Date) => {
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      const hours = String(d.getHours()).padStart(2, '0')
-      const minutes = String(d.getMinutes()).padStart(2, '0')
-      return `${year}-${month}-${day}T${hours}:${minutes}`
+    if (queryStart && queryStart.includes('T') && queryStart.length >= 16) {
+      formData.value.fechaHoraInicio = queryStart.slice(0, 16)
+    } else {
+      formData.value.fechaHoraInicio = ''
     }
-
-    formData.value.fechaHoraInicio = queryStart || getLocalIsoString(new Date(Date.now() + 3600000))
   }
 })
 
@@ -421,6 +495,17 @@ async function handleSaveSession() {
   if (formData.value.estado === 'PROGRAMADA' && isTopeAlcanzado.value) {
     ElMessage.error(
       'Tope alcanzado: no se pueden agendar más sesiones a esta misma hora en este hotel.',
+    )
+    return
+  }
+
+  if (
+    formData.value.estado === 'PROGRAMADA' &&
+    isFotografoAusente.value &&
+    ausenciaFotografoActual.value
+  ) {
+    ElMessage.error(
+      `${selectedPhotographerName.value} no está disponible en la fecha seleccionada (${ausenciaFotografoActual.value.motivo}).`,
     )
     return
   }
@@ -730,12 +815,42 @@ async function handleSaveSession() {
                 value-format="YYYY-MM-DDTHH:mm"
                 date-format="YYYY-MM-DD"
                 time-format="HH:mm"
+                :cell-class-name="getFotografoCellClassName"
               />
+              <!-- Leyenda de colores de ausencias del fotógrafo seleccionado -->
+              <div
+                v-if="formData.fotografoId && fotografoAusencias.length > 0"
+                class="fotografo-absence-legend"
+              >
+                <span class="legend-label">Ausencias de {{ selectedPhotographerName }}:</span>
+                <div class="legend-tags">
+                  <span class="legend-tag"><i class="dot dot-baja"></i> Baja médica</span>
+                  <span class="legend-tag"><i class="dot dot-vacaciones"></i> Vacaciones</span>
+                  <span class="legend-tag"><i class="dot dot-permiso"></i> Permiso / Otro</span>
+                </div>
+              </div>
             </div>
+
+            <!-- Alerta de Bloqueo por Ausencia Individual del Fotógrafo -->
+            <el-alert
+              v-if="formData.fechaHoraInicio && isFotografoAusente && ausenciaFotografoActual"
+              type="error"
+              show-icon
+              :closable="false"
+              class="fotografo-absence-alert"
+            >
+              <template #title>
+                <span>
+                  <strong>{{ selectedPhotographerName }}</strong> tiene una ausencia registrada
+                  (<strong>{{ ausenciaFotografoActual.motivo }}</strong>) en la fecha seleccionada.
+                  No es posible asignarlo a esta sesión.
+                </span>
+              </template>
+            </el-alert>
 
             <!-- Indicador de Disponibilidad y Cupo -->
             <div
-              v-if="disponibilidadHotel"
+              v-if="formData.fechaHoraInicio && disponibilidadHotel"
               class="disponibilidad-indicator-card"
               :class="{ 'quota-full': isTopeAlcanzado }"
             >
@@ -913,7 +1028,7 @@ async function handleSaveSession() {
             :size="isMobile ? 'large' : 'default'"
             :icon="Check"
             :loading="isSaving"
-            :disabled="isReadOnly || isTopeAlcanzado"
+            :disabled="isReadOnly || isTopeAlcanzado || isFotografoAusente"
             @click="handleSaveSession"
           >
             {{ isEditing ? 'Guardar Cambios' : 'Agendar Sesión' }}
@@ -1132,7 +1247,8 @@ async function handleSaveSession() {
 }
 .desktop-picker-panel-wrapper {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
 }
 
@@ -1203,6 +1319,61 @@ async function handleSaveSession() {
   margin-top: 0.25rem;
 }
 
+.fotografo-absence-alert {
+  margin-top: 0.75rem;
+  border-radius: 6px;
+}
+
+.fotografo-absence-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  background: var(--el-fill-color-lighter, #f8fafc);
+  border: 1px dashed var(--el-border-color-lighter, #e2e8f0);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.legend-label {
+  font-weight: 600;
+  color: var(--el-text-color-regular, #475569);
+}
+
+.legend-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.legend-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--el-text-color-secondary, #64748b);
+}
+
+.legend-tag .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-tag .dot-baja {
+  background-color: #ef4444;
+}
+
+.legend-tag .dot-vacaciones {
+  background-color: #3b82f6;
+}
+
+.legend-tag .dot-permiso {
+  background-color: #f59e0b;
+}
+
 @media (max-width: 768px) {
   .session-form-container {
     padding: 1rem;
@@ -1223,5 +1394,51 @@ async function handleSaveSession() {
     width: 100%;
     margin-left: 0 !important;
   }
+}
+</style>
+
+<style>
+/* Global CSS for DatePickerPanel highlighted absence cells in PhotoSessionFormView */
+.el-date-table td.cell-highlight-baja .el-date-table-cell {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  color: #b91c1c !important;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.el-date-table td.cell-highlight-vacaciones .el-date-table-cell {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  color: #1d4ed8 !important;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.el-date-table td.cell-highlight-permiso .el-date-table-cell {
+  background-color: rgba(245, 158, 11, 0.2) !important;
+  color: #b45309 !important;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.el-date-table td.cell-highlight-otro .el-date-table-cell {
+  background-color: rgba(148, 163, 184, 0.2) !important;
+  color: #334155 !important;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+html.dark .el-date-table td.cell-highlight-baja .el-date-table-cell {
+  background-color: rgba(239, 68, 68, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+html.dark .el-date-table td.cell-highlight-vacaciones .el-date-table-cell {
+  background-color: rgba(59, 130, 246, 0.35) !important;
+  color: #93c5fd !important;
+}
+
+html.dark .el-date-table td.cell-highlight-permiso .el-date-table-cell {
+  background-color: rgba(245, 158, 11, 0.35) !important;
+  color: #fde68a !important;
 }
 </style>
