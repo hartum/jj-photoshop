@@ -24,6 +24,7 @@ import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { getRolePermissions, canEditUser, type RoleCode } from '@/shared/permissions'
 import { Cropper, CircleStencil } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
+import CalendarioLaboral from './CalendarioLaboral.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +39,7 @@ const isEditing = computed(() => !!userId.value)
 const isSelfEditing = computed(() => isEditing.value && userId.value === currentUser.value?.id)
 
 const isSaving = ref(false)
+const activeTab = ref<'datos' | 'calendario'>('datos')
 
 // Ref para cropper dialog y file input
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -454,247 +456,279 @@ async function handleSave() {
         </div>
       </el-form-item>
 
-      <el-form-item label="Nombre" required>
-        <el-input v-model="formData.nombre" placeholder="Ej. Juan" />
-      </el-form-item>
+      <!-- Tabs de Datos y Calendario Laboral -->
+      <el-tabs v-model="activeTab" type="card" class="user-form-tabs">
+        <el-tab-pane label="Datos del Usuario" name="datos">
+          <div class="tab-pane-content">
+            <el-form-item label="Nombre" required>
+              <el-input v-model="formData.nombre" placeholder="Ej. Juan" />
+            </el-form-item>
 
-      <el-form-item label="Apellidos" required>
-        <el-input v-model="formData.apellidos" placeholder="Ej. Pérez" />
-      </el-form-item>
+            <el-form-item label="Apellidos" required>
+              <el-input v-model="formData.apellidos" placeholder="Ej. Pérez" />
+            </el-form-item>
 
-      <el-form-item :label="isEditing ? 'Contraseña' : 'Contraseña *'" :required="!isEditing">
-        <el-input
-          v-model="formData.password"
-          type="password"
-          show-password
-          :placeholder="isEditing ? 'Dejar en blanco para no cambiar' : '••••••••'"
-        />
-      </el-form-item>
+            <el-form-item :label="isEditing ? 'Contraseña' : 'Contraseña *'" :required="!isEditing">
+              <el-input
+                v-model="formData.password"
+                type="password"
+                show-password
+                :placeholder="isEditing ? 'Dejar en blanco para no cambiar' : '••••••••'"
+              />
+            </el-form-item>
 
-      <el-form-item label="Email" required>
-        <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
-      </el-form-item>
+            <el-form-item label="Email" required>
+              <el-input v-model="formData.email" placeholder="juan@ejemplo.es" />
+            </el-form-item>
 
-      <el-form-item label="Teléfono">
-        <el-input v-model="formData.telefono" placeholder="+34 600 000 000" />
-      </el-form-item>
+            <el-form-item label="Teléfono">
+              <el-input v-model="formData.telefono" placeholder="+34 600 000 000" />
+            </el-form-item>
 
-      <el-form-item label="Perfil / Rol" required>
-        <span v-if="isSelfEditingProfileReadonly" class="read-only-profile-text">
-          {{ selectedProfile?.name }}
-        </span>
-        <el-select
-          v-else
-          v-model="formData.profileId"
-          placeholder="Selecciona un perfil"
-          style="width: 100%"
-        >
-          <el-option
-            v-for="profile in assignableProfiles"
-            :key="profile.id"
-            :label="profile.name"
-            :value="profile.id"
-          >
-            <div class="profile-option">
-              <span class="profile-option-name">{{ profile.name }}</span>
-              <small class="profile-option-desc">{{ profile.description }}</small>
-            </div>
-          </el-option>
-        </el-select>
-      </el-form-item>
-
-      <el-form-item v-if="isFotografo" label="Color asignado">
-        <div style="display: flex; align-items: center; gap: 12px">
-          <el-color-picker v-model="formData.color" />
-          <span
-            v-if="formData.color"
-            style="font-size: 0.9rem; font-weight: 500; font-family: monospace"
-          >
-            {{ formData.color }}
-          </span>
-          <span v-else style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
-            Sin color asignado
-          </span>
-        </div>
-      </el-form-item>
-
-      <!-- Asignaciones de accesos por Rol -->
-      <template v-if="isGerente">
-        <el-form-item label="Áreas asignadas">
-          <small class="assignment-hint">
-            El gerente estará a cargo de las áreas seleccionadas y todos los hoteles dentro de las
-            mismas.
-          </small>
-          <div v-if="isSelfEditing" class="assigned-tags-container">
-            <el-tag
-              v-for="area in assignedAreaNames"
-              :key="area.id"
-              type="warning"
-              effect="light"
-              size="large"
-            >
-              <el-icon style="margin-right: 4px; vertical-align: middle"><Location /></el-icon>
-              <span>{{ area.nombre }} ({{ area.paisNombre }})</span>
-            </el-tag>
-            <span v-if="assignedAreaNames.length === 0" class="empty-hint"
-              >Sin áreas asignadas</span
-            >
-          </div>
-          <el-select
-            v-else
-            v-model="formData.areaIds"
-            multiple
-            filterable
-            placeholder="Selecciona una o varias áreas"
-            style="width: 100%"
-            popper-class="custom-group-select-dropdown"
-          >
-            <el-option-group
-              v-for="pais in availableCountriesForAreaSelect"
-              :key="pais.id"
-              :label="`${pais.nombre} (${pais.codigo})`"
-            >
-              <el-option
-                v-for="area in pais.areas || []"
-                :key="area.id"
-                :label="area.nombre"
-                :value="area.id"
-                :disabled="assignedAreaIdsByOtherGerentes.has(area.id)"
+            <el-form-item label="Perfil / Rol" required>
+              <span v-if="isSelfEditingProfileReadonly" class="read-only-profile-text">
+                {{ selectedProfile?.name }}
+              </span>
+              <el-select
+                v-else
+                v-model="formData.profileId"
+                placeholder="Selecciona un perfil"
+                style="width: 100%"
               >
-                <div class="option-item-content">
-                  <el-icon class="area-option-icon"><Location /></el-icon>
-                  <span>{{ area.nombre }}</span>
-                  <small v-if="assignedAreaIdsByOtherGerentes.has(area.id)" class="disabled-label">
-                    (Asignada a otro gerente)
-                  </small>
+                <el-option
+                  v-for="profile in assignableProfiles"
+                  :key="profile.id"
+                  :label="profile.name"
+                  :value="profile.id"
+                >
+                  <div class="profile-option">
+                    <span class="profile-option-name">{{ profile.name }}</span>
+                    <small class="profile-option-desc">{{ profile.description }}</small>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item v-if="isFotografo" label="Color asignado">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <el-color-picker v-model="formData.color" />
+                <span
+                  v-if="formData.color"
+                  style="font-size: 0.9rem; font-weight: 500; font-family: monospace"
+                >
+                  {{ formData.color }}
+                </span>
+                <span v-else style="font-size: 0.85rem; color: var(--el-text-color-secondary)">
+                  Sin color asignado
+                </span>
+              </div>
+            </el-form-item>
+
+            <!-- Asignaciones de accesos por Rol -->
+            <template v-if="isGerente">
+              <el-form-item label="Áreas asignadas">
+                <small class="assignment-hint">
+                  El gerente estará a cargo de las áreas seleccionadas y todos los hoteles dentro de
+                  las mismas.
+                </small>
+                <div v-if="isSelfEditing" class="assigned-tags-container">
+                  <el-tag
+                    v-for="area in assignedAreaNames"
+                    :key="area.id"
+                    type="warning"
+                    effect="light"
+                    size="large"
+                  >
+                    <el-icon style="margin-right: 4px; vertical-align: middle"
+                      ><Location
+                    /></el-icon>
+                    <span>{{ area.nombre }} ({{ area.paisNombre }})</span>
+                  </el-tag>
+                  <span v-if="assignedAreaNames.length === 0" class="empty-hint"
+                    >Sin áreas asignadas</span
+                  >
                 </div>
-              </el-option>
-            </el-option-group>
-          </el-select>
-        </el-form-item>
-      </template>
-
-      <template v-else-if="isSupervisorOrFotografo">
-        <el-form-item label="Hoteles asignados">
-          <small class="assignment-hint">
-            Indica los hoteles sobre los que este
-            {{ selectedRoleCode === 'SUPERVISOR' ? 'supervisor' : 'fotógrafo' }} podrá gestionar u
-            operar.
-          </small>
-          <div
-            v-if="isSelfEditing && selectedRoleCode === 'SUPERVISOR'"
-            class="assigned-tags-container"
-          >
-            <el-tag
-              v-for="hotel in assignedHotelNames"
-              :key="hotel.id"
-              type="info"
-              effect="light"
-              size="large"
-            >
-              <el-icon style="margin-right: 4px; vertical-align: middle"
-                ><Building2 :size="16"
-              /></el-icon>
-              <span>{{ hotel.nombre }} ({{ hotel.paisNombre }} — {{ hotel.areaNombre }})</span>
-            </el-tag>
-            <span v-if="assignedHotelNames.length === 0" class="empty-hint"
-              >Sin hoteles asignados</span
-            >
-          </div>
-
-          <el-select
-            v-else
-            v-model="formData.hotelIds"
-            multiple
-            filterable
-            placeholder="Selecciona uno o varios hoteles"
-            style="width: 100%"
-            popper-class="custom-group-select-dropdown"
-          >
-            <el-option-group
-              v-for="pais in availableCountriesForHotelSelect"
-              :key="pais.id"
-              :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
-            >
-              <template v-for="area in pais.areas || []" :key="area.id">
-                <!-- Item no seleccionable por cada Área -->
-                <el-option
-                  :value="`area-${area.id}`"
-                  :label="area.nombre"
-                  disabled
-                  class="area-header-option"
+                <el-select
+                  v-else
+                  v-model="formData.areaIds"
+                  multiple
+                  filterable
+                  placeholder="Selecciona una o varias áreas"
+                  style="width: 100%"
+                  popper-class="custom-group-select-dropdown"
                 >
-                  <div class="area-option-header">
-                    <el-icon :size="18" class="area-icon"><Location /></el-icon>
-                    <span class="area-title">{{ area.nombre }}</span>
-                  </div>
-                </el-option>
-
-                <!-- Hoteles pertenecientes a este área -->
-                <el-option
-                  v-for="hotel in area.hoteles || []"
-                  :key="hotel.id"
-                  :label="`${hotel.nombre} (${area.nombre})`"
-                  :value="hotel.id"
-                  class="hotel-sub-option"
-                  :disabled="
-                    selectedRoleCode === 'SUPERVISOR' &&
-                    assignedHotelIdsByOtherSupervisores.has(hotel.id)
-                  "
-                >
-                  <div class="option-item-content hotel-option-item">
-                    <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
-                    <span class="hotel-name">{{ hotel.nombre }}</span>
-                    <small
-                      v-if="
-                        selectedRoleCode === 'SUPERVISOR' &&
-                        assignedHotelIdsByOtherSupervisores.has(hotel.id)
-                      "
-                      class="disabled-label"
+                  <el-option-group
+                    v-for="pais in availableCountriesForAreaSelect"
+                    :key="pais.id"
+                    :label="`${pais.nombre} (${pais.codigo})`"
+                  >
+                    <el-option
+                      v-for="area in pais.areas || []"
+                      :key="area.id"
+                      :label="area.nombre"
+                      :value="area.id"
+                      :disabled="assignedAreaIdsByOtherGerentes.has(area.id)"
                     >
-                      (Asignado a otro supervisor)
-                    </small>
-                  </div>
-                </el-option>
-              </template>
-            </el-option-group>
-          </el-select>
-        </el-form-item>
-      </template>
+                      <div class="option-item-content">
+                        <el-icon class="area-option-icon"><Location /></el-icon>
+                        <span>{{ area.nombre }}</span>
+                        <small
+                          v-if="assignedAreaIdsByOtherGerentes.has(area.id)"
+                          class="disabled-label"
+                        >
+                          (Asignada a otro gerente)
+                        </small>
+                      </div>
+                    </el-option>
+                  </el-option-group>
+                </el-select>
+              </el-form-item>
+            </template>
 
-      <template v-else-if="isGlobalAccess">
-        <el-form-item label="Alcance">
-          <el-alert
-            type="info"
-            :closable="false"
-            show-icon
-            title="Acceso Global"
-            description="Este usuario tendrá visibilidad y acceso total sobre todos los países, áreas y hoteles del sistema."
-          />
-        </el-form-item>
-      </template>
+            <template v-else-if="isSupervisorOrFotografo">
+              <el-form-item label="Hoteles asignados">
+                <small class="assignment-hint">
+                  Indica los hoteles sobre los que este
+                  {{ selectedRoleCode === 'SUPERVISOR' ? 'supervisor' : 'fotógrafo' }} podrá
+                  gestionar u operar.
+                </small>
+                <div
+                  v-if="isSelfEditing && selectedRoleCode === 'SUPERVISOR'"
+                  class="assigned-tags-container"
+                >
+                  <el-tag
+                    v-for="hotel in assignedHotelNames"
+                    :key="hotel.id"
+                    type="info"
+                    effect="light"
+                    size="large"
+                  >
+                    <el-icon style="margin-right: 4px; vertical-align: middle"
+                      ><Building2 :size="16"
+                    /></el-icon>
+                    <span
+                      >{{ hotel.nombre }} ({{ hotel.paisNombre }} — {{ hotel.areaNombre }})</span
+                    >
+                  </el-tag>
+                  <span v-if="assignedHotelNames.length === 0" class="empty-hint"
+                    >Sin hoteles asignados</span
+                  >
+                </div>
 
-      <el-form-item label="Tipo Contrato">
-        <el-switch
-          v-model="formData.tipoContrato"
-          active-value="ASALARIADO"
-          inactive-value="SIN_SALARIO"
-          active-text="Contratado"
-          inactive-text="Freelance"
-        />
-        <small class="assignment-hint"> &nbsp; *Necesario para calcular tipo comisión </small>
-      </el-form-item>
+                <el-select
+                  v-else
+                  v-model="formData.hotelIds"
+                  multiple
+                  filterable
+                  placeholder="Selecciona uno o varios hoteles"
+                  style="width: 100%"
+                  popper-class="custom-group-select-dropdown"
+                >
+                  <el-option-group
+                    v-for="pais in availableCountriesForHotelSelect"
+                    :key="pais.id"
+                    :label="pais.codigo ? `${pais.nombre} (${pais.codigo})` : pais.nombre"
+                  >
+                    <template v-for="area in pais.areas || []" :key="area.id">
+                      <!-- Item no seleccionable por cada Área -->
+                      <el-option
+                        :value="`area-${area.id}`"
+                        :label="area.nombre"
+                        disabled
+                        class="area-header-option"
+                      >
+                        <div class="area-option-header">
+                          <el-icon :size="18" class="area-icon"><Location /></el-icon>
+                          <span class="area-title">{{ area.nombre }}</span>
+                        </div>
+                      </el-option>
 
-      <el-form-item v-if="!isStatusDisabled" label="Estado">
-        <el-switch v-model="isActivo" active-text="Activo" inactive-text="Inactivo" />
-      </el-form-item>
+                      <!-- Hoteles pertenecientes a este área -->
+                      <el-option
+                        v-for="hotel in area.hoteles || []"
+                        :key="hotel.id"
+                        :label="`${hotel.nombre} (${area.nombre})`"
+                        :value="hotel.id"
+                        class="hotel-sub-option"
+                        :disabled="
+                          selectedRoleCode === 'SUPERVISOR' &&
+                          assignedHotelIdsByOtherSupervisores.has(hotel.id)
+                        "
+                      >
+                        <div class="option-item-content hotel-option-item">
+                          <el-icon :size="18" class="hotel-option-icon"><Building2 /></el-icon>
+                          <span class="hotel-name">{{ hotel.nombre }}</span>
+                          <small
+                            v-if="
+                              selectedRoleCode === 'SUPERVISOR' &&
+                              assignedHotelIdsByOtherSupervisores.has(hotel.id)
+                            "
+                            class="disabled-label"
+                          >
+                            (Asignado a otro supervisor)
+                          </small>
+                        </div>
+                      </el-option>
+                    </template>
+                  </el-option-group>
+                </el-select>
+              </el-form-item>
+            </template>
 
-      <el-form-item class="form-actions-item">
-        <el-button type="primary" :icon="Check" :loading="isSaving" @click="handleSave">
-          {{ isEditing ? 'Guardar Cambios' : 'Crear Usuario' }}
-        </el-button>
-        <el-button :icon="Close" @click="handleCancel">Cancelar</el-button>
-      </el-form-item>
+            <template v-else-if="isGlobalAccess">
+              <el-form-item label="Alcance">
+                <el-alert
+                  type="info"
+                  :closable="false"
+                  show-icon
+                  title="Acceso Global"
+                  description="Este usuario tendrá visibilidad y acceso total sobre todos los países, áreas y hoteles del sistema."
+                />
+              </el-form-item>
+            </template>
+
+            <el-form-item label="Tipo Contrato">
+              <el-switch
+                v-model="formData.tipoContrato"
+                active-value="ASALARIADO"
+                inactive-value="SIN_SALARIO"
+                active-text="Contratado"
+                inactive-text="Freelance"
+              />
+              <small class="assignment-hint"> &nbsp; *Necesario para calcular tipo comisión </small>
+            </el-form-item>
+
+            <el-form-item v-if="!isStatusDisabled" label="Estado">
+              <el-switch v-model="isActivo" active-text="Activo" inactive-text="Inactivo" />
+            </el-form-item>
+
+            <el-form-item class="form-actions-item">
+              <el-button type="primary" :icon="Check" :loading="isSaving" @click="handleSave">
+                {{ isEditing ? 'Guardar Cambios' : 'Crear Usuario' }}
+              </el-button>
+              <el-button :icon="Close" @click="handleCancel">Cancelar</el-button>
+            </el-form-item>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="Calendario Laboral" name="calendario" :disabled="!isEditing">
+          <template #label>
+            <span
+              :title="
+                !isEditing ? 'Debes guardar el usuario para gestionar su calendario laboral' : ''
+              "
+            >
+              Calendario Laboral
+            </span>
+          </template>
+          <div class="tab-pane-content">
+            <CalendarioLaboral v-if="isEditing && userId" :usuario-id="userId" />
+            <div v-else class="empty-hint" style="padding: 2.5rem; text-align: center">
+              Debes guardar el nuevo usuario antes de poder gestionar su calendario laboral.
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </el-form>
 
     <!-- Diálogo para Recorte de Imagen -->
@@ -735,7 +769,7 @@ async function handleSave() {
 <style scoped>
 .view-container {
   padding: 2rem;
-  max-width: 700px;
+  max-width: 780px;
   margin: 0 auto;
 }
 
@@ -810,6 +844,17 @@ async function handleSave() {
 
 .form-actions-item {
   margin-top: 1.5rem;
+}
+
+.user-form-tabs {
+  margin-top: 1.25rem;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tab-pane-content {
+  padding: 1rem 0.5rem 0.5rem 0.5rem;
 }
 
 .profile-option {

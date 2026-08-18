@@ -43,6 +43,7 @@ model Usuario {
   colorAsignado         UsuarioColor?
   metas                 Meta[]
   comisiones            Comision[]
+  calendarioLaboral     CalendarioLaboralFotografo[]
 
   @@map("usuarios")
 }
@@ -260,3 +261,19 @@ model Comision {
   @@unique([citaVentaId, usuarioId, rolEnVenta])
   @@map("comisiones")
 }
+
+model CalendarioLaboralFotografo {
+  id          Int       @id @default(autoincrement())
+  usuarioId   String    @map("usuario_id")
+  fechaInicio DateTime  @map("fecha_inicio") @db.Date
+  fechaFin    DateTime  @map("fecha_fin") @db.Date
+  motivo      String    @default("BAJA")
+  notas       String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("calendario_laboral_fotografo")
+}
+

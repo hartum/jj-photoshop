@@ -9,6 +9,7 @@ import { sessionRoutes } from './features/photo-sessions/infrastructure/session.
 import { saleRoutes } from './features/sales/infrastructure/sale.routes.js'
 import { goalRoutes } from './features/goals/infrastructure/goal.routes.js'
 import { commissionRoutes } from './features/commissions/infrastructure/commission.routes.js'
+import { calendarioLaboralRoutes } from './features/users/infrastructure/calendario-laboral.routes.js'
 
 const fastify = Fastify({
   logger: true,
@@ -32,6 +33,7 @@ await fastify.register(sessionRoutes)
 await fastify.register(saleRoutes)
 await fastify.register(goalRoutes)
 await fastify.register(commissionRoutes)
+await fastify.register(calendarioLaboralRoutes)
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }

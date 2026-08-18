@@ -21,7 +21,120 @@ function getAuthUserId(request: any): string | null {
   }
 }
 
+function parseDateOnly(dateStr: string): Date {
+  const parts = dateStr.slice(0, 10).split('-')
+  if (parts.length === 3) {
+    return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])))
+  }
+  return new Date(dateStr)
+}
+
+async function getHotelAvailability(
+  hotelId: number,
+  fechaHoraInicio: Date,
+  excludeSessionId?: number,
+) {
+  const dateStr = fechaHoraInicio.toISOString().slice(0, 10)
+  const targetDateOnly = parseDateOnly(dateStr)
+
+  // Fotógrafos activos asignados al hotel
+  const fotografoUsers = await prisma.usuario.findMany({
+    where: {
+      activo: true,
+      deletedAt: null,
+      role: { codigo: 'FOTOGRAFO' },
+      hotelesAsignados: { some: { hotelId } },
+    },
+    include: {
+      calendarioLaboral: {
+        where: {
+          fechaInicio: { lte: targetDateOnly },
+          fechaFin: { gte: targetDateOnly },
+        },
+      },
+    },
+  })
+
+  const fotografosDetalle = fotografoUsers.map((u) => ({
+    id: u.id,
+    nombre: `${u.nombre} ${u.apellidos}`.trim(),
+    disponible: u.calendarioLaboral.length === 0,
+    motivoAusencia: u.calendarioLaboral[0]?.motivo || null,
+  }))
+
+  const disponiblesCount = fotografosDetalle.filter((f) => f.disponible).length
+
+  // Ventana de 1 hora para sesiones simultáneas
+  // Una sesión que empieza en T colisiona con cualquier sesión en (T - 60min, T + 60min)
+  const windowStart = new Date(fechaHoraInicio.getTime() - 59 * 60 * 1000)
+  const windowEnd = new Date(fechaHoraInicio.getTime() + 59 * 60 * 1000)
+
+  const whereSimultaneas: any = {
+    hotelId,
+    estado: 'PROGRAMADA',
+    deletedAt: null,
+    fechaHoraInicio: {
+      gte: windowStart,
+      lte: windowEnd,
+    },
+  }
+
+  if (excludeSessionId) {
+    whereSimultaneas.id = { not: excludeSessionId }
+  }
+
+  const sesionesSimultaneas = await prisma.sesionFotografica.findMany({
+    where: whereSimultaneas,
+    select: {
+      id: true,
+      clienteNombre: true,
+      fechaHoraInicio: true,
+      fotografoId: true,
+    },
+  })
+
+  const simultaneasCount = sesionesSimultaneas.length
+  const cupoLibre = Math.max(0, disponiblesCount - simultaneasCount)
+  const topeAlcanzado = simultaneasCount >= disponiblesCount
+
+  return {
+    hotelId,
+    fechaHora: fechaHoraInicio.toISOString(),
+    totalFotografos: fotografoUsers.length,
+    ausentes: fotografoUsers.length - disponiblesCount,
+    disponibles: disponiblesCount,
+    sesionesSimultaneas: simultaneasCount,
+    cupoLibre,
+    topeAlcanzado,
+    fotografos: fotografosDetalle,
+  }
+}
+
 export async function sessionRoutes(fastify: FastifyInstance) {
+  // GET /api/hoteles/:id/disponibilidad (Obtener disponibilidad y cupo para una fecha/hora)
+  fastify.get('/api/hoteles/:id/disponibilidad', async (request, reply) => {
+    try {
+      const hotelId = Number((request.params as any).id)
+      const { fecha, excludeSessionId } = request.query as {
+        fecha?: string
+        excludeSessionId?: string
+      }
+
+      if (isNaN(hotelId) || !fecha) {
+        return reply.status(400).send({ error: 'Debes proporcionar hotelId y fecha válidos' })
+      }
+
+      const date = parseLocalDateTime(fecha)
+      const excludeId = excludeSessionId ? Number(excludeSessionId) : undefined
+
+      const avail = await getHotelAvailability(hotelId, date, excludeId)
+      return reply.send(avail)
+    } catch (err: unknown) {
+      fastify.log.error(err)
+      const message = err instanceof Error ? err.message : 'Error al consultar disponibilidad'
+      return reply.status(500).send({ error: message })
+    }
+  })
   // GET /api/sesiones (Obtiene las sesiones fotográficas activas)
   fastify.get('/api/sesiones', async (request, reply) => {
     try {
@@ -225,6 +338,27 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           .send({ error: 'Debes proporcionar un creadorId válido o token de usuario autenticado' })
       }
 
+      const estado = body.estado || 'PROGRAMADA'
+      const fechaHoraInicioDate = parseLocalDateTime(body.fechaHoraInicio)
+
+      // Validar tope de sesiones si se intenta programar la sesión
+      if (estado === 'PROGRAMADA') {
+        const avail = await getHotelAvailability(Number(body.hotelId), fechaHoraInicioDate)
+        if (avail.disponibles === 0) {
+          return reply.status(409).send({
+            error:
+              'No hay fotógrafos disponibles en este hotel para la fecha/hora seleccionada (todos ausentes o sin fotógrafos asignados).',
+            details: avail,
+          })
+        }
+        if (avail.topeAlcanzado) {
+          return reply.status(409).send({
+            error: `Tope de sesiones simultáneas alcanzado: ya hay ${avail.sesionesSimultaneas} sesión/es programada/s para esa hora y solo hay ${avail.disponibles} fotógrafo/s disponible/s.`,
+            details: avail,
+          })
+        }
+      }
+
       const nueva = await prisma.sesionFotografica.create({
         data: {
           hotelId: Number(body.hotelId),
@@ -238,8 +372,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           numNinos: body.numNinos !== undefined ? Number(body.numNinos) : 0,
           fechaSalida: body.fechaSalida ? new Date(body.fechaSalida) : null,
           concepto: body.concepto ? body.concepto.trim() : null,
-          fechaHoraInicio: parseLocalDateTime(body.fechaHoraInicio),
-          estado: body.estado || 'PROGRAMADA',
+          fechaHoraInicio: fechaHoraInicioDate,
+          estado: estado,
           origen: 'MANUAL',
           notas: body.notas ? body.notas.trim() : null,
         },
@@ -314,6 +448,30 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           return reply
             .status(403)
             .send({ error: 'Solo supervisores, gerentes, administradores y superusuarios pueden editar sesiones cerradas' })
+        }
+      }
+
+      const targetHotelId = body.hotelId !== undefined ? Number(body.hotelId) : existing.hotelId
+      const targetFechaInicio = body.fechaHoraInicio
+        ? parseLocalDateTime(body.fechaHoraInicio)
+        : existing.fechaHoraInicio
+      const targetEstado = body.estado || existing.estado
+
+      // Si la sesión queda como PROGRAMADA, verificar que no supere el tope
+      if (targetEstado === 'PROGRAMADA') {
+        const avail = await getHotelAvailability(targetHotelId, targetFechaInicio, id)
+        if (avail.disponibles === 0) {
+          return reply.status(409).send({
+            error:
+              'No hay fotógrafos disponibles en este hotel para la fecha/hora seleccionada (todos ausentes o sin fotógrafos asignados).',
+            details: avail,
+          })
+        }
+        if (avail.topeAlcanzado) {
+          return reply.status(409).send({
+            error: `Tope de sesiones simultáneas alcanzado: ya hay ${avail.sesionesSimultaneas} sesión/es programada/s para esa hora y solo hay ${avail.disponibles} fotógrafo/s disponible/s.`,
+            details: avail,
+          })
         }
       }
 

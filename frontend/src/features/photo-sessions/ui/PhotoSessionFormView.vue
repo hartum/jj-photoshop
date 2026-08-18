@@ -122,6 +122,70 @@ watch(
   },
 )
 
+interface HotelDisponibilidad {
+  hotelId: number
+  fechaHora: string
+  totalFotografos: number
+  ausentes: number
+  disponibles: number
+  sesionesSimultaneas: number
+  cupoLibre: number
+  topeAlcanzado: boolean
+  fotografos: {
+    id: string
+    nombre: string
+    disponible: boolean
+    motivoAusencia: string | null
+  }[]
+}
+
+const disponibilidadHotel = ref<HotelDisponibilidad | null>(null)
+const isCheckingDisponibilidad = ref(false)
+
+async function checkDisponibilidad() {
+  const hotelId = Number(formData.value.hotelId)
+  const fecha = formData.value.fechaHoraInicio
+  if (!hotelId || !fecha) {
+    disponibilidadHotel.value = null
+    return
+  }
+
+  isCheckingDisponibilidad.value = true
+  try {
+    const excludeId = isEditing.value && sessionId.value ? sessionId.value : ''
+    const url = `/api/hoteles/${hotelId}/disponibilidad?fecha=${encodeURIComponent(fecha)}${excludeId ? `&excludeSessionId=${excludeId}` : ''}`
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+      },
+    })
+    if (res.ok) {
+      disponibilidadHotel.value = await res.json()
+    } else {
+      disponibilidadHotel.value = null
+    }
+  } catch (err) {
+    console.warn('Error al verificar disponibilidad:', err)
+    disponibilidadHotel.value = null
+  } finally {
+    isCheckingDisponibilidad.value = false
+  }
+}
+
+watch(
+  [() => formData.value.hotelId, () => formData.value.fechaHoraInicio],
+  () => {
+    checkDisponibilidad()
+  },
+  { immediate: true },
+)
+
+const isTopeAlcanzado = computed(() => {
+  if (formData.value.estado !== 'PROGRAMADA') return false
+  if (!disponibilidadHotel.value) return false
+  return disponibilidadHotel.value.topeAlcanzado || disponibilidadHotel.value.disponibles === 0
+})
+
 // Current user context
 const currentUser = computed(() => authStore.user)
 
@@ -347,6 +411,17 @@ async function handleSaveSession() {
 
   if (!formData.value.fechaHoraInicio) {
     ElMessage.warning('Debes seleccionar la fecha y hora de inicio')
+    return
+  }
+
+  if (conflictsCitaVenta.value.length > 0) {
+    ElMessage.warning('Atención: Hay conflictos de horario con otras citas de venta')
+  }
+
+  if (formData.value.estado === 'PROGRAMADA' && isTopeAlcanzado.value) {
+    ElMessage.error(
+      'Tope alcanzado: no se pueden agendar más sesiones a esta misma hora en este hotel.',
+    )
     return
   }
 
@@ -657,6 +732,70 @@ async function handleSaveSession() {
                 time-format="HH:mm"
               />
             </div>
+
+            <!-- Indicador de Disponibilidad y Cupo -->
+            <div
+              v-if="disponibilidadHotel"
+              class="disponibilidad-indicator-card"
+              :class="{ 'quota-full': isTopeAlcanzado }"
+            >
+              <div class="disponibilidad-header">
+                <div class="disponibilidad-title">
+                  <span
+                    class="status-indicator-dot"
+                    :class="isTopeAlcanzado ? 'dot-danger' : 'dot-success'"
+                  ></span>
+                  <span>Sesiones disponibiles:</span>
+                </div>
+                <div class="disponibilidad-badge">
+                  <el-tag
+                    :type="isTopeAlcanzado ? 'danger' : 'success'"
+                    effect="light"
+                    size="small"
+                    round
+                  >
+                    {{
+                      isTopeAlcanzado
+                        ? 'Tope alcanzado'
+                        : `${disponibilidadHotel.cupoLibre} ${
+                            disponibilidadHotel.cupoLibre === 1 ? 'sesión libre' : 'sesiones libres'
+                          }`
+                    }}
+                  </el-tag>
+                </div>
+              </div>
+              <div class="disponibilidad-details">
+                <span class="detail-item">
+                  <strong>{{ disponibilidadHotel.disponibles }}</strong> /
+                  {{ disponibilidadHotel.totalFotografos }} fotógrafos activos
+                </span>
+                <span class="detail-separator">•</span>
+                <span class="detail-item">
+                  <strong>{{ disponibilidadHotel.sesionesSimultaneas }}</strong> sesiones a esta
+                  hora
+                </span>
+              </div>
+
+              <!-- Alerta de Bloqueo si no hay cupo -->
+              <el-alert
+                v-if="isTopeAlcanzado"
+                type="error"
+                show-icon
+                :closable="false"
+                class="quota-alert"
+              >
+                <template #title>
+                  <span v-if="disponibilidadHotel.disponibles === 0">
+                    No hay fotógrafos disponibles en este hotel para la fecha seleccionada (todos
+                    ausentes o sin fotógrafos asignados).
+                  </span>
+                  <span v-else>
+                    Tope de {{ disponibilidadHotel.disponibles }} sesiones simultáneas alcanzado
+                    para esta hora.
+                  </span>
+                </template>
+              </el-alert>
+            </div>
           </el-form-item>
 
           <el-form-item>
@@ -774,7 +913,7 @@ async function handleSaveSession() {
             :size="isMobile ? 'large' : 'default'"
             :icon="Check"
             :loading="isSaving"
-            :disabled="isReadOnly"
+            :disabled="isReadOnly || isTopeAlcanzado"
             @click="handleSaveSession"
           >
             {{ isEditing ? 'Guardar Cambios' : 'Agendar Sesión' }}
@@ -999,6 +1138,69 @@ async function handleSaveSession() {
 
 .desktop-picker-panel-wrapper :deep(.el-picker-panel) {
   border-radius: 8px;
+}
+
+.disponibilidad-indicator-card {
+  margin-top: 0.75rem;
+  background: var(--el-fill-color-light, #f8fafc);
+  border: 1px solid var(--el-border-color-lighter, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.disponibilidad-indicator-card.quota-full {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.disponibilidad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.disponibilidad-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--heading-color, #0f172a);
+}
+
+.status-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-success {
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.dot-danger {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.disponibilidad-details {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--el-text-color-regular, #64748b);
+}
+
+.detail-separator {
+  color: var(--el-border-color, #cbd5e1);
+}
+
+.quota-alert {
+  margin-top: 0.25rem;
 }
 
 @media (max-width: 768px) {
