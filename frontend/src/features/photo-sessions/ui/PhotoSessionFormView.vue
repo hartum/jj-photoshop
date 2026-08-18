@@ -817,99 +817,116 @@ async function handleSaveSession() {
                 time-format="HH:mm"
                 :cell-class-name="getFotografoCellClassName"
               />
-              <!-- Leyenda de colores de ausencias del fotógrafo seleccionado -->
-              <div
-                v-if="formData.fotografoId && fotografoAusencias.length > 0"
-                class="fotografo-absence-legend"
-              >
-                <span class="legend-label">Ausencias de {{ selectedPhotographerName }}:</span>
-                <div class="legend-tags">
-                  <span class="legend-tag"><i class="dot dot-baja"></i> Baja médica</span>
-                  <span class="legend-tag"><i class="dot dot-vacaciones"></i> Vacaciones</span>
-                  <span class="legend-tag"><i class="dot dot-permiso"></i> Permiso / Otro</span>
-                </div>
-              </div>
             </div>
 
-            <!-- Alerta de Bloqueo por Ausencia Individual del Fotógrafo -->
-            <el-alert
-              v-if="formData.fechaHoraInicio && isFotografoAusente && ausenciaFotografoActual"
-              type="error"
-              show-icon
-              :closable="false"
-              class="fotografo-absence-alert"
-            >
-              <template #title>
-                <span>
-                  <strong>{{ selectedPhotographerName }}</strong> tiene una ausencia registrada
-                  (<strong>{{ ausenciaFotografoActual.motivo }}</strong>) en la fecha seleccionada.
-                  No es posible asignarlo a esta sesión.
-                </span>
-              </template>
-            </el-alert>
-
-            <!-- Indicador de Disponibilidad y Cupo -->
-            <div
-              v-if="formData.fechaHoraInicio && disponibilidadHotel"
-              class="disponibilidad-indicator-card"
-              :class="{ 'quota-full': isTopeAlcanzado }"
-            >
-              <div class="disponibilidad-header">
-                <div class="disponibilidad-title">
-                  <span
-                    class="status-indicator-dot"
-                    :class="isTopeAlcanzado ? 'dot-danger' : 'dot-success'"
-                  ></span>
-                  <span>Sesiones disponibiles:</span>
-                </div>
-                <div class="disponibilidad-badge">
-                  <el-tag
-                    :type="isTopeAlcanzado ? 'danger' : 'success'"
-                    effect="light"
-                    size="small"
-                    round
-                  >
-                    {{
-                      isTopeAlcanzado
-                        ? 'Tope alcanzado'
-                        : `${disponibilidadHotel.cupoLibre} ${
-                            disponibilidadHotel.cupoLibre === 1 ? 'sesión libre' : 'sesiones libres'
-                          }`
-                    }}
-                  </el-tag>
+            <!-- Contenedor unificado de Avisos e Información -->
+            <div class="calendar-info-boxes">
+              <!-- 1. Leyenda de colores de ausencias del fotógrafo seleccionado -->
+              <div
+                v-if="formData.fotografoId && fotografoAusencias.length > 0"
+                class="fotografo-absence-legend uniform-box"
+              >
+                <span class="legend-label">Ausencias de {{ selectedPhotographerName }}:</span>
+                <div class="calendar-legend">
+                  <div class="legend-item">
+                    <span class="legend-dot dot-baja"></span>
+                    <span>Baja Médica</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot dot-vacaciones"></span>
+                    <span>Vacaciones</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot dot-permiso"></span>
+                    <span>Permiso</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot dot-otro"></span>
+                    <span>Otro</span>
+                  </div>
                 </div>
               </div>
-              <div class="disponibilidad-details">
-                <span class="detail-item">
-                  <strong>{{ disponibilidadHotel.disponibles }}</strong> /
-                  {{ disponibilidadHotel.totalFotografos }} fotógrafos activos
-                </span>
-                <span class="detail-separator">•</span>
-                <span class="detail-item">
-                  <strong>{{ disponibilidadHotel.sesionesSimultaneas }}</strong> sesiones a esta
-                  hora
-                </span>
-              </div>
 
-              <!-- Alerta de Bloqueo si no hay cupo -->
+              <!-- 2. Alerta de Bloqueo por Ausencia Individual del Fotógrafo -->
               <el-alert
-                v-if="isTopeAlcanzado"
+                v-if="formData.fechaHoraInicio && isFotografoAusente && ausenciaFotografoActual"
                 type="error"
                 show-icon
                 :closable="false"
-                class="quota-alert"
+                class="fotografo-absence-alert uniform-box"
               >
                 <template #title>
-                  <span v-if="disponibilidadHotel.disponibles === 0">
-                    No hay fotógrafos disponibles en este hotel para la fecha seleccionada (todos
-                    ausentes o sin fotógrafos asignados).
-                  </span>
-                  <span v-else>
-                    Tope de {{ disponibilidadHotel.disponibles }} sesiones simultáneas alcanzado
-                    para esta hora.
+                  <span>
+                    <strong>{{ selectedPhotographerName }}</strong> tiene una ausencia registrada
+                    (<strong>{{ ausenciaFotografoActual.motivo }}</strong>) en la fecha seleccionada.
+                    No es posible asignarlo a esta sesión.
                   </span>
                 </template>
               </el-alert>
+
+              <!-- 3. Indicador de Disponibilidad y Cupo del Hotel -->
+              <div
+                v-if="formData.fechaHoraInicio && disponibilidadHotel"
+                class="disponibilidad-indicator-card uniform-box"
+                :class="{ 'quota-full': isTopeAlcanzado }"
+              >
+                <div class="disponibilidad-header">
+                  <div class="disponibilidad-title">
+                    <span
+                      class="status-indicator-dot"
+                      :class="isTopeAlcanzado ? 'dot-danger' : 'dot-success'"
+                    ></span>
+                    <span>Sesiones disponibiles:</span>
+                  </div>
+                  <div class="disponibilidad-badge">
+                    <el-tag
+                      :type="isTopeAlcanzado ? 'danger' : 'success'"
+                      effect="light"
+                      size="small"
+                      round
+                    >
+                      {{
+                        isTopeAlcanzado
+                          ? 'Tope alcanzado'
+                          : `${disponibilidadHotel.cupoLibre} ${
+                              disponibilidadHotel.cupoLibre === 1 ? 'sesión libre' : 'sesiones libres'
+                            }`
+                      }}
+                    </el-tag>
+                  </div>
+                </div>
+                <div class="disponibilidad-details">
+                  <span class="detail-item">
+                    <strong>{{ disponibilidadHotel.disponibles }}</strong> /
+                    {{ disponibilidadHotel.totalFotografos }} fotógrafos activos
+                  </span>
+                  <span class="detail-separator">•</span>
+                  <span class="detail-item">
+                    <strong>{{ disponibilidadHotel.sesionesSimultaneas }}</strong> sesiones a esta
+                    hora
+                  </span>
+                </div>
+
+                <!-- Alerta de Bloqueo si no hay cupo -->
+                <el-alert
+                  v-if="isTopeAlcanzado"
+                  type="error"
+                  show-icon
+                  :closable="false"
+                  class="quota-alert"
+                >
+                  <template #title>
+                    <span v-if="disponibilidadHotel.disponibles === 0">
+                      No hay fotógrafos disponibles en este hotel para la fecha seleccionada (todos
+                      ausentes o sin fotógrafos asignados).
+                    </span>
+                    <span v-else>
+                      Tope de {{ disponibilidadHotel.disponibles }} sesiones simultáneas alcanzado
+                      para esta hora.
+                    </span>
+                  </template>
+                </el-alert>
+              </div>
             </div>
           </el-form-item>
 
@@ -1256,8 +1273,36 @@ async function handleSaveSession() {
   border-radius: 8px;
 }
 
-.disponibilidad-indicator-card {
+.calendar-info-boxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
   margin-top: 0.75rem;
+}
+
+.uniform-box {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+.fotografo-absence-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  background: var(--el-fill-color-light, #f8fafc);
+  border: 1px solid var(--el-border-color-lighter, #e2e8f0);
+  border-radius: 8px;
+}
+
+.fotografo-absence-alert {
+  border-radius: 8px !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.disponibilidad-indicator-card {
   background: var(--el-fill-color-light, #f8fafc);
   border: 1px solid var(--el-border-color-lighter, #e2e8f0);
   border-radius: 8px;
@@ -1319,59 +1364,47 @@ async function handleSaveSession() {
   margin-top: 0.25rem;
 }
 
-.fotografo-absence-alert {
-  margin-top: 0.75rem;
-  border-radius: 6px;
-}
-
-.fotografo-absence-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.5rem 0.75rem;
-  margin-top: 0.5rem;
-  background: var(--el-fill-color-lighter, #f8fafc);
-  border: 1px dashed var(--el-border-color-lighter, #e2e8f0);
-  border-radius: 6px;
-  font-size: 0.8rem;
-  width: 100%;
-}
-
 .legend-label {
   font-weight: 600;
   color: var(--el-text-color-regular, #475569);
 }
 
-.legend-tags {
+.calendar-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.legend-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+  gap: 1.25rem;
+  font-size: 0.825rem;
   color: var(--el-text-color-secondary, #64748b);
 }
 
-.legend-tag .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
   display: inline-block;
+  flex-shrink: 0;
 }
 
-.legend-tag .dot-baja {
-  background-color: #ef4444;
+.dot-baja {
+  background-color: #f87171;
 }
 
-.legend-tag .dot-vacaciones {
-  background-color: #3b82f6;
+.dot-vacaciones {
+  background-color: #60a5fa;
 }
 
-.legend-tag .dot-permiso {
-  background-color: #f59e0b;
+.dot-permiso {
+  background-color: #fbbf24;
+}
+
+.dot-otro {
+  background-color: #94a3b8;
 }
 
 @media (max-width: 768px) {

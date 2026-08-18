@@ -184,7 +184,11 @@ watch(
         </div>
         <div class="legend-item">
           <span class="legend-dot dot-permiso"></span>
-          <span>Permiso / Otro</span>
+          <span>Permiso</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot dot-otro"></span>
+          <span>Otro</span>
         </div>
       </div>
     </div>
@@ -358,6 +362,10 @@ watch(
 
 .dot-permiso {
   background-color: #fbbf24;
+}
+
+.dot-otro {
+  background-color: #94a3b8;
 }
 
 .table-section {
