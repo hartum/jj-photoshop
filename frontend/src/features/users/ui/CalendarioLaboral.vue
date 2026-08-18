@@ -5,7 +5,8 @@ import type {
   CalendarioLaboralFotografo,
   MotivoCalendarioLaboral,
 } from '../domain/calendario-laboral.model'
-import { Calendar, Delete } from '@element-plus/icons-vue'
+import { Delete } from '@element-plus/icons-vue'
+import { CalendarX2 } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
@@ -24,24 +25,11 @@ const motivoOptions: { label: string; value: MotivoCalendarioLaboral; type: stri
   { label: 'Otro', value: 'OTRO', type: 'info' },
 ]
 
-function getMotivoTagType(motivo: string): '' | 'danger' | 'primary' | 'warning' | 'info' {
-  switch (motivo) {
-    case 'BAJA':
-      return 'danger'
-    case 'VACACIONES':
-      return 'primary'
-    case 'PERMISO':
-      return 'warning'
-    default:
-      return 'info'
-  }
-}
-
 function formatDateDisplay(dateStr: string): string {
   if (!dateStr) return ''
   const parts = dateStr.slice(0, 10).split('-')
   if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`
+    return `${parts[0]}/${parts[1]}/${parts[2]}`
   }
   return dateStr
 }
@@ -197,7 +185,7 @@ watch(
     <div class="table-section">
       <div class="table-header">
         <h3 class="table-title">
-          <el-icon class="title-icon"><Calendar /></el-icon>
+          <el-icon class="title-icon"><CalendarX2 /></el-icon>
           <span>Registro de Ausencias Laborales</span>
         </h3>
         <el-tag type="info" round effect="plain" class="total-tag">

@@ -322,15 +322,6 @@ const hasAusenciasInVisibleMonth = computed(() => {
   })
 })
 
-function formatDateDisplay(dateStr: string): string {
-  if (!dateStr) return ''
-  const parts = dateStr.slice(0, 10).split('-')
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`
-  }
-  return dateStr
-}
-
 function formatDateIso(date: Date): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -895,8 +886,8 @@ async function handleSaveSession() {
                 <template #title>
                   <span>
                     <strong>{{ selectedPhotographerName }}</strong> tiene una ausencia registrada
-                    (<strong>{{ ausenciaFotografoActual.motivo }}</strong>) en la fecha seleccionada.
-                    No es posible asignarlo a esta sesión.
+                    (<strong>{{ ausenciaFotografoActual.motivo }}</strong
+                    >) en la fecha seleccionada. No es posible asignarlo a esta sesión.
                   </span>
                 </template>
               </el-alert>
@@ -926,7 +917,9 @@ async function handleSaveSession() {
                         isTopeAlcanzado
                           ? 'Tope alcanzado'
                           : `${disponibilidadHotel.cupoLibre} ${
-                              disponibilidadHotel.cupoLibre === 1 ? 'sesión libre' : 'sesiones libres'
+                              disponibilidadHotel.cupoLibre === 1
+                                ? 'sesión libre'
+                                : 'sesiones libres'
                             }`
                       }}
                     </el-tag>
