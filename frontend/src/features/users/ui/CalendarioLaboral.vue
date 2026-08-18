@@ -261,7 +261,7 @@ watch(
                 :label="opt.label"
                 :value="opt.value"
               >
-                <div style="display: flex; align-items: center; gap: 6px">
+                <div style="display: flex; align-items: center; height: 100%; width: 100%">
                   <el-tag :type="opt.type" size="small" effect="light">{{ opt.label }}</el-tag>
                 </div>
               </el-option>
