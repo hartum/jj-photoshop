@@ -722,7 +722,7 @@ async function handleSave() {
             </span>
           </template>
           <div class="tab-pane-content">
-            <CalendarioLaboral v-if="isEditing && userId" :key="userId" :usuario-id="userId" />
+            <CalendarioLaboral v-if="isEditing && userId" :usuario-id="userId" />
             <div v-else class="empty-hint" style="padding: 2.5rem; text-align: center">
               Debes guardar el nuevo usuario antes de poder gestionar su calendario laboral.
             </div>

@@ -20,13 +20,8 @@ export const useCalendarioLaboralStore = defineStore('calendario-laboral', () =>
   const registros = ref<CalendarioLaboralFotografo[]>([])
   const isLoading = ref(false)
 
-  function reset() {
-    registros.value = []
-  }
-
   async function fetchRegistros(usuarioId: string) {
     isLoading.value = true
-    registros.value = []
     try {
       const res = await fetch(`${API_URL}/usuarios/${usuarioId}/calendario-laboral`, {
         headers: getAuthHeaders(),
