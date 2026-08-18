@@ -335,10 +335,29 @@ function getFotografoCellClassName(cellDate: Date): string {
 
   for (const reg of fotografoAusencias.value) {
     if (cellIso >= reg.fechaInicio && cellIso <= reg.fechaFin) {
-      if (reg.motivo === 'BAJA') return 'cell-highlight-baja'
-      if (reg.motivo === 'VACACIONES') return 'cell-highlight-vacaciones'
-      if (reg.motivo === 'PERMISO') return 'cell-highlight-permiso'
-      return 'cell-highlight-otro'
+      let baseClass = ''
+      if (reg.motivo === 'BAJA') baseClass = 'cell-highlight-baja'
+      else if (reg.motivo === 'VACACIONES') baseClass = 'cell-highlight-vacaciones'
+      else if (reg.motivo === 'PERMISO') baseClass = 'cell-highlight-permiso'
+      else baseClass = 'cell-highlight-otro'
+
+      const isStart = cellIso === reg.fechaInicio
+      const isEnd = cellIso === reg.fechaFin
+      const isMonday = cellDate.getDay() === 1
+      const isSunday = cellDate.getDay() === 0
+
+      let posClass = ''
+      if ((isStart || isMonday) && (isEnd || isSunday)) {
+        posClass = 'cell-range-single'
+      } else if (isStart || isMonday) {
+        posClass = 'cell-range-start'
+      } else if (isEnd || isSunday) {
+        posClass = 'cell-range-end'
+      } else {
+        posClass = 'cell-range-middle'
+      }
+
+      return `${baseClass} ${posClass}`
     }
   }
   return ''
@@ -1466,28 +1485,47 @@ async function handleSaveSession() {
   background-color: rgba(239, 68, 68, 0.18) !important;
   color: #b91c1c !important;
   font-weight: 700;
-  border-radius: 4px;
 }
 
 .el-date-table td.cell-highlight-vacaciones .el-date-table-cell {
   background-color: rgba(59, 130, 246, 0.18) !important;
   color: #1d4ed8 !important;
   font-weight: 700;
-  border-radius: 4px;
 }
 
 .el-date-table td.cell-highlight-permiso .el-date-table-cell {
   background-color: rgba(245, 158, 11, 0.2) !important;
   color: #b45309 !important;
   font-weight: 700;
-  border-radius: 4px;
 }
 
 .el-date-table td.cell-highlight-otro .el-date-table-cell {
   background-color: rgba(148, 163, 184, 0.2) !important;
   color: #334155 !important;
   font-weight: 700;
-  border-radius: 4px;
+}
+
+/* Bordes redondeados solo al principio y al final del rango de ausencia */
+.el-date-table td.cell-range-start .el-date-table-cell {
+  border-top-left-radius: 14px !important;
+  border-bottom-left-radius: 14px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.el-date-table td.cell-range-end .el-date-table-cell {
+  border-top-right-radius: 14px !important;
+  border-bottom-right-radius: 14px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.el-date-table td.cell-range-middle .el-date-table-cell {
+  border-radius: 0 !important;
+}
+
+.el-date-table td.cell-range-single .el-date-table-cell {
+  border-radius: 14px !important;
 }
 
 html.dark .el-date-table td.cell-highlight-baja .el-date-table-cell {
