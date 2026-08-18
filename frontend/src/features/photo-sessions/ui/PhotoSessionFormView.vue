@@ -286,6 +286,42 @@ const isFotografoAusente = computed(() => {
   return !!ausenciaFotografoActual.value
 })
 
+// Mes visible actualmente en el panel del calendario
+const currentVisibleMonth = ref<Date>(new Date())
+
+function handlePanelChange(date: Date) {
+  if (date && date instanceof Date && !isNaN(date.getTime())) {
+    currentVisibleMonth.value = date
+  }
+}
+
+watch(
+  () => formData.value.fechaHoraInicio,
+  (newVal) => {
+    if (newVal && newVal.length >= 10) {
+      const d = new Date(newVal)
+      if (!isNaN(d.getTime())) {
+        currentVisibleMonth.value = d
+      }
+    }
+  },
+)
+
+const hasAusenciasInVisibleMonth = computed(() => {
+  if (!formData.value.fotografoId || !fotografoAusencias.value.length) return false
+  const d = currentVisibleMonth.value || new Date()
+  const year = d.getFullYear()
+  const month = d.getMonth() // 0-indexed
+  const lastDay = new Date(year, month + 1, 0).getDate()
+
+  const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`
+  const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+  return fotografoAusencias.value.some((reg) => {
+    return reg.fechaInicio <= endOfMonth && reg.fechaFin >= startOfMonth
+  })
+})
+
 function formatDateDisplay(dateStr: string): string {
   if (!dateStr) return ''
   const parts = dateStr.slice(0, 10).split('-')
@@ -816,6 +852,7 @@ async function handleSaveSession() {
                 date-format="YYYY-MM-DD"
                 time-format="HH:mm"
                 :cell-class-name="getFotografoCellClassName"
+                @panel-change="handlePanelChange"
               />
             </div>
 
@@ -823,7 +860,7 @@ async function handleSaveSession() {
             <div class="calendar-info-boxes">
               <!-- 1. Leyenda de colores de ausencias del fotógrafo seleccionado -->
               <div
-                v-if="formData.fotografoId && fotografoAusencias.length > 0"
+                v-if="formData.fotografoId && hasAusenciasInVisibleMonth"
                 class="fotografo-absence-legend uniform-box"
               >
                 <span class="legend-label">Ausencias de {{ selectedPhotographerName }}:</span>
