@@ -5,7 +5,12 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserStatus, UserInput } from '@/features/users/domain/user.model'
-import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
+import {
+  getUserInitials,
+  getUserBgColor,
+  getRoleSvg,
+  getRoleTagType,
+} from '@/features/users/utils/user-avatar'
 import {
   ArrowLeft,
   Check,
@@ -62,6 +67,16 @@ const formData = ref({
   hotelIds: [] as number[],
 })
 
+const ROLE_DISPLAY_ORDER: Record<string, number> = {
+  FOTOGRAFO: 1,
+  AGENDADOR: 2,
+  SUPERVISOR: 3,
+  GERENTE: 4,
+  CONTABLE: 5,
+  ADMIN: 6,
+  SUPERUSUARIO: 7,
+}
+
 const assignableProfiles = computed(() => {
   const user = currentUser.value
   if (!user) return []
@@ -69,11 +84,17 @@ const assignableProfiles = computed(() => {
   const roleCode = user.roleCode?.toUpperCase()
   const perm = getRolePermissions(roleCode)
 
-  return profileStore.activeProfiles.filter((p) => {
+  const filtered = profileStore.activeProfiles.filter((p) => {
     const code = p.code?.toUpperCase() as RoleCode
     if (perm.assignableTargetRoles.includes(code)) return true
     if (isEditing.value && formData.value.profileId === p.id) return true
     return false
+  })
+
+  return filtered.sort((a, b) => {
+    const orderA = ROLE_DISPLAY_ORDER[a.code?.toUpperCase() || ''] ?? 50
+    const orderB = ROLE_DISPLAY_ORDER[b.code?.toUpperCase() || ''] ?? 50
+    return orderA - orderB
   })
 })
 
@@ -488,24 +509,58 @@ async function handleSave() {
             </el-form-item>
 
             <el-form-item label="Perfil / Rol" required>
-              <span v-if="isSelfEditingProfileReadonly" class="read-only-profile-text">
-                {{ selectedProfile?.name }}
-              </span>
+              <div v-if="isSelfEditingProfileReadonly">
+                <el-tag
+                  v-if="selectedProfile"
+                  :type="getRoleTagType(selectedProfile.code)"
+                  size="large"
+                  effect="light"
+                  class="role-tag"
+                >
+                  <img
+                    :src="getRoleSvg(selectedProfile.code)"
+                    class="role-tag-icon"
+                    :alt="selectedProfile.name"
+                  />
+                  {{ selectedProfile.name }}
+                </el-tag>
+              </div>
               <el-select
                 v-else
                 v-model="formData.profileId"
                 placeholder="Selecciona un perfil"
                 style="width: 100%"
+                filterable
+                popper-class="profile-select-popper"
               >
+                <template #prefix v-if="selectedProfile">
+                  <img
+                    :src="getRoleSvg(selectedProfile.code)"
+                    class="select-role-prefix-icon"
+                    :alt="selectedProfile.name"
+                  />
+                </template>
                 <el-option
                   v-for="profile in assignableProfiles"
                   :key="profile.id"
                   :label="profile.name"
                   :value="profile.id"
+                  class="profile-dropdown-option"
                 >
-                  <div class="profile-option">
-                    <span class="profile-option-name">{{ profile.name }}</span>
-                    <small class="profile-option-desc">{{ profile.description }}</small>
+                  <div class="profile-option-row">
+                    <el-tag
+                      :type="getRoleTagType(profile.code)"
+                      size="default"
+                      effect="light"
+                      class="role-tag"
+                    >
+                      <img
+                        :src="getRoleSvg(profile.code)"
+                        class="role-tag-icon"
+                        :alt="profile.name"
+                      />
+                      {{ profile.name }}
+                    </el-tag>
                   </div>
                 </el-option>
               </el-select>
@@ -937,6 +992,57 @@ async function handleSave() {
   color: var(--heading-color, #0f172a);
 }
 
+:deep(.el-tag.role-tag) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: visible !important;
+}
+
+:deep(.el-tag.role-tag .el-tag__content) {
+  overflow: visible !important;
+  display: inline-flex;
+  align-items: center;
+}
+
+.role-tag-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: -12px;
+  margin-right: 3px;
+  vertical-align: middle;
+  position: relative;
+  z-index: 1;
+}
+
+.role-tag {
+  font-weight: 700 !important;
+  text-transform: uppercase;
+}
+
+.select-role-prefix-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.profile-dropdown-option {
+  height: auto !important;
+  padding: 6px 12px !important;
+  display: flex;
+  align-items: center;
+}
+
+.profile-option-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
 :deep(.el-select-group__title) {
   font-size: 0.95rem;
   font-weight: 700;
@@ -992,5 +1098,54 @@ async function handleSave() {
   .cropper {
     height: 240px;
   }
+}
+</style>
+
+<style>
+/* Estilos globales para el dropdown de perfil en el select */
+.profile-select-popper .el-select-dropdown__item {
+  height: 50px !important;
+  line-height: normal !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 6px 16px !important;
+  overflow: visible !important;
+}
+
+.profile-select-popper .profile-option-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-top: 4px;
+}
+
+.profile-select-popper .el-tag.role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: visible !important;
+}
+
+.profile-select-popper .el-tag.role-tag .el-tag__content {
+  overflow: visible !important;
+  display: inline-flex;
+  align-items: center;
+}
+
+.profile-select-popper .role-tag-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: -12px;
+  margin-right: 3px;
+  vertical-align: middle;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-select-popper .role-tag {
+  font-weight: 700 !important;
+  text-transform: uppercase;
 }
 </style>
