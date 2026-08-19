@@ -8,7 +8,7 @@ import { useGoalStore } from '@/features/goals/stores/goal.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
-import type { UserWithProfile } from '@/features/users/domain/user.model'
+import { formatCurrency } from '@/shared/formatters'
 import { ElMessage } from 'element-plus'
 import { Location, User, Check, Share } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
@@ -315,13 +315,6 @@ watch(
   },
 )
 
-function formatCurrency(val: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(val)
-}
 </script>
 
 <template>

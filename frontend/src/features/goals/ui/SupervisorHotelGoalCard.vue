@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatCurrency } from '@/shared/formatters'
 import type { HotelProgresoResumen, SemaforoEstado } from '../domain/goal.model'
 import {
   SuccessFilled,
@@ -77,14 +78,7 @@ function getCappedPercentage(val?: number): number {
   return Math.min(Math.max(0, val), 100)
 }
 
-function formatCurrency(val?: number): string {
-  if (val === undefined || isNaN(val)) return '$0'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(val)
-}
+
 
 const numFotografos = computed(() => {
   return props.hotelProgreso.fotografos?.length || 0

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { formatCurrency } from '@/shared/formatters'
 import type { EvolucionMetasResponse } from '../domain/goal.model'
 import { Activity, Calendar, CalendarDays } from '@lucide/vue'
 
@@ -144,13 +145,6 @@ const hoveredPoint = computed(() => {
   return currentCoords.value.points[hoveredIndex.value] || null
 })
 
-function formatCurrency(val: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(val)
-}
 </script>
 
 <template>

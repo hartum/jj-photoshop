@@ -11,6 +11,7 @@ import { useSaleStore } from '@/features/sales/stores/sale.store'
 import { useCommissionStore } from '@/features/commissions/stores/commission.store'
 import type { FotografoProgreso, HotelProgresoResumen } from '@/features/goals/domain/goal.model'
 import { ElMessage } from 'element-plus'
+import { formatCurrency } from '@/shared/formatters'
 
 export interface PhotographerHotelData {
   id: number
@@ -363,13 +364,7 @@ export function useDashboard() {
     router.push('/agenda')
   }
 
-  function formatCurrency(val: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    }).format(val)
-  }
+
 
   function handleNavigateToGoalForm(hotelId?: number | null) {
     const query: Record<string, string | number> = { tab: 'metas' }
