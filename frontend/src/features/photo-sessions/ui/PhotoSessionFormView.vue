@@ -861,6 +861,7 @@ async function handleSaveSession() {
                 value-format="YYYY-MM-DDTHH:mm"
                 date-format="YYYY-MM-DD"
                 time-format="HH:mm"
+                :default-time="new Date(2000, 0, 1, 10, 0, 0)"
                 :cell-class-name="getFotografoCellClassName"
                 @panel-change="handlePanelChange"
               />
