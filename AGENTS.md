@@ -26,6 +26,16 @@ Este archivo contiene el contexto del proyecto, la arquitectura tecnológica, lo
 
 ---
 
+## 🎨 Estándares de Diseño UX/UI (Clean & Minimalist SaaS)
+Todas las pantallas del sistema deben seguir las directrices globales de [.agents/rules/ux-design-rules.md](file:///.agents/rules/ux-design-rules.md):
+* **Estilo:** Clean Design, minimalista, espaciado generoso y libre de fatiga de cajas (*Anti-Card Fatigue*).
+* **Anatomía:** `.page-header` con H1 (1.8rem) + subtítulo + acción principal, `.toolbar-bar` con buscador/filtros en una fila y `.table-card` / `.matrix-card` con bordes sutiles.
+* **Data-First:** Tipografía grande para números/porcentajes (`text-3xl`/`text-4xl`) contigua a controles fluidos (`el-slider`/`el-progress`).
+* **Tokens Semánticos:** Colores por rol (Fotógrafo: esmeralda, Vendedor: azul, Supervisor: ámbar, Gerente: coral) y soporte Light/Dark (`--app-bg`, `--heading-color`, etc.).
+
+
+---
+
 ## 📄 Requisitos Funcionales del Documento
 - **Gestión de Agenda**: Registro de sesiones con límite configurable por hora/hotel y sincronización unidireccional a Google Calendar.
 - **Ventas y Comisiones**: Registro de ventas asignando fotógrafo, supervisor y agendador, con cálculo automático de comisiones variables.
