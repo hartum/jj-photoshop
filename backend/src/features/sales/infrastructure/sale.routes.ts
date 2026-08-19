@@ -267,6 +267,14 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
       const fechaCita = parseLocalDateTime(body.fechaHoraCita)
 
+      const todayBeginning = new Date()
+      todayBeginning.setHours(0, 0, 0, 0)
+      if (fechaCita < todayBeginning) {
+        return reply.status(400).send({
+          error: 'No se pueden crear citas de venta en fechas anteriores al día actual',
+        })
+      }
+
       // Check conflicts using session's hotelId
       const conflicts = await findConflicts(sesion.hotelId, fechaCita)
 

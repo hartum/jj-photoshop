@@ -18,6 +18,7 @@ import type { EventContentArg, DatesSetArg, EventClickArg, CalendarOptions } fro
 import { Plus, Bell, User, InfoFilled, Calendar } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
 import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -357,6 +358,11 @@ const calendarOptions = computed<CalendarOptions>(() => ({
   expandRows: true,
   selectable: true,
   selectMirror: true,
+  selectAllow: (selectInfo: { start: Date; end: Date }) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return selectInfo.start >= today
+  },
   editable: false,
   dayMaxEvents: true,
   height: 'auto',
@@ -510,6 +516,13 @@ function navigateToNewSaleForm() {
 }
 
 function handleDateSelect(selectInfo: { startStr: string }) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const selectedDate = new Date(selectInfo.startStr)
+  if (selectedDate < today) {
+    ElMessage.warning('No se pueden crear eventos en fechas anteriores al día actual')
+    return
+  }
   const startIso = selectInfo.startStr.slice(0, 16)
   navigateToNewSessionForm(startIso)
 }

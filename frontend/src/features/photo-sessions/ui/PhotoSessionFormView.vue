@@ -370,6 +370,12 @@ function checkMobile() {
   isMobile.value = window.innerWidth <= 768
 }
 
+function disabledPastDates(time: Date): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return time.getTime() < today.getTime()
+}
+
 // Computed Date object adapter for IosDatepicker (for mobile)
 const mobileDateValue = computed<Date>({
   get() {
@@ -531,6 +537,18 @@ async function handleSaveSession() {
 
   if (!formData.value.fechaHoraInicio) {
     ElMessage.warning('Debes seleccionar la fecha y hora de inicio')
+    return
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (!isEditing.value && new Date(formData.value.fechaHoraInicio) < today) {
+    ElMessage.error('No se pueden crear sesiones fotográficas en fechas anteriores al día actual')
+    return
+  }
+
+  if (!isEditing.value && fechaHoraCitaVenta.value && new Date(fechaHoraCitaVenta.value) < today) {
+    ElMessage.error('No se pueden crear citas de venta en fechas anteriores al día actual')
     return
   }
 
@@ -862,6 +880,7 @@ async function handleSaveSession() {
                 date-format="YYYY-MM-DD"
                 time-format="HH:mm"
                 :default-time="new Date(2000, 0, 1, 10, 0, 0)"
+                :disabled-date="disabledPastDates"
                 :cell-class-name="getFotografoCellClassName"
                 @panel-change="handlePanelChange"
               />
@@ -1018,6 +1037,7 @@ async function handleSaveSession() {
                 value-format="YYYY-MM-DDTHH:mm"
                 date-format="YYYY-MM-DD"
                 time-format="HH:mm"
+                :disabled-date="disabledPastDates"
               />
             </div>
             <div v-if="conflictsCitaVenta.length > 0" class="conflict-inline-warning">
@@ -1054,6 +1074,7 @@ async function handleSaveSession() {
                 type="date"
                 value-format="YYYY-MM-DD"
                 date-format="YYYY-MM-DD"
+                :disabled-date="disabledPastDates"
               />
             </div>
           </el-form-item>

@@ -198,6 +198,12 @@ function checkMobile() {
   isMobile.value = window.innerWidth <= 768
 }
 
+function disabledPastDates(time: Date): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return time.getTime() < today.getTime()
+}
+
 // Conflict check on date change
 watch(
   () => formData.value.fechaHoraCita,
@@ -317,6 +323,13 @@ async function handleSave() {
   }
   if (!formData.value.fechaHoraCita) {
     ElMessage.warning('Debes seleccionar la fecha y hora de la cita')
+    return
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (!isEditing.value && new Date(formData.value.fechaHoraCita) < today) {
+    ElMessage.error('No se pueden crear citas de venta en fechas anteriores al día actual')
     return
   }
 
@@ -607,6 +620,7 @@ async function handleSave() {
                 date-format="YYYY-MM-DD"
                 time-format="HH:mm"
                 :default-time="new Date(2000, 0, 1, 10, 0, 0)"
+                :disabled-date="disabledPastDates"
               />
             </div>
           </el-form-item>
