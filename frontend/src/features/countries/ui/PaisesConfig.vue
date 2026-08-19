@@ -7,13 +7,12 @@ import { getFlagEmoji } from '@/components/flagEmoji'
 import {
   Plus,
   Delete,
-  Warning,
   Location,
   Check,
   Close,
 } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 interface TreeNode {
   id: string
@@ -29,16 +28,6 @@ const countryStore = useCountryStore()
 
 const selectedCountryCode = ref<string>('')
 const isAdding = ref(false)
-
-// Estado para modal de eliminación de País
-const deleteDialogVisible = ref(false)
-const countryToDelete = ref<Pais | null>(null)
-const isDeleting = ref(false)
-
-// Estado para modal de eliminación de Área
-const deleteAreaDialogVisible = ref(false)
-const areaToDelete = ref<AreaItem | null>(null)
-const isDeletingArea = ref(false)
 
 // Estado para formulario de creación de área inline
 const addingAreaCountryId = ref<number | null>(null)
@@ -114,25 +103,24 @@ async function handleAddCountry() {
   }
 }
 
-function confirmDeleteCountry(pais: Pais) {
-  countryToDelete.value = pais
-  deleteDialogVisible.value = true
-}
-
-async function handleDeleteCountry() {
-  if (!countryToDelete.value) return
-
-  isDeleting.value = true
+async function confirmDeleteCountry(pais: Pais) {
   try {
-    await countryStore.deleteCountry(countryToDelete.value.id)
-    ElMessage.success(`País "${countryToDelete.value.nombre}" eliminado correctamente`)
-    countryToDelete.value = null
-    deleteDialogVisible.value = false
+    await ElMessageBox.confirm(
+      `¿Estás seguro de que deseas eliminar el país "${pais.nombre} (${pais.codigo})"? El país ya no estará activo en el sistema.`,
+      'Confirmar Eliminación de País',
+      {
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        type: 'warning',
+      },
+    )
+    await countryStore.deleteCountry(pais.id)
+    ElMessage.success(`País "${pais.nombre}" eliminado correctamente`)
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar el país'
-    ElMessage.error(message)
-  } finally {
-    isDeleting.value = false
+    if (err !== 'cancel' && err !== 'close') {
+      const message = err instanceof Error ? err.message : 'Error al eliminar el país'
+      ElMessage.error(message)
+    }
   }
 }
 
@@ -168,25 +156,24 @@ async function handleCreateArea(paisId: number) {
   }
 }
 
-function confirmDeleteArea(area: AreaItem) {
-  areaToDelete.value = area
-  deleteAreaDialogVisible.value = true
-}
-
-async function handleDeleteArea() {
-  if (!areaToDelete.value) return
-
-  isDeletingArea.value = true
+async function confirmDeleteArea(area: AreaItem) {
   try {
-    await countryStore.deleteArea(areaToDelete.value.id)
-    ElMessage.success(`Área "${areaToDelete.value.nombre}" eliminada correctamente`)
-    areaToDelete.value = null
-    deleteAreaDialogVisible.value = false
+    await ElMessageBox.confirm(
+      `¿Estás seguro de que deseas eliminar el área "${area.nombre}"? Esta acción la retirará del sistema.`,
+      'Confirmar Eliminación de Área',
+      {
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        type: 'warning',
+      },
+    )
+    await countryStore.deleteArea(area.id)
+    ElMessage.success(`Área "${area.nombre}" eliminada correctamente`)
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar el área'
-    ElMessage.error(message)
-  } finally {
-    isDeletingArea.value = false
+    if (err !== 'cancel' && err !== 'close') {
+      const message = err instanceof Error ? err.message : 'Error al eliminar el área'
+      ElMessage.error(message)
+    }
   }
 }
 </script>
@@ -313,52 +300,6 @@ async function handleDeleteArea() {
         </template>
       </el-tree>
     </div>
-
-    <!-- Modal Confirmar Eliminación de País (Soft delete) -->
-    <el-dialog v-model="deleteDialogVisible" title="Confirmar Eliminación de País" width="420px">
-      <div class="confirm-dialog-content">
-        <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
-        <p v-if="countryToDelete">
-          ¿Estás seguro de que deseas eliminar el país
-          <strong>{{ countryToDelete.nombre }} ({{ countryToDelete.codigo }})</strong>? El país ya
-          no estará activo en el sistema.
-        </p>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="deleteDialogVisible = false">Cancelar</el-button>
-          <el-button type="danger" :loading="isDeleting" @click="handleDeleteCountry">
-            Eliminar
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- Modal Confirmar Eliminación de Área (Soft delete) -->
-    <el-dialog
-      v-model="deleteAreaDialogVisible"
-      title="Confirmar Eliminación de Área"
-      width="420px"
-    >
-      <div class="confirm-dialog-content">
-        <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
-        <p v-if="areaToDelete">
-          ¿Estás seguro de que deseas eliminar el área
-          <strong>{{ areaToDelete.nombre }}</strong
-          >? Esta acción la retirará del sistema.
-        </p>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="deleteAreaDialogVisible = false">Cancelar</el-button>
-          <el-button type="danger" :loading="isDeletingArea" @click="handleDeleteArea">
-            Eliminar
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 

@@ -5,9 +5,9 @@ import { useHotelStore } from '../stores/hotel.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { Hotel } from '../domain/hotel.model'
 import { getFlagEmoji } from '@/components/flagEmoji'
-import { Search, Plus, EditPen, Delete, Warning, Location } from '@element-plus/icons-vue'
+import { Search, Plus, EditPen, Delete, Location } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const hotelStore = useHotelStore()
@@ -15,11 +15,6 @@ const countryStore = useCountryStore()
 
 const searchQuery = ref('')
 const areaFilter = ref<number | null | string>(null)
-
-// Diálogo modal únicamente para confirmar eliminación
-const deleteDialogVisible = ref(false)
-const hotelToDelete = ref<Hotel | null>(null)
-const isDeleting = ref(false)
 
 onMounted(async () => {
   await countryStore.fetchCountries()
@@ -73,25 +68,24 @@ function navigateToEdit(hotel: Hotel) {
   router.push(`/hoteles/${hotel.id}/editar`)
 }
 
-function confirmDeleteHotel(hotel: Hotel) {
-  hotelToDelete.value = hotel
-  deleteDialogVisible.value = true
-}
-
-async function handleDeleteHotel() {
-  if (!hotelToDelete.value) return
-
-  isDeleting.value = true
+async function confirmDeleteHotel(hotel: Hotel) {
   try {
-    await hotelStore.deleteHotel(hotelToDelete.value.id)
-    ElMessage.success(`Hotel "${hotelToDelete.value.nombre}" eliminado correctamente`)
-    hotelToDelete.value = null
-    deleteDialogVisible.value = false
+    await ElMessageBox.confirm(
+      `¿Estás seguro de que deseas eliminar el hotel "${hotel.nombre}"? El hotel ya no estará activo en el sistema.`,
+      'Confirmar Eliminación de Hotel',
+      {
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        type: 'warning',
+      },
+    )
+    await hotelStore.deleteHotel(hotel.id)
+    ElMessage.success(`Hotel "${hotel.nombre}" eliminado correctamente`)
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar el hotel'
-    ElMessage.error(message)
-  } finally {
-    isDeleting.value = false
+    if (err !== 'cancel' && err !== 'close') {
+      const message = err instanceof Error ? err.message : 'Error al eliminar el hotel'
+      ElMessage.error(message)
+    }
   }
 }
 </script>
@@ -205,26 +199,6 @@ async function handleDeleteHotel() {
         </el-table-column>
       </el-table>
     </div>
-
-    <!-- Modal Confirmar Eliminación de Hotel (Soft delete) -->
-    <el-dialog v-model="deleteDialogVisible" title="Confirmar Eliminación de Hotel" width="420px">
-      <div class="confirm-dialog-content">
-        <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
-        <p v-if="hotelToDelete">
-          ¿Estás seguro de que deseas eliminar el hotel
-          <strong>{{ hotelToDelete.nombre }}</strong>? Esta acción lo retirará del sistema.
-        </p>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="deleteDialogVisible = false">Cancelar</el-button>
-          <el-button type="danger" :loading="isDeleting" @click="handleDeleteHotel">
-            Eliminar
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 

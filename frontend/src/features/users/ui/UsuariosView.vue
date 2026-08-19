@@ -13,7 +13,8 @@ import {
   getRoleTagType,
 } from '@/features/users/utils/user-avatar'
 import { getRolePermissions, canEditUser, canDeleteUser, type RoleCode } from '@/shared/permissions'
-import { Search, Plus, EditPen, Delete, Warning } from '@element-plus/icons-vue'
+import { Search, Plus, EditPen, Delete } from '@element-plus/icons-vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -23,8 +24,6 @@ const countryStore = useCountryStore()
 
 // State
 const searchQuery = ref('')
-const deleteDialogVisible = ref(false)
-const userToDelete = ref<UserWithProfile | null>(null)
 
 const currentUser = computed(() => authStore.user)
 
@@ -123,9 +122,22 @@ function navigateToEdit(user: UserWithProfile) {
   router.push(`/usuarios/${user.id}/editar`)
 }
 
-function confirmDelete(user: UserWithProfile) {
-  userToDelete.value = user
-  deleteDialogVisible.value = true
+async function confirmDelete(user: UserWithProfile) {
+  try {
+    await ElMessageBox.confirm(
+      `¿Estás seguro de que deseas eliminar al usuario "${user.nombre} ${user.apellidos}"? Esta acción no se puede deshacer.`,
+      'Confirmar Eliminación',
+      {
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar',
+        type: 'warning',
+      },
+    )
+    await userStore.deleteUser(user.id)
+    ElMessage.success('Usuario eliminado correctamente')
+  } catch {
+    // Usuario canceló la acción
+  }
 }
 
 function tableRowClassName({ row }: { row: UserWithProfile }) {
@@ -133,14 +145,6 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
     return 'inactive-row'
   }
   return ''
-}
-
-async function handleDeleteUser() {
-  if (userToDelete.value) {
-    await userStore.deleteUser(userToDelete.value.id)
-    userToDelete.value = null
-  }
-  deleteDialogVisible.value = false
 }
 </script>
 
@@ -296,25 +300,6 @@ async function handleDeleteUser() {
         </el-table-column>
       </el-table>
     </div>
-
-    <!-- Modal Confirmar Eliminación -->
-    <el-dialog v-model="deleteDialogVisible" title="Confirmar Eliminación" width="400px">
-      <div class="confirm-dialog-content">
-        <el-icon class="warning-icon" :size="32"><Warning /></el-icon>
-        <p v-if="userToDelete">
-          ¿Estás seguro de que deseas eliminar al usuario
-          <strong>{{ userToDelete.nombre }} {{ userToDelete.apellidos }}</strong
-          >? Esta acción no se puede deshacer.
-        </p>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="deleteDialogVisible = false">Cancelar</el-button>
-          <el-button type="danger" @click="handleDeleteUser">Eliminar</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
