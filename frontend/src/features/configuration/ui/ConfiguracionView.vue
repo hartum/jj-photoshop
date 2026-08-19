@@ -82,29 +82,6 @@ function handleTabChange(paneName: string | number) {
 </template>
 
 <style scoped>
-.view-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.page-header {
-  margin-bottom: 1.5rem;
-}
-
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--heading-color, #0f172a);
-  margin: 0 0 0.25rem 0;
-}
-
-.page-subtitle {
-  font-size: 0.9rem;
-  color: var(--nav-link-color, #64748b);
-  margin: 0;
-}
-
 .config-tabs {
   margin-top: 1rem;
 }
@@ -127,10 +104,6 @@ function handleTabChange(paneName: string | number) {
 }
 
 @media (max-width: 768px) {
-  .view-container {
-    padding: 1rem;
-  }
-
   :deep(.el-tabs__nav-scroll) {
     overflow-x: auto;
   }

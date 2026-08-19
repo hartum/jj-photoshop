@@ -257,13 +257,6 @@ async function handleDeleteHotel() {
   width: 240px;
 }
 
-.table-card {
-  background-color: var(--toolbar-bg, #ffffff);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
 .hotel-name-cell {
   display: flex;
   align-items: center;
@@ -330,38 +323,9 @@ async function handleDeleteHotel() {
   color: #94a3b8;
 }
 
-.confirm-dialog-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding-top: 0.5rem;
-}
-
-.warning-icon {
-  color: #e6a23c;
-}
-
-.confirm-dialog-content p {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
 @media (max-width: 768px) {
   .hoteles-config-container {
     padding: 1rem;
-  }
-
-  .toolbar-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
   }
 
   .toolbar-left {
@@ -377,10 +341,6 @@ async function handleDeleteHotel() {
 
   .toolbar-card .el-button {
     width: 100%;
-  }
-
-  .table-card {
-    overflow-x: auto;
   }
 
   :deep(.el-dialog) {

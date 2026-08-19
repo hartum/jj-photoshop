@@ -319,43 +319,6 @@ async function handleDeleteUser() {
 </template>
 
 <style scoped>
-.view-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--heading-color, #0f172a);
-  margin: 0 0 0.25rem 0;
-}
-
-.page-subtitle {
-  font-size: 0.9rem;
-  color: var(--nav-link-color, #64748b);
-  margin: 0;
-}
-
-.toolbar-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--toolbar-bg, #ffffff);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-}
-
 .search-input {
   width: 320px;
 }
@@ -363,13 +326,6 @@ async function handleDeleteUser() {
 .user-count {
   font-size: 0.85rem;
   color: var(--nav-link-color, #64748b);
-}
-
-.table-card {
-  background-color: var(--toolbar-bg, #ffffff);
-  border: 1px solid var(--toolbar-border, #e2e8f0);
-  border-radius: 10px;
-  overflow: hidden;
 }
 
 .user-cell {
@@ -396,10 +352,10 @@ async function handleDeleteUser() {
 :deep(.el-table__row.inactive-row) {
   opacity: 0.45;
   transition: opacity 0.2s ease;
-}
 
-:deep(.el-table__row.inactive-row:hover) {
-  opacity: 0.8;
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 .role-tag-icon {
@@ -433,57 +389,9 @@ async function handleDeleteUser() {
   }
 }
 
-/* Confirm Dialog Styling */
-.confirm-dialog-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding-top: 0.5rem;
-}
-
-.warning-icon {
-  color: #e6a23c;
-}
-
-.confirm-dialog-content p {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
 @media (max-width: 768px) {
-  .view-container {
-    padding: 1rem;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-
-  .page-header .el-button {
-    width: 100%;
-  }
-
-  .toolbar-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
   .search-input {
     width: 100%;
-  }
-
-  .table-card {
-    overflow-x: auto;
   }
 
   :deep(.el-dialog) {

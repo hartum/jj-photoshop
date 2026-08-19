@@ -247,15 +247,10 @@ async function handleSave() {
 
 <style scoped>
 .view-container {
-  padding: 2rem;
   max-width: 720px;
-  margin: 0 auto;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 2rem;
 }
 
@@ -269,19 +264,6 @@ async function handleSave() {
   font-size: 1.1rem;
 }
 
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--heading-color, #0f172a);
-  margin: 0 0 0.25rem 0;
-}
-
-.page-subtitle {
-  font-size: 0.9rem;
-  color: var(--nav-link-color, #64748b);
-  margin: 0;
-}
-
 .hotel-form {
   margin-top: 1rem;
 }
@@ -291,9 +273,6 @@ async function handleSave() {
 }
 
 @media (max-width: 768px) {
-  .view-container {
-    padding: 1rem;
-  }
 
   :deep(.hotel-form .el-form-item) {
     flex-direction: column;

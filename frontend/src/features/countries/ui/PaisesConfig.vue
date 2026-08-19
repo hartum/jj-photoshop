@@ -493,30 +493,6 @@ async function handleDeleteArea() {
   font-size: 1.1rem;
 }
 
-/* Modal styling */
-.confirm-dialog-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding-top: 0.5rem;
-}
-
-.warning-icon {
-  color: #e6a23c;
-}
-
-.confirm-dialog-content p {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
 @media (max-width: 768px) {
   .paises-config-container {
     padding: 1rem;

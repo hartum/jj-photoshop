@@ -1,3 +1,5 @@
+@import './hotel-select-dropdown.css';
+
 /* Root CSS Variables for Light / Dark themes with Element Plus */
 :root {
   --app-bg: #f8fafc;
@@ -43,4 +45,107 @@ html, body, #app {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================================
+   ESTÁNDARES DE DISEÑO UX/UI GLOBALES (JJ STUDIO SAAS)
+   ========================================================= */
+
+/* Contenedor estándar de vistas */
+.view-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Cabeceras estándar de página */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--heading-color, #0f172a);
+  margin: 0 0 0.25rem 0;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+  color: var(--nav-link-color, #64748b);
+  margin: 0;
+}
+
+/* Barras de herramientas / filtros */
+.toolbar-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--toolbar-bg, #ffffff);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Contenedor de tablas SaaS */
+.table-card {
+  background-color: var(--toolbar-bg, #ffffff);
+  border: 1px solid var(--toolbar-border, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Diálogos de confirmación modales */
+.confirm-dialog-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.confirm-dialog-content p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.warning-icon {
+  color: #e6a23c;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Responsive general para componentes globales */
+@media (max-width: 768px) {
+  .view-container {
+    padding: 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .page-header .el-button {
+    width: 100%;
+  }
+
+  .toolbar-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .table-card {
+    overflow-x: auto;
+  }
 }
