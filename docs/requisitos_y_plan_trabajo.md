@@ -1,4 +1,4 @@
-# Análisis de Requisitos y Plan de Trabajo - Proyecto JJ Photoshop
+# Análisis de Requisitos y Plan de Trabajo - Proyecto JJ Studio
 
 Documento de especificación funcional, arquitectura de base de datos, flujos de usuario y plan de trabajo por fases extraído de las reuniones de descubrimiento con el cliente.
 

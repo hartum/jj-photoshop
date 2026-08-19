@@ -1,9 +1,9 @@
-# AGENTS.md - Proyecto JJ Photoshop
+# AGENTS.md - Proyecto JJ Studio
 
 Este archivo contiene el contexto del proyecto, la arquitectura tecnológica, los requisitos funcionales y las directrices críticas de despliegue para asistentes de IA y desarrolladores.
 
 ## 📌 Resumen del Proyecto
-**JJ Photoshop** es un sistema Web/SaaS de gestión operativa y comercial para una empresa de servicios de fotografía en cadenas hoteleras.
+**JJ Studio** es un sistema Web/SaaS de gestión operativa y comercial para una empresa de servicios de fotografía en cadenas hoteleras.
 
 ### Estructura Jerárquica:
 `País` ➔ `Destino / Área` ➔ `Hotel`
@@ -56,7 +56,7 @@ Todas las pantallas del sistema deben seguir las directrices globales de [.agent
 
 ### 1. Gestión de `.env` (NUNCA SUBIR A GIT):
 - Los archivos `.env` deben estar SIEMPRE en `.gitignore` tanto en `backend/` como en `frontend/`.
-- **Local (Mac)**: `backend/.env` tiene `DATABASE_URL="mysql://root:@localhost:3306/jj_photoshop"`.
+- **Local (Mac)**: `backend/.env` tiene `DATABASE_URL="mysql://root:@localhost:3306/jj_studio"`.
 - **Producción (VPS)**: `backend/.env` tiene `DATABASE_URL="mysql://jjstudio_har:JJStudio2026Pass@127.0.0.1:3306/jjstudio_har"`.
 - `backend/src/index.ts` y `backend/src/shared/db.ts` deben importar SIEMPRE `import 'dotenv/config'` como primera línea.
 

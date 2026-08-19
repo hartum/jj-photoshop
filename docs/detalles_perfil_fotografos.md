@@ -1,6 +1,6 @@
 # Detalles Acordados sobre el Perfil de Fotógrafos y Reglas de Comisiones
 
-Este documento recopila las definiciones funcionales, la visibilidad de agenda, el comportamiento esperado para la pantalla inicial del fotógrafo y las reglas relativas al reparto y configuración de comisiones en el sistema **JJ Photoshop**.
+Este documento recopila las definiciones funcionales, la visibilidad de agenda, el comportamiento esperado para la pantalla inicial del fotógrafo y las reglas relativas al reparto y configuración de comisiones en el sistema **JJ Studio**.
 
 ---
 

@@ -26,7 +26,7 @@ jobs:
             cd $TARGET_DIR
 
             if [ ! -d ".git" ]; then
-              git clone https://github.com/hartum/jj-photoshop.git .
+              git clone https://github.com/hartum/jj-studio.git .
             else
               git fetch origin main
               git reset --hard origin/main

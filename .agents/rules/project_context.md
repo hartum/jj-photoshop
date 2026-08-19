@@ -1,14 +1,14 @@
 ---
-description: Reglas y contexto de negocio del proyecto JJ Photoshop (Gestión de Fotografía en Hoteles)
+description: Reglas y contexto de negocio del proyecto JJ Studio (Gestión de Fotografía en Hoteles)
 globs: "**/*"
 ---
 
-# Proyecto JJ Photoshop - Contexto de Negocio y Arquitectura
+# Proyecto JJ Studio - Contexto de Negocio y Arquitectura
 
-Este archivo define el contexto obligatorio, la estructura de negocio, los roles y las pautas de arquitectura para el proyecto **JJ Photoshop**.
+Este archivo define el contexto obligatorio, la estructura de negocio, los roles y las pautas de arquitectura para el proyecto **JJ Studio**.
 
 ## 1. Naturaleza del Negocio
-**JJ Photoshop** NO es el software de edición de fotos de Adobe. Es una plataforma SaaS/Web de gestión operativa para una empresa de servicios de fotografía profesional que opera en cadenas de hoteles distribuidos geográficamente.
+**JJ Studio** es una plataforma SaaS/Web de gestión operativa para una empresa de servicios de fotografía profesional que opera en cadenas de hoteles distribuidos geográficamente.
 
 ### Estructura Jerárquica:
 `País` ➔ `Destino / Área` ➔ `Hotel`
@@ -83,7 +83,7 @@ Este archivo define el contexto obligatorio, la estructura de negocio, los roles
 ### A. Gestión Estricta de Archivos `.env` (¡NUNCA SUBIR A GIT!):
 1. **Los archivos `.env` (tanto en `backend/` como en `frontend/`) NUNCA deben incluirse en commits de Git**. Deben permanecer siempre en `.gitignore`.
 2. **Entorno Local (Mac)**:
-   - `backend/.env`: Contiene `DATABASE_URL="mysql://root:@localhost:3306/jj_photoshop"`.
+   - `backend/.env`: Contiene `DATABASE_URL="mysql://root:@localhost:3306/jj_studio"`.
    - `frontend/.env`: Contiene `VITE_API_URL=/api`.
 3. **Entorno Producción (VPS Contabo con FASTPANEL)**:
    - `backend/.env`: Contiene `DATABASE_URL="mysql://jjstudio_har:JJStudio2026Pass@127.0.0.1:3306/jjstudio_har"`.

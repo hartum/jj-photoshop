@@ -22,7 +22,7 @@ await fastify.register(cors, {
 })
 
 await fastify.register(jwt, {
-  secret: process.env.JWT_SECRET || 'super-secret-key-jj-photoshop-2026',
+  secret: process.env.JWT_SECRET || 'super-secret-key-jj-studio-2026',
 })
 
 // Register feature routes

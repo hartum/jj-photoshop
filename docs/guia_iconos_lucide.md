@@ -1,6 +1,6 @@
 # Guía de Uso de Iconos Lucide (`@lucide/vue`)
 
-Este documento detalla el estándar para el uso de la librería de iconos [Lucide Icons](https://lucide.dev) en el frontend del proyecto JJ Photoshop.
+Este documento detalla el estándar para el uso de la librería de iconos [Lucide Icons](https://lucide.dev) en el frontend del proyecto JJ Studio.
 
 ---
 

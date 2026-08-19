@@ -1,6 +1,6 @@
 ---
 trigger: always_on
-description: Estándares y directrices globales de diseño UX/UI para el proyecto JJ Studio (JJ Photoshop).
+description: Estándares y directrices globales de diseño UX/UI para el proyecto JJ Studio.
 ---
 
 # Guía de Estilo y Patrones Globales de UX/UI (JJ Studio)
