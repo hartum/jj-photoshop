@@ -116,10 +116,10 @@ export async function userRoutes(fastify: FastifyInstance) {
       const severityMap: Record<string, 'primary' | 'danger' | 'warning' | 'info' | 'success'> = {
         SUPERUSUARIO: 'primary',
         ADMIN: 'danger',
-        GERENTE: 'warning',
-        SUPERVISOR: 'info',
+        GERENTE: 'danger',
+        SUPERVISOR: 'warning',
         FOTOGRAFO: 'success',
-        AGENDADOR: 'success',
+        AGENDADOR: 'primary',
         CONTABLE: 'info',
       }
 

@@ -6,7 +6,7 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
-import { getDefaultAvatar, getRoleSvg } from '@/features/users/utils/user-avatar'
+import { getDefaultAvatar, getRoleSvg, getRoleTagType } from '@/features/users/utils/user-avatar'
 import { getRolePermissions, canEditUser, canDeleteUser, type RoleCode } from '@/shared/permissions'
 import { Search, Plus, EditPen, Delete, Warning } from '@element-plus/icons-vue'
 
@@ -128,6 +128,13 @@ function confirmDelete(user: UserWithProfile) {
   deleteDialogVisible.value = true
 }
 
+function tableRowClassName({ row }: { row: UserWithProfile }) {
+  if (row.status === 'Inactivo' || (row as unknown as { activo?: boolean }).activo === false) {
+    return 'inactive-row'
+  }
+  return ''
+}
+
 async function handleDeleteUser() {
   if (userToDelete.value) {
     await userStore.deleteUser(userToDelete.value.id)
@@ -171,10 +178,11 @@ async function handleDeleteUser() {
       <el-table
         v-loading="userStore.isLoading || profileStore.isLoading"
         :data="filteredUsers"
+        :row-class-name="tableRowClassName"
         stripe
         style="width: 100%"
       >
-        <el-table-column label="Nombre" sortable prop="nombre" width="120">
+        <el-table-column label="Nombre" sortable prop="nombre" width="160">
           <template #default="{ row }">
             <div class="user-cell">
               <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
@@ -188,33 +196,45 @@ async function handleDeleteUser() {
           label="Apellidos"
           show-overflow-tooltip
           sortable
-          width="160"
+          width="180"
         />
 
-        <el-table-column prop="email" label="Correo Electrónico" show-overflow-tooltip sortable />
+        <el-table-column
+          prop="email"
+          label="E-mail"
+          sortable
+          min-width="260"
+          show-overflow-tooltip
+        />
 
-        <el-table-column prop="telefono" label="Teléfono" width="140" />
+        <el-table-column prop="telefono" label="Teléfono" sortable width="150" />
 
-        <el-table-column label="Perfil / Rol" sortable prop="perfil.name" width="180">
+        <el-table-column
+          label="Perfil / Rol"
+          sortable
+          prop="perfil.name"
+          width="270"
+          class-name="role-column"
+        >
           <template #default="{ row }">
-            <div class="role-cell" v-if="row.perfil">
-              <img :src="getRoleSvg(row.perfil.code)" class="role-icon" :alt="row.perfil.name" />
-              <el-tag :type="row.perfil.severity || 'info'" effect="light">
-                {{ row.perfil.name }}
-              </el-tag>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="status" label="Estado" sortable width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'Activo' ? 'success' : 'info'">
-              {{ row.status }}
+            <el-tag
+              v-if="row.perfil"
+              :type="getRoleTagType(row.perfil.code)"
+              size="large"
+              effect="light"
+              class="role-tag"
+            >
+              <img
+                :src="getRoleSvg(row.perfil.code)"
+                class="role-tag-icon"
+                :alt="row.perfil.name"
+              />
+              {{ row.perfil.name }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="Color" width="90" align="center">
+        <el-table-column label="Color" width="80" align="center">
           <template #default="{ row }">
             <div
               v-if="row.perfil?.code?.toUpperCase() === 'FOTOGRAFO'"
@@ -238,8 +258,6 @@ async function handleDeleteUser() {
             <span v-else style="color: #cbd5e1; font-size: 0.8rem">—</span>
           </template>
         </el-table-column>
-
-        <el-table-column prop="createdAt" label="Fecha Alta" sortable width="130" />
 
         <el-table-column label="Acciones" width="100" align="center" fixed="right">
           <template #default="{ row }">
@@ -349,18 +367,45 @@ async function handleDeleteUser() {
   gap: 0.75rem;
 }
 
-.role-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+:deep(td.role-column),
+:deep(td.role-column .cell) {
+  overflow: visible !important;
 }
 
-.role-icon {
-  width: 35px;
-  height: 35px;
+:deep(.el-tag.role-tag) {
+  overflow: visible !important;
+}
+
+:deep(.el-tag.role-tag .el-tag__content) {
+  overflow: visible !important;
+  display: inline-flex;
+  align-items: center;
+}
+
+:deep(.el-table__row.inactive-row) {
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+
+:deep(.el-table__row.inactive-row:hover) {
+  opacity: 0.8;
+}
+
+.role-tag-icon {
+  width: 32px;
+  height: 32px;
   object-fit: contain;
-  /*filter: brightness(0) saturate(100%) invert(50%) sepia(0%) saturate(0%) hue-rotate(244deg)
-    brightness(97%) contrast(85%);*/
+  flex-shrink: 0;
+  margin-top: -12px;
+  margin-right: 2px;
+  vertical-align: middle;
+  position: relative;
+  z-index: 1;
+}
+
+.role-tag {
+  font-weight: 700 !important;
+  text-transform: uppercase;
 }
 
 .user-fullname {

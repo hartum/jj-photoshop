@@ -54,3 +54,23 @@ export function getRoleSvg(code?: string | null): string {
   const upper = code.toUpperCase().trim()
   return svgMap[upper] || superuserSvg
 }
+
+/**
+ * Retorna el tipo de tag (severity) correspondiente al código de perfil según el diseño de UX.
+ */
+export function getRoleTagType(
+  code?: string | null,
+): 'success' | 'primary' | 'warning' | 'danger' | 'info' {
+  if (!code) return 'info'
+  const upper = code.toUpperCase().trim()
+  const map: Record<string, 'success' | 'primary' | 'warning' | 'danger' | 'info'> = {
+    SUPERUSUARIO: 'primary',
+    ADMIN: 'danger',
+    GERENTE: 'danger',
+    SUPERVISOR: 'warning',
+    FOTOGRAFO: 'success',
+    AGENDADOR: 'primary',
+    CONTABLE: 'info',
+  }
+  return map[upper] || 'info'
+}
