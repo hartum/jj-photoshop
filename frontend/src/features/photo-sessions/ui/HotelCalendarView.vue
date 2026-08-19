@@ -14,7 +14,7 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
-import type { EventContentArg, DatesSetArg, EventClickArg } from '@fullcalendar/core'
+import type { EventContentArg, DatesSetArg, EventClickArg, CalendarOptions } from '@fullcalendar/core'
 import { Plus, Bell, User, InfoFilled, Calendar } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
 import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
@@ -328,7 +328,7 @@ watch(isMobile, (mobile) => {
 })
 
 // FullCalendar Configuration computed so reactivity works seamlessly
-const calendarOptions = computed(() => ({
+const calendarOptions = computed<CalendarOptions>(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
   initialView: getInitialCalendarView(),
   locale: esLocale,
@@ -340,6 +340,16 @@ const calendarOptions = computed(() => ({
       : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
   },
   eventDisplay: 'block',
+  eventTimeFormat: {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  },
+  slotLabelFormat: {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  },
   slotMinTime: '00:00:00',
   slotMaxTime: '24:00:00',
   scrollTime: '08:00:00',
@@ -375,7 +385,13 @@ function renderEventContent(arg: EventContentArg) {
   const roomStr = (arg.event.extendedProps.roomStr as string) ?? ''
   const clienteNombre = (arg.event.extendedProps.clienteNombre as string) || arg.event.title
   const paxStr = (arg.event.extendedProps.paxStr as string) ?? ''
-  const timeText: string = arg.timeText ?? ''
+  
+  let timeText: string = arg.timeText ?? ''
+  if (arg.event.start) {
+    const hours = String(arg.event.start.getHours()).padStart(2, '0')
+    const minutes = String(arg.event.start.getMinutes()).padStart(2, '0')
+    timeText = `${hours}:${minutes}`
+  }
 
   const iconSvg = type === 'sale' ? (ICON_SVG.clock8 ?? '') : (ICON_SVG.camera ?? '')
 
