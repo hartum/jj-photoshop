@@ -305,11 +305,6 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
   width: 320px;
 }
 
-.user-count {
-  font-size: 0.85rem;
-  color: var(--nav-link-color, #64748b);
-}
-
 .user-cell {
   display: flex;
   align-items: center;
