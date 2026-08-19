@@ -5,7 +5,7 @@ import { useUserStore } from '@/features/users/stores/user.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserStatus, UserInput } from '@/features/users/domain/user.model'
-import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 import {
   ArrowLeft,
   Check,
@@ -224,17 +224,6 @@ const isActivo = computed({
   },
 })
 
-const displayAvatar = computed(() => {
-  if (formData.value.imagen) {
-    return formData.value.imagen
-  }
-  return getDefaultAvatar(
-    formData.value.nombre,
-    formData.value.apellidos,
-    isFotografo.value ? formData.value.color : null,
-  )
-})
-
 onMounted(async () => {
   await Promise.all([
     profileStore.fetchProfiles(),
@@ -422,7 +411,20 @@ async function handleSave() {
       <!-- Campo Fotografía / Avatar de Usuario -->
       <el-form-item label="Imagen">
         <div class="avatar-field-container">
-          <el-avatar :src="displayAvatar" shape="circle" :size="90" class="user-avatar" />
+          <el-avatar
+            :src="formData.imagen || undefined"
+            shape="circle"
+            :size="90"
+            :style="{
+              backgroundColor: getUserBgColor(isFotografo ? formData.color : null),
+              color: '#ffffff',
+              fontWeight: '700',
+              fontSize: '2rem',
+            }"
+            class="user-avatar"
+          >
+            {{ getUserInitials(formData.nombre, formData.apellidos) }}
+          </el-avatar>
           <div class="avatar-actions">
             <input
               ref="fileInput"

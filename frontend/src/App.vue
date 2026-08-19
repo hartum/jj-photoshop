@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
-import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 import { canAccessRoute, getRolePermissions } from '@/shared/permissions'
 import logoJJ from '@/assets/logoJJ.png'
 import es from 'element-plus/es/locale/lang/es'
@@ -29,17 +29,6 @@ const countryStore = useCountryStore()
 const isLoginPage = computed(() => route.path === '/login')
 const isDark = ref(false)
 const isMobileDrawerOpen = ref(false)
-
-const userAvatar = computed(() => {
-  if (authStore.user?.imagen) {
-    return authStore.user.imagen
-  }
-  return getDefaultAvatar(
-    authStore.user?.nombre,
-    authStore.user?.apellidos,
-    authStore.user?.color,
-  )
-})
 
 const canSeeAgenda = computed(() => canAccessRoute(authStore.user?.roleCode, '/agenda'))
 const canSeeConfig = computed(() => canAccessRoute(authStore.user?.roleCode, '/configuracion'))
@@ -307,7 +296,19 @@ onMounted(async () => {
             <div class="toolbar-right">
               <!-- Usuario autenticado -->
               <div v-if="authStore.user" class="user-badge">
-                <el-avatar :src="userAvatar" shape="circle" :size="36" class="topbar-avatar" />
+                <el-avatar
+                  :src="authStore.user.imagen || undefined"
+                  shape="circle"
+                  :size="36"
+                  :style="{
+                    backgroundColor: getUserBgColor(authStore.user.color),
+                    color: '#ffffff',
+                    fontWeight: '600',
+                  }"
+                  class="topbar-avatar"
+                >
+                  {{ getUserInitials(authStore.user.nombre, authStore.user.apellidos) }}
+                </el-avatar>
                 <div class="user-info">
                   <span class="user-name"
                     >{{ authStore.user.nombre }} {{ authStore.user.apellidos }}</span

@@ -21,7 +21,7 @@ import {
 } from '@element-plus/icons-vue'
 import { UserX } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
-import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,18 +123,6 @@ const photographerUser = computed(() => {
   return userStore.users.find((u) => String(u.id) === String(sessionInfo.value.fotografoId)) || null
 })
 
-const photographerAvatar = computed(() => {
-  if (!photographerUser.value) return getDefaultAvatar()
-  return (
-    photographerUser.value.imagen ||
-    getDefaultAvatar(
-      photographerUser.value.nombre,
-      photographerUser.value.apellidos,
-      photographerUser.value.color,
-    )
-  )
-})
-
 const photographerName = computed(() => {
   if (!sessionInfo.value.fotografoId) return 'Sin asignar'
   const user = photographerUser.value
@@ -163,8 +151,9 @@ const sellers = computed(() => {
         id: u.id,
         nombre: u.nombre,
         apellidos: u.apellidos,
+        color: u.color,
+        imagen: u.imagen,
         perfilNombre: perfil?.name || perfil?.code || 'Vendedor',
-        avatar: u.imagen || getDefaultAvatar(u.nombre, u.apellidos, u.color),
       }
     })
 })
@@ -454,11 +443,19 @@ async function handleSave() {
           <span class="ref-label">Fotógrafo</span>
           <div class="ref-user-value">
             <el-avatar
-              v-if="sessionInfo.fotografoId"
-              :src="photographerAvatar"
+              v-if="photographerUser"
+              :src="photographerUser.imagen || undefined"
               :size="22"
+              :style="{
+                backgroundColor: getUserBgColor(photographerUser.color),
+                color: '#ffffff',
+                fontWeight: '600',
+                fontSize: '11px',
+              }"
               class="ref-user-avatar"
-            />
+            >
+              {{ getUserInitials(photographerUser.nombre, photographerUser.apellidos) }}
+            </el-avatar>
             <span class="ref-value">{{ photographerName }}</span>
           </div>
         </div>
@@ -485,7 +482,19 @@ async function handleSave() {
             :disabled="isReadOnly"
           >
             <template #prefix v-if="selectedSeller">
-              <el-avatar :src="selectedSeller.avatar" :size="20" class="select-prefix-avatar" />
+              <el-avatar
+                :src="selectedSeller.imagen || undefined"
+                :size="20"
+                :style="{
+                  backgroundColor: getUserBgColor(selectedSeller.color),
+                  color: '#ffffff',
+                  fontWeight: '600',
+                  fontSize: '10px',
+                }"
+                class="select-prefix-avatar"
+              >
+                {{ getUserInitials(selectedSeller.nombre, selectedSeller.apellidos) }}
+              </el-avatar>
             </template>
             <el-option label="Sin vendedor asignado" :value="null" />
             <el-option
@@ -495,7 +504,19 @@ async function handleSave() {
               :value="seller.id"
             >
               <div class="seller-option-item">
-                <el-avatar :src="seller.avatar" :size="24" class="seller-avatar" />
+                <el-avatar
+                  :src="seller.imagen || undefined"
+                  :size="24"
+                  :style="{
+                    backgroundColor: getUserBgColor(seller.color),
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    fontSize: '11px',
+                  }"
+                  class="seller-avatar"
+                >
+                  {{ getUserInitials(seller.nombre, seller.apellidos) }}
+                </el-avatar>
                 <span class="seller-option-name">{{ seller.nombre }} {{ seller.apellidos }}</span>
                 <span class="seller-option-role">({{ seller.perfilNombre }})</span>
               </div>

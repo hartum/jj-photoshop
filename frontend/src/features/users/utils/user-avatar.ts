@@ -17,7 +17,31 @@ const svgMap: Record<string, string> = {
 }
 
 /**
- * Genera un avatar SVG con las iniciales del usuario y el color de fondo asignado (o por defecto).
+ * Retorna las iniciales del usuario a partir de su nombre y apellidos.
+ * @param nombre Nombre del usuario
+ * @param apellidos Apellidos del usuario
+ */
+export function getUserInitials(
+  nombre?: string | null,
+  apellidos?: string | null,
+): string {
+  const firstLetter = (nombre || '').trim().charAt(0).toUpperCase()
+  const secondLetter = (apellidos || '').trim().charAt(0).toUpperCase()
+  const initials = `${firstLetter}${secondLetter}`.trim()
+  return initials || 'U'
+}
+
+/**
+ * Retorna el color de fondo para el avatar del usuario (color personalizado o azul por defecto).
+ * @param color Color hexadecimal o CSS (ej. #3b82f6)
+ */
+export function getUserBgColor(color?: string | null): string {
+  return color && color.trim() ? color.trim() : '#3b82f6'
+}
+
+/**
+ * Genera un avatar SVG fallback con las iniciales del usuario y color de fondo.
+ * (Mantenido por retrocompatibilidad).
  * @param nombre Nombre del usuario
  * @param apellidos Apellidos del usuario
  * @param color Color hexadecimal o CSS (ej. #3b82f6)
@@ -27,14 +51,8 @@ export function getDefaultAvatar(
   apellidos?: string | null,
   color?: string | null,
 ): string {
-  const firstLetter = (nombre || '').trim().charAt(0).toUpperCase()
-  const secondLetter = (apellidos || '').trim().charAt(0).toUpperCase()
-  let initials = `${firstLetter}${secondLetter}`.trim()
-  if (!initials) {
-    initials = 'U'
-  }
-
-  const bgColor = color && color.trim() ? color.trim() : '#3b82f6'
+  const initials = getUserInitials(nombre, apellidos)
+  const bgColor = getUserBgColor(color)
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
   <rect width="100" height="100" fill="${bgColor}" rx="50" />

@@ -7,7 +7,7 @@ import { useCountryStore } from '@/features/countries/stores/country.store'
 import { useGoalStore } from '@/features/goals/stores/goal.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useProfileStore } from '@/features/users/stores/profile.store'
-import { getDefaultAvatar } from '@/features/users/utils/user-avatar'
+import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
 import { ElMessage } from 'element-plus'
 import { Location, User, Check, Share } from '@element-plus/icons-vue'
@@ -21,11 +21,6 @@ const hotelStore = useHotelStore()
 const userStore = useUserStore()
 const profileStore = useProfileStore()
 const goalStore = useGoalStore()
-
-function getUserAvatar(user: UserWithProfile): string {
-  if (user.imagen) return user.imagen
-  return getDefaultAvatar(user.nombre, user.apellidos, user.color)
-}
 
 const now = new Date()
 const selectedAnio = ref(now.getFullYear())
@@ -496,7 +491,18 @@ function formatCurrency(val: number): string {
               <el-table-column label="Fotógrafo" min-width="240">
                 <template #default="{ row }">
                   <div class="foto-cell">
-                    <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
+                    <el-avatar
+                      :src="row.imagen || undefined"
+                      shape="circle"
+                      :size="36"
+                      :style="{
+                        backgroundColor: getUserBgColor(row.color),
+                        color: '#ffffff',
+                        fontWeight: '600',
+                      }"
+                    >
+                      {{ getUserInitials(row.nombre, row.apellidos) }}
+                    </el-avatar>
                     <div class="foto-info">
                       <span class="foto-name">{{ row.nombre }} {{ row.apellidos }}</span>
                       <span class="foto-email">{{ row.email }}</span>

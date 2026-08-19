@@ -6,7 +6,12 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import { useAuthStore } from '@/features/auth/stores/auth.store'
 import { useCountryStore } from '@/features/countries/stores/country.store'
 import type { UserWithProfile } from '@/features/users/domain/user.model'
-import { getDefaultAvatar, getRoleSvg, getRoleTagType } from '@/features/users/utils/user-avatar'
+import {
+  getUserInitials,
+  getUserBgColor,
+  getRoleSvg,
+  getRoleTagType,
+} from '@/features/users/utils/user-avatar'
 import { getRolePermissions, canEditUser, canDeleteUser, type RoleCode } from '@/shared/permissions'
 import { Search, Plus, EditPen, Delete, Warning } from '@element-plus/icons-vue'
 
@@ -109,11 +114,6 @@ const filteredUsers = computed(() => {
   })
 })
 
-function getUserAvatar(user: UserWithProfile): string {
-  if (user.imagen) return user.imagen
-  return getDefaultAvatar(user.nombre, user.apellidos, user.color)
-}
-
 // Navigation Handlers
 function navigateToCreate() {
   router.push('/usuarios/nuevo')
@@ -185,7 +185,18 @@ async function handleDeleteUser() {
         <el-table-column label="Nombre" sortable prop="nombre" width="160">
           <template #default="{ row }">
             <div class="user-cell">
-              <el-avatar :src="getUserAvatar(row)" shape="circle" :size="36" />
+              <el-avatar
+                :src="row.imagen || undefined"
+                shape="circle"
+                :size="36"
+                :style="{
+                  backgroundColor: getUserBgColor(row.color),
+                  color: '#ffffff',
+                  fontWeight: '600',
+                }"
+              >
+                {{ getUserInitials(row.nombre, row.apellidos) }}
+              </el-avatar>
               <span class="user-fullname">{{ row.nombre }}</span>
             </div>
           </template>
