@@ -262,7 +262,7 @@ export function useDashboard() {
     const mHotels = new Set(managerHotels.value.map((h) => h.id))
     return userStore.usersWithProfile.filter((u) => {
       const role = u.perfil?.code?.toUpperCase()
-      if (role !== 'SUPERVISOR' && role !== 'FOTOGRAFO') return false
+      if (role !== 'SUPERVISOR' && role !== 'FOTOGRAFO' && role !== 'AGENDADOR') return false
       return u.hotelIds?.some((hid) => mHotels.has(hid))
     })
   })
@@ -349,6 +349,14 @@ export function useDashboard() {
       }
     }
     return results
+  })
+
+  // --- Agendador / Vendedor ---
+  const agendadorHotels = computed(() => photographerHotels.value)
+
+  const agendadorHotelGoals = computed(() => {
+    const myHotelIds = new Set(currentUser.value?.hotelIds || [])
+    return goalStore.progresoHoteles.filter((p) => myHotelIds.has(p.hotelId))
   })
 
   // --- Navegación ---
@@ -457,6 +465,9 @@ export function useDashboard() {
     // Fotógrafo
     photographerHotels,
     photographerPersonalGoals,
+    // Agendador / Vendedor
+    agendadorHotels,
+    agendadorHotelGoals,
     getTodaySessionsForHotel,
     getTodaySalesForHotel,
     formatTime,

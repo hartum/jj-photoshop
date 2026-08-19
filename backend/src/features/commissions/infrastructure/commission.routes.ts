@@ -147,7 +147,7 @@ export async function commissionRoutes(fastify: FastifyInstance) {
       if (userId) {
         const ctx = await getUserContext(userId)
         if (ctx) {
-          if (ctx.roleCode === 'FOTOGRAFO') {
+          if (['FOTOGRAFO', 'AGENDADOR'].includes(ctx.roleCode)) {
             filterUserId = userId
           } else if (ctx.allowedHotelIds !== null) {
             allowedHotelIds = ctx.allowedHotelIds
@@ -190,7 +190,7 @@ export async function commissionRoutes(fastify: FastifyInstance) {
       if (authId) {
         const ctx = await getUserContext(authId)
         if (ctx) {
-          if (ctx.roleCode === 'FOTOGRAFO') {
+          if (['FOTOGRAFO', 'AGENDADOR'].includes(ctx.roleCode)) {
             where.usuarioId = authId
           } else if (ctx.allowedHotelIds !== null) {
             where.hotelId = { in: ctx.allowedHotelIds }

@@ -90,6 +90,7 @@ const defaultConceptos = [
   'Foto familiar',
   'Pedida de matrimonio',
   'Revelación de género',
+  'Otro',
 ]
 
 const formData = ref<CreateSesionPayload>({

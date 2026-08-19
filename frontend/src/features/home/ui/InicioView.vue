@@ -5,6 +5,7 @@ import AdminDashboard from './dashboards/AdminDashboard.vue'
 import GerenteDashboard from './dashboards/GerenteDashboard.vue'
 import SupervisorDashboard from './dashboards/SupervisorDashboard.vue'
 import FotografoDashboard from './dashboards/FotografoDashboard.vue'
+import AgendadorDashboard from './dashboards/AgendadorDashboard.vue'
 import ContableDashboard from './dashboards/ContableDashboard.vue'
 
 const authStore = useAuthStore()
@@ -33,6 +34,7 @@ const userRole = computed(() => currentUser.value?.roleCode?.toUpperCase() || ''
     <GerenteDashboard v-else-if="userRole === 'GERENTE'" />
     <SupervisorDashboard v-else-if="userRole === 'SUPERVISOR'" />
     <FotografoDashboard v-else-if="userRole === 'FOTOGRAFO'" />
+    <AgendadorDashboard v-else-if="userRole === 'AGENDADOR'" />
     <ContableDashboard v-else-if="userRole === 'CONTABLE'" />
   </div>
 </template>

@@ -247,6 +247,15 @@ watch(
         fechaHoraInicio: session.fechaHoraInicio,
         hotelNombre: hotelStore.hotels.find((h) => h.id === session.hotelId)?.nombre || '',
       }
+      if (!isEditing.value && !formData.value.vendedorId && currentUser.value) {
+        const isAgendador = currentUser.value.roleCode?.toUpperCase() === 'AGENDADOR'
+        if (
+          isAgendador &&
+          currentUser.value.hotelIds?.some((hId) => Number(hId) === Number(session.hotelId))
+        ) {
+          formData.value.vendedorId = currentUser.value.id
+        }
+      }
     }
   },
 )
