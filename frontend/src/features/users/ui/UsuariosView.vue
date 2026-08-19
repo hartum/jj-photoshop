@@ -14,7 +14,7 @@ import {
 } from '@/features/users/utils/user-avatar'
 import { getRolePermissions, canEditUser, canDeleteUser, type RoleCode } from '@/shared/permissions'
 import { Search, Plus, EditPen, Delete } from '@element-plus/icons-vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -289,12 +289,7 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
                 @confirm="handleDeleteUser(row.id)"
               >
                 <template #reference>
-                  <el-button
-                    type="danger"
-                    link
-                    :icon="Delete"
-                    title="Eliminar usuario"
-                  />
+                  <el-button type="danger" link :icon="Delete" title="Eliminar usuario" />
                 </template>
               </el-popconfirm>
             </div>

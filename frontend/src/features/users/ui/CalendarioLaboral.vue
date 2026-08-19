@@ -9,9 +9,7 @@ import { Delete } from '@element-plus/icons-vue'
 import { CalendarX2 } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 
-const props = defineProps<{
-  usuarioId: string
-}>()
+const props = defineProps<{ usuarioId: string }>()
 
 const store = useCalendarioLaboralStore()
 
@@ -215,7 +213,6 @@ watch(
       <el-table
         :data="store.registros"
         v-loading="store.isLoading && isSubmitting"
-        border
         stripe
         style="width: 100%"
         empty-text="No hay ausencias ni bajas registradas para este usuario."
@@ -237,7 +234,7 @@ watch(
         </el-table-column>
 
         <!-- Columna de Duración -->
-        <el-table-column label="Días" width="95" align="center">
+        <el-table-column label="Días" width="95">
           <template #default="{ row }">
             <span class="days-count">
               {{ calculateDays(row.fechaInicio, row.fechaFin) }}
