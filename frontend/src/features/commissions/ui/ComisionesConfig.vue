@@ -380,25 +380,7 @@ async function handleRecalculate() {
 
 <style scoped>
 .comisiones-config-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.toolbar-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-  flex-wrap: wrap;
+  padding-top: 0.5rem;
 }
 
 .country-select {

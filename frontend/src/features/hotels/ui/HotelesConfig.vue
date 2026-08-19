@@ -206,22 +206,6 @@ async function handleDeleteHotel(hotel: Hotel) {
   padding-top: 0.5rem;
 }
 
-.toolbar-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .search-input {
   width: 280px;
 }
@@ -301,24 +285,9 @@ async function handleDeleteHotel(hotel: Hotel) {
     padding: 1rem;
   }
 
-  .toolbar-left {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
   .search-input,
   .area-filter-select {
     width: 100%;
-  }
-
-  .toolbar-card .el-button {
-    width: 100%;
-  }
-
-  :deep(.el-dialog) {
-    width: 92% !important;
-    max-width: 400px;
   }
 }
 </style>

@@ -314,7 +314,6 @@ watch(
     applyRouteQueryParams()
   },
 )
-
 </script>
 
 <template>
@@ -322,7 +321,6 @@ watch(
     <!-- Toolbar superior de Filtros -->
     <div class="filter-grid">
       <div class="filter-field hotel-field">
-        <label class="filter-label">Hotel</label>
         <el-select
           v-model="selectedHotelId"
           placeholder="Selecciona un hotel..."
@@ -370,14 +368,12 @@ watch(
       </div>
 
       <div class="filter-field year-field">
-        <label class="filter-label">Año</label>
         <el-select v-model="selectedAnio" size="large" class="full-width">
           <el-option v-for="y in yearsOptions" :key="y" :label="String(y)" :value="y" />
         </el-select>
       </div>
 
       <div class="filter-field month-field">
-        <label class="filter-label">Mes</label>
         <el-select v-model="selectedMes" size="large" class="full-width">
           <el-option v-for="m in monthsOptions" :key="m.value" :label="m.label" :value="m.value" />
         </el-select>
@@ -560,6 +556,7 @@ watch(
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.25rem;
+  padding-top: 0.5rem;
 }
 
 .filter-field {

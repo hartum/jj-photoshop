@@ -155,7 +155,7 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
     </div>
 
     <!-- Barra de búsqueda y filtrado -->
-    <div class="toolbar-card">
+    <div class="toolbar-bar">
       <el-input
         v-model="searchQuery"
         placeholder="Buscar por nombre, email o perfil..."
@@ -241,7 +241,7 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
           </template>
         </el-table-column>
 
-        <el-table-column label="Color" width="80" align="center">
+        <el-table-column label="Color" width="75" align="center">
           <template #default="{ row }">
             <div
               v-if="row.perfil?.code?.toUpperCase() === 'FOTOGRAFO'"
@@ -374,11 +374,6 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
 @media (max-width: 768px) {
   .search-input {
     width: 100%;
-  }
-
-  :deep(.el-dialog) {
-    width: 92% !important;
-    max-width: 400px;
   }
 }
 </style>
