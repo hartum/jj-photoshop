@@ -12,7 +12,7 @@ import {
   Close,
 } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 interface TreeNode {
   id: string
@@ -103,24 +103,13 @@ async function handleAddCountry() {
   }
 }
 
-async function confirmDeleteCountry(pais: Pais) {
+async function handleDeleteCountry(pais: Pais) {
   try {
-    await ElMessageBox.confirm(
-      `¿Estás seguro de que deseas eliminar el país "${pais.nombre} (${pais.codigo})"? El país ya no estará activo en el sistema.`,
-      'Confirmar Eliminación de País',
-      {
-        confirmButtonText: 'Eliminar',
-        cancelButtonText: 'Cancelar',
-        type: 'warning',
-      },
-    )
     await countryStore.deleteCountry(pais.id)
     ElMessage.success(`País "${pais.nombre}" eliminado correctamente`)
   } catch (err: unknown) {
-    if (err !== 'cancel' && err !== 'close') {
-      const message = err instanceof Error ? err.message : 'Error al eliminar el país'
-      ElMessage.error(message)
-    }
+    const message = err instanceof Error ? err.message : 'Error al eliminar el país'
+    ElMessage.error(message)
   }
 }
 
@@ -156,24 +145,13 @@ async function handleCreateArea(paisId: number) {
   }
 }
 
-async function confirmDeleteArea(area: AreaItem) {
+async function handleDeleteArea(area: AreaItem) {
   try {
-    await ElMessageBox.confirm(
-      `¿Estás seguro de que deseas eliminar el área "${area.nombre}"? Esta acción la retirará del sistema.`,
-      'Confirmar Eliminación de Área',
-      {
-        confirmButtonText: 'Eliminar',
-        cancelButtonText: 'Cancelar',
-        type: 'warning',
-      },
-    )
     await countryStore.deleteArea(area.id)
     ElMessage.success(`Área "${area.nombre}" eliminada correctamente`)
   } catch (err: unknown) {
-    if (err !== 'cancel' && err !== 'close') {
-      const message = err instanceof Error ? err.message : 'Error al eliminar el área'
-      ElMessage.error(message)
-    }
+    const message = err instanceof Error ? err.message : 'Error al eliminar el área'
+    ElMessage.error(message)
   }
 }
 </script>
@@ -240,14 +218,25 @@ async function confirmDeleteArea(area: AreaItem) {
                     class="action-btn"
                     @click.stop="showAddAreaForm(data.rawPais.id)"
                   />
-                  <el-button
-                    type="danger"
-                    link
-                    :icon="Delete"
-                    title="Eliminar país"
-                    class="action-btn delete-btn"
-                    @click.stop="confirmDeleteCountry(data.rawPais)"
-                  />
+                  <el-popconfirm
+                    :title="`¿Eliminar el país ${data.rawPais.nombre}?`"
+                    confirm-button-text="Eliminar"
+                    cancel-button-text="Cancelar"
+                    confirm-button-type="danger"
+                    :width="240"
+                    @confirm="handleDeleteCountry(data.rawPais)"
+                  >
+                    <template #reference>
+                      <el-button
+                        type="danger"
+                        link
+                        :icon="Delete"
+                        title="Eliminar país"
+                        class="action-btn delete-btn"
+                        @click.stop
+                      />
+                    </template>
+                  </el-popconfirm>
                 </div>
 
                 <!-- Si SÍ se está creando área: los botones se ocultan y se muestra el formulario de 1 campo -->
@@ -280,14 +269,25 @@ async function confirmDeleteArea(area: AreaItem) {
 
               <!-- Botón Eliminar Área (Icono Papelera) -->
               <div class="node-actions" @click.stop>
-                <el-button
-                  type="danger"
-                  link
-                  :icon="Delete"
-                  title="Eliminar área"
-                  class="action-btn delete-btn"
-                  @click.stop="confirmDeleteArea(data.rawArea)"
-                />
+                <el-popconfirm
+                  :title="`¿Eliminar el área ${data.rawArea.nombre}?`"
+                  confirm-button-text="Eliminar"
+                  cancel-button-text="Cancelar"
+                  confirm-button-type="danger"
+                  :width="240"
+                  @confirm="handleDeleteArea(data.rawArea)"
+                >
+                  <template #reference>
+                    <el-button
+                      type="danger"
+                      link
+                      :icon="Delete"
+                      title="Eliminar área"
+                      class="action-btn delete-btn"
+                      @click.stop
+                    />
+                  </template>
+                </el-popconfirm>
               </div>
             </template>
 

@@ -122,21 +122,13 @@ function navigateToEdit(user: UserWithProfile) {
   router.push(`/usuarios/${user.id}/editar`)
 }
 
-async function confirmDelete(user: UserWithProfile) {
+async function handleDeleteUser(userId: string) {
   try {
-    await ElMessageBox.confirm(
-      `¿Estás seguro de que deseas eliminar al usuario "${user.nombre} ${user.apellidos}"? Esta acción no se puede deshacer.`,
-      'Confirmar Eliminación',
-      {
-        confirmButtonText: 'Eliminar',
-        cancelButtonText: 'Cancelar',
-        type: 'warning',
-      },
-    )
-    await userStore.deleteUser(user.id)
+    await userStore.deleteUser(userId)
     ElMessage.success('Usuario eliminado correctamente')
-  } catch {
-    // Usuario canceló la acción
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar el usuario'
+    ElMessage.error(message)
   }
 }
 
@@ -285,16 +277,26 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
                 title="Editar usuario"
                 @click="navigateToEdit(row)"
               />
-              <el-button
+              <el-popconfirm
                 v-if="
                   canDeleteUser(currentUser?.roleCode, row.perfil?.code, currentUser?.id, row.id)
                 "
-                type="danger"
-                link
-                :icon="Delete"
-                title="Eliminar usuario"
-                @click="confirmDelete(row)"
-              />
+                :title="`¿Eliminar al usuario ${row.nombre} ${row.apellidos}?`"
+                confirm-button-text="Eliminar"
+                cancel-button-text="Cancelar"
+                confirm-button-type="danger"
+                :width="240"
+                @confirm="handleDeleteUser(row.id)"
+              >
+                <template #reference>
+                  <el-button
+                    type="danger"
+                    link
+                    :icon="Delete"
+                    title="Eliminar usuario"
+                  />
+                </template>
+              </el-popconfirm>
             </div>
           </template>
         </el-table-column>

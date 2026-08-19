@@ -7,7 +7,7 @@ import type { Hotel } from '../domain/hotel.model'
 import { getFlagEmoji } from '@/components/flagEmoji'
 import { Search, Plus, EditPen, Delete, Location } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const hotelStore = useHotelStore()
@@ -68,24 +68,13 @@ function navigateToEdit(hotel: Hotel) {
   router.push(`/hoteles/${hotel.id}/editar`)
 }
 
-async function confirmDeleteHotel(hotel: Hotel) {
+async function handleDeleteHotel(hotel: Hotel) {
   try {
-    await ElMessageBox.confirm(
-      `¿Estás seguro de que deseas eliminar el hotel "${hotel.nombre}"? El hotel ya no estará activo en el sistema.`,
-      'Confirmar Eliminación de Hotel',
-      {
-        confirmButtonText: 'Eliminar',
-        cancelButtonText: 'Cancelar',
-        type: 'warning',
-      },
-    )
     await hotelStore.deleteHotel(hotel.id)
     ElMessage.success(`Hotel "${hotel.nombre}" eliminado correctamente`)
   } catch (err: unknown) {
-    if (err !== 'cancel' && err !== 'close') {
-      const message = err instanceof Error ? err.message : 'Error al eliminar el hotel'
-      ElMessage.error(message)
-    }
+    const message = err instanceof Error ? err.message : 'Error al eliminar el hotel'
+    ElMessage.error(message)
   }
 }
 </script>
@@ -187,13 +176,23 @@ async function confirmDeleteHotel(hotel: Hotel) {
                 title="Editar hotel"
                 @click="navigateToEdit(row)"
               />
-              <el-button
-                type="danger"
-                link
-                :icon="Delete"
-                title="Eliminar hotel"
-                @click="confirmDeleteHotel(row)"
-              />
+              <el-popconfirm
+                :title="`¿Eliminar el hotel ${row.nombre}?`"
+                confirm-button-text="Eliminar"
+                cancel-button-text="Cancelar"
+                confirm-button-type="danger"
+                :width="240"
+                @confirm="handleDeleteHotel(row)"
+              >
+                <template #reference>
+                  <el-button
+                    type="danger"
+                    link
+                    :icon="Delete"
+                    title="Eliminar hotel"
+                  />
+                </template>
+              </el-popconfirm>
             </div>
           </template>
         </el-table-column>
