@@ -15,8 +15,9 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
 import type { EventContentArg, DatesSetArg, EventClickArg } from '@fullcalendar/core'
-import { Plus, Bell, User, InfoFilled } from '@element-plus/icons-vue'
+import { Plus, Bell, User, InfoFilled, Calendar } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
+import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -501,6 +502,10 @@ interface EventTooltipInfo {
   hotelNombre: string
   fotografoPrimerNombre: string
   fotografoNombreCompleto: string
+  fotografoNombre?: string | null
+  fotografoApellidos?: string | null
+  fotografoImagen?: string | null
+  fotografoColor?: string | null
   fechaCabecera: string
   habitacion: string
   clienteNombre: string
@@ -616,6 +621,10 @@ function buildTooltipInfo(extendedProps: ExtendedEventProps): EventTooltipInfo {
       hotelNombre,
       fotografoPrimerNombre,
       fotografoNombreCompleto,
+      fotografoNombre: fotografo?.nombre || null,
+      fotografoApellidos: fotografo?.apellidos || null,
+      fotografoImagen: fotografo?.imagen || null,
+      fotografoColor: fotografo?.color || null,
       fechaCabecera: formatEventHeaderDate(rawSale.fechaHoraCita),
       habitacion: rawSale.numeroHabitacion || parentSession?.numeroHabitacion || '-',
       clienteNombre: rawSale.clienteNombre || parentSession?.clienteNombre || '-',
@@ -655,6 +664,10 @@ function buildTooltipInfo(extendedProps: ExtendedEventProps): EventTooltipInfo {
     hotelNombre,
     fotografoPrimerNombre,
     fotografoNombreCompleto,
+    fotografoNombre: fotografo?.nombre || null,
+    fotografoApellidos: fotografo?.apellidos || null,
+    fotografoImagen: fotografo?.imagen || null,
+    fotografoColor: fotografo?.color || null,
     fechaCabecera: formatEventHeaderDate(session.fechaHoraInicio),
     habitacion: session?.numeroHabitacion || '-',
     clienteNombre: session?.clienteNombre || '-',
@@ -860,10 +873,25 @@ function handleEventClick(clickInfo: EventClickArg) {
               <span>{{ activeTooltipInfo.hotelNombre }}</span>
             </div>
             <div class="header-photographer" title="Fotógrafo asignado">
-              <el-icon :size="16"><User /></el-icon>
+              <el-avatar
+                v-if="activeTooltipInfo.fotografoPrimerNombre !== 'Sin asignar'"
+                :src="activeTooltipInfo.fotografoImagen || undefined"
+                shape="circle"
+                :size="22"
+                :style="{
+                  backgroundColor: getUserBgColor(activeTooltipInfo.fotografoColor),
+                  color: '#ffffff',
+                  fontWeight: '600',
+                  fontSize: '11px',
+                }"
+              >
+                {{ getUserInitials(activeTooltipInfo.fotografoNombre, activeTooltipInfo.fotografoApellidos) }}
+              </el-avatar>
+              <el-icon v-else :size="16"><User /></el-icon>
               <span>{{ activeTooltipInfo.fotografoPrimerNombre }}</span>
             </div>
             <div class="sub-header">
+              <el-icon :size="16"><Calendar /></el-icon>
               <span>{{ activeTooltipInfo.fechaCabecera }}</span>
             </div>
           </div>
@@ -940,10 +968,25 @@ function handleEventClick(clickInfo: EventClickArg) {
               <span>{{ activeTooltipInfo.hotelNombre }}</span>
             </div>
             <div class="header-photographer" title="Fotógrafo asignado">
-              <el-icon :size="16"><User /></el-icon>
+              <el-avatar
+                v-if="activeTooltipInfo.fotografoPrimerNombre !== 'Sin asignar'"
+                :src="activeTooltipInfo.fotografoImagen || undefined"
+                shape="circle"
+                :size="22"
+                :style="{
+                  backgroundColor: getUserBgColor(activeTooltipInfo.fotografoColor),
+                  color: '#ffffff',
+                  fontWeight: '600',
+                  fontSize: '11px',
+                }"
+              >
+                {{ getUserInitials(activeTooltipInfo.fotografoNombre, activeTooltipInfo.fotografoApellidos) }}
+              </el-avatar>
+              <el-icon v-else :size="16"><User /></el-icon>
               <span>{{ activeTooltipInfo.fotografoPrimerNombre }}</span>
             </div>
             <div class="sub-header">
+              <el-icon :size="16"><Calendar /></el-icon>
               <span>{{ activeTooltipInfo.fechaCabecera }}</span>
             </div>
           </div>
