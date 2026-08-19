@@ -39,30 +39,6 @@ export function getUserBgColor(color?: string | null): string {
   return color && color.trim() ? color.trim() : '#3b82f6'
 }
 
-/**
- * Genera un avatar SVG fallback con las iniciales del usuario y color de fondo.
- * (Mantenido por retrocompatibilidad).
- * @param nombre Nombre del usuario
- * @param apellidos Apellidos del usuario
- * @param color Color hexadecimal o CSS (ej. #3b82f6)
- */
-export function getDefaultAvatar(
-  nombre?: string | null,
-  apellidos?: string | null,
-  color?: string | null,
-): string {
-  const initials = getUserInitials(nombre, apellidos)
-  const bgColor = getUserBgColor(color)
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <rect width="100" height="100" fill="${bgColor}" rx="50" />
-  <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="${initials.length > 1 ? 38 : 46}" font-weight="600" letter-spacing="1">
-    ${initials}
-  </text>
-</svg>`
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-}
 
 /**
  * Retorna la URL del recurso SVG correspondiente al código de perfil.
