@@ -491,14 +491,14 @@ async function handleRecalculate() {
 .contract-badge {
   font-size: 0.85rem;
   font-weight: 600;
-}
 
-.contract-badge.salaried {
-  color: #059669;
-}
+  &.salaried {
+    color: #059669;
+  }
 
-.contract-badge.commission-only {
-  color: #2563eb;
+  &.commission-only {
+    color: #2563eb;
+  }
 }
 
 .contract-hint {

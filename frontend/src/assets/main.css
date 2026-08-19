@@ -13,6 +13,11 @@
   --toolbar-border: #e2e8f0;
   --content-bg: #f8fafc;
   --heading-color: #0f172a;
+  --text-muted: #64748b;
+  --color-primary: #3b82f6;
+  --color-success: #10b981;
+  --color-warning: #e6a23c;
+  --color-danger: #ef4444;
 }
 
 html.dark {
@@ -27,6 +32,11 @@ html.dark {
   --toolbar-border: #363637;
   --content-bg: #121212;
   --heading-color: #ffffff;
+  --text-muted: #a1a1aa;
+  --color-primary: #409eff;
+  --color-success: #10b981;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
 }
 
 /* Global reset for full viewport application */

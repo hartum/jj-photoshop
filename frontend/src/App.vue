@@ -424,18 +424,18 @@ onMounted(async () => {
   font-size: 0.95rem;
   font-weight: 500;
   transition: all 0.2s ease-in-out;
-}
 
-.nav-link:hover {
-  color: var(--nav-link-hover-color, #0f172a);
-  background-color: var(--nav-link-hover-bg, #f1f5f9);
-}
+  &:hover {
+    color: var(--nav-link-hover-color, #0f172a);
+    background-color: var(--nav-link-hover-bg, #f1f5f9);
+  }
 
-.nav-link.router-link-active {
-  color: #ffffff;
-  background-color: #409eff;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+  &.router-link-active {
+    color: #ffffff;
+    background-color: var(--color-primary, #409eff);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+  }
 }
 
 /* Sidebar Tree Hierarchy Styling */
@@ -501,15 +501,15 @@ onMounted(async () => {
 .clickable-node {
   pointer-events: auto !important;
   cursor: pointer !important;
-}
 
-.clickable-node:hover {
-  background-color: var(--nav-link-hover-bg, #f1f5f9);
-  color: #409eff;
-}
+  &:hover {
+    background-color: var(--nav-link-hover-bg, #f1f5f9);
+    color: var(--color-primary, #409eff);
 
-.clickable-node:hover .hotel-icon {
-  color: #409eff;
+    .hotel-icon {
+      color: var(--color-primary, #409eff);
+    }
+  }
 }
 
 .node-icon {
