@@ -42,8 +42,8 @@ Este archivo define el contexto obligatorio, la estructura de negocio, los roles
 
 > [!NOTE]
 > Documentación detallada en la base de conocimiento del proyecto:
-> - [docs/detalles_perfil_fotografos.md](file:///Users/hartumia/workspace/JJ%20Photoshop/docs/detalles_perfil_fotografos.md) (Detalles de pantalla de fotógrafo, agenda completa del hotel y matriz de comisiones).
-> - [docs/requisitos_y_plan_trabajo.md](file:///Users/hartumia/workspace/JJ%20Photoshop/docs/requisitos_y_plan_trabajo.md) (Análisis completo de requisitos, diseño DB, flujos de usuario y plan de 8 fases).
+> - [docs/detalles_perfil_fotografos.md](file:///Users/hartumia/workspace/JJ%20Studio/docs/detalles_perfil_fotografos.md) (Detalles de pantalla de fotógrafo, agenda completa del hotel y matriz de comisiones).
+> - [docs/requisitos_y_plan_trabajo.md](file:///Users/hartumia/workspace/JJ%20Studio/docs/requisitos_y_plan_trabajo.md) (Análisis completo de requisitos, diseño DB, flujos de usuario y plan de 8 fases).
 
 1. **Gestión de Agenda & Sesiones Fotográficas**:
    - Pantalla inicial del fotógrafo: Muestra el **calendario completo del hotel** para coordinación de equipo y evitar solapes de sesiones grandes (ej. familias de 8 pax).
