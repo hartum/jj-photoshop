@@ -164,9 +164,9 @@ function tableRowClassName({ row }: { row: UserWithProfile }) {
         class="search-input"
       />
 
-      <span class="user-count">
+      <el-tag type="info">
         Total: <strong>{{ filteredUsers.length }}</strong> usuarios
-      </span>
+      </el-tag>
     </div>
 
     <!-- Tabla de Usuarios con Element Plus -->
