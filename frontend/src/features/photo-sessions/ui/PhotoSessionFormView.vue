@@ -27,6 +27,7 @@ import {
 import { Building2, PlaneTakeoff, CircleUserRound, Baby, UserX } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import { IosDatepicker } from 'vue-ios-style-datepicker'
+import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -263,9 +264,14 @@ watch(
   { immediate: true },
 )
 
+const selectedPhotographer = computed(() => {
+  if (!formData.value.fotografoId) return null
+  return photographers.value.find((x) => String(x.id) === String(formData.value.fotografoId)) || null
+})
+
 const selectedPhotographerName = computed(() => {
   if (!formData.value.fotografoId) return ''
-  const p = photographers.value.find((x) => String(x.id) === String(formData.value.fotografoId))
+  const p = selectedPhotographer.value
   return p ? `${p.nombre} ${p.apellidos}`.trim() : 'El fotógrafo'
 })
 
@@ -777,14 +783,49 @@ async function handleSaveSession() {
               style="width: 100%"
               placeholder="Sin fotógrafo asignado"
               clearable
+              filterable
             >
+              <template #prefix v-if="selectedPhotographer">
+                <el-avatar
+                  :src="selectedPhotographer.imagen || undefined"
+                  :size="20"
+                  :style="{
+                    backgroundColor: getUserBgColor(selectedPhotographer.color),
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    fontSize: '10px',
+                  }"
+                  class="select-prefix-avatar"
+                >
+                  {{ getUserInitials(selectedPhotographer.nombre, selectedPhotographer.apellidos) }}
+                </el-avatar>
+              </template>
               <el-option label="Sin fotógrafo asignado" value="" />
               <el-option
                 v-for="photographer in photographers"
                 :key="photographer.id"
                 :label="`${photographer.nombre} ${photographer.apellidos}`"
                 :value="photographer.id"
-              />
+              >
+                <div class="photographer-option-item">
+                  <el-avatar
+                    :src="photographer.imagen || undefined"
+                    :size="24"
+                    :style="{
+                      backgroundColor: getUserBgColor(photographer.color),
+                      color: '#ffffff',
+                      fontWeight: '600',
+                      fontSize: '11px',
+                    }"
+                    class="photographer-avatar"
+                  >
+                    {{ getUserInitials(photographer.nombre, photographer.apellidos) }}
+                  </el-avatar>
+                  <span class="photographer-option-name">
+                    {{ photographer.nombre }} {{ photographer.apellidos }}
+                  </span>
+                </div>
+              </el-option>
             </el-select>
           </el-form-item>
         </div>
@@ -1479,6 +1520,27 @@ async function handleSaveSession() {
   background-color: #94a3b8;
 }
 
+.select-prefix-avatar {
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.photographer-option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.photographer-avatar {
+  flex-shrink: 0;
+}
+
+.photographer-option-name {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
 @media (max-width: 768px) {
   .session-form-container {
     padding: 1rem;
@@ -1488,6 +1550,14 @@ async function handleSaveSession() {
   .form-row-3 {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .absence-legend {
+    justify-content: flex-start;
+  }
+
+  .calendar-with-legend {
+    margin-left: 0 !important;
   }
 
   .form-actions {
