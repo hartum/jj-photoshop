@@ -27,7 +27,10 @@ const GOOGLE_EVENT_COLORS: GoogleColor[] = [
 function hexToRgb(hex: string): [number, number, number] {
   let clean = hex.replace('#', '').trim()
   if (clean.length === 3) {
-    clean = clean.split('').map((c) => c + c).join('')
+    clean = clean
+      .split('')
+      .map((c) => c + c)
+      .join('')
   }
   const num = parseInt(clean, 16)
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255]
@@ -47,11 +50,7 @@ export function mapHexToGoogleColorId(hexColor?: string | null): string {
 
     for (const gc of GOOGLE_EVENT_COLORS) {
       const [r2, g2, b2] = hexToRgb(gc.hex)
-      const dist = Math.sqrt(
-        Math.pow(r1 - r2, 2) +
-        Math.pow(g1 - g2, 2) +
-        Math.pow(b1 - b2, 2)
-      )
+      const dist = Math.sqrt(Math.pow(r1 - r2, 2) + Math.pow(g1 - g2, 2) + Math.pow(b1 - b2, 2))
       if (dist < minDistance) {
         minDistance = dist
         closestColorId = gc.id
@@ -115,18 +114,59 @@ export function getCalendarClient() {
   return null
 }
 
-function formatDateDisplay(date?: Date | null): string {
+function formatDateLongSpanish(date?: Date | null): string {
   if (!date) return 'No especificada'
   try {
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+    const iso = date instanceof Date ? date.toISOString() : String(date)
+    const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+    const target = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+    const meses = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ]
+    return `${dias[target.getUTCDay()]}, ${d} ${meses[m - 1]} ${y}`
   } catch {
-    return date.toISOString().slice(0, 10)
+    return date instanceof Date ? date.toISOString().slice(0, 10) : String(date)
   }
+}
+
+function formatPaxDisplay(adultos: number = 1, ninos: number = 0): string {
+  const adultosStr = `${adultos} ${adultos === 1 ? 'Adulto' : 'Adultos'}`
+  if (ninos > 0) {
+    const ninosStr = `${ninos} ${ninos === 1 ? 'niño' : 'niños'}`
+    return `${adultosStr} ${ninosStr}`
+  }
+  return adultosStr
+}
+
+function formatRoomDisplay(room?: string | null): string {
+  if (!room || !room.trim()) return 'S/N'
+  const clean = room.trim().replace(/^hab(itaci[oó]n|\.)?\s*:?\s*/i, '')
+  return clean || 'S/N'
+}
+
+function formatPhoneHtml(phone?: string | null): string {
+  if (!phone || !phone.trim()) return 'Sin teléfono'
+  const clean = phone.trim()
+  const digits = clean.replace(/[^0-9+]/g, '')
+  return `<a href="tel:${digits}">${clean}</a>`
+}
+
+function formatEmailHtml(email?: string | null): string {
+  if (!email || !email.trim()) return 'Sin email'
+  const clean = email.trim()
+  return `<a href="mailto:${clean}">${clean}</a>`
 }
 
 /**
@@ -135,7 +175,9 @@ function formatDateDisplay(date?: Date | null): string {
 export async function syncSesionToGoogle(sesionId: number): Promise<string | null> {
   const client = getCalendarClient()
   if (!client) {
-    console.warn('[GoogleCalendar] Cliente de Google Calendar no configurado. Se omite sincronización.')
+    console.warn(
+      '[GoogleCalendar] Cliente de Google Calendar no configurado. Se omite sincronización.',
+    )
     return null
   }
 
@@ -174,27 +216,27 @@ export async function syncSesionToGoogle(sesionId: number): Promise<string | nul
   const startDateTime = sesion.fechaHoraInicio
   const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000) // 1 hora de duración
 
-  const checkinStr = formatDateDisplay(sesion.fechaHoraInicio)
-  const checkoutStr = formatDateDisplay(sesion.fechaSalida)
-  const roomStr = sesion.numeroHabitacion ? `Check in ${sesion.numeroHabitacion}` : 'Check in S/N'
-  const paxStr = `${sesion.numAdultos ?? 1} adults and ${sesion.numNinos ?? 0} kids`
+  const checkoutFormatted = formatDateLongSpanish(sesion.fechaSalida)
+  const roomValue = formatRoomDisplay(sesion.numeroHabitacion)
+  const paxValue = formatPaxDisplay(sesion.numAdultos ?? 1, sesion.numNinos ?? 0)
+  const phoneHtml = formatPhoneHtml(sesion.clienteTelefono)
+  const emailHtml = formatEmailHtml(sesion.clienteEmail)
 
-  let description = `${roomStr}
-${clienteNombre}
-${checkinStr}
-And check out ${checkoutStr}
-${paxStr}
-${sesion.clienteTelefono || 'Sin teléfono'}
-${sesion.clienteEmail || 'Sin email'}
+  let description = `<b>HABITACIÓN:</b> ${roomValue}
+<b>CLIENTE:</b> ${clienteNombre}
+<b>CHECK OUT:</b> ${checkoutFormatted}
+<b>PAX:</b> ${paxValue}
+<b>TELÉFONO:</b> ${phoneHtml}
+<b>EMAIL:</b> ${emailHtml}
 
-AGENDA ${creadorNombre}
-FOTO ${fotografoNombre}`
+<b>AGENDADO POR:</b> ${creadorNombre}
+<b>FOTÓGRAFO:</b> ${fotografoNombre}`
 
   if (sesion.concepto) {
-    description += `\nConcepto: ${sesion.concepto}`
+    description += `\n<b>Concepto:</b> ${sesion.concepto}`
   }
   if (sesion.notas) {
-    description += `\n\nNOTAS:\n${sesion.notas}`
+    description += `\n\n<b>Notas:</b>\n${sesion.notas}`
   }
 
   const eventPayload = {
@@ -229,11 +271,20 @@ FOTO ${fotografoNombre}`
           requestBody: eventPayload,
         })
         googleEventId = res.data.id || googleEventId
-        console.log(`[GoogleCalendar] Sesión #${sesionId} actualizada en Google Calendar (Event ID: ${googleEventId})`)
+        console.log(
+          `[GoogleCalendar] Sesión #${sesionId} actualizada en Google Calendar (Event ID: ${googleEventId})`,
+        )
       } catch (updateErr: any) {
         // Si el evento fue borrado en Google (404 / 410), lo recreamos
-        if (updateErr?.status === 404 || updateErr?.status === 410 || updateErr?.code === 404 || updateErr?.code === 410) {
-          console.warn(`[GoogleCalendar] Evento ${googleEventId} no encontrado en Google Calendar. Recreando...`)
+        if (
+          updateErr?.status === 404 ||
+          updateErr?.status === 410 ||
+          updateErr?.code === 404 ||
+          updateErr?.code === 410
+        ) {
+          console.warn(
+            `[GoogleCalendar] Evento ${googleEventId} no encontrado en Google Calendar. Recreando...`,
+          )
           const createRes = await client.calendar.events.insert({
             calendarId: client.calendarId,
             requestBody: eventPayload,
@@ -250,7 +301,9 @@ FOTO ${fotografoNombre}`
         requestBody: eventPayload,
       })
       googleEventId = createRes.data.id || null
-      console.log(`[GoogleCalendar] Sesión #${sesionId} creada en Google Calendar (Event ID: ${googleEventId})`)
+      console.log(
+        `[GoogleCalendar] Sesión #${sesionId} creada en Google Calendar (Event ID: ${googleEventId})`,
+      )
     }
 
     if (googleEventId && googleEventId !== sesion.googleCalendarEventId) {
@@ -286,7 +339,10 @@ export async function deleteSesionFromGoogle(googleEventId?: string | null): Pro
     if (err?.status === 404 || err?.status === 410 || err?.code === 404 || err?.code === 410) {
       return true // Ya no existía
     }
-    console.error(`[GoogleCalendar] Error al eliminar evento ${googleEventId}:`, err?.message || err)
+    console.error(
+      `[GoogleCalendar] Error al eliminar evento ${googleEventId}:`,
+      err?.message || err,
+    )
     return false
   }
 }
@@ -297,7 +353,9 @@ export async function deleteSesionFromGoogle(googleEventId?: string | null): Pro
 export async function syncCitaVentaToGoogle(citaVentaId: number): Promise<string | null> {
   const client = getCalendarClient()
   if (!client) {
-    console.warn('[GoogleCalendar] Cliente de Google Calendar no configurado. Se omite sincronización.')
+    console.warn(
+      '[GoogleCalendar] Cliente de Google Calendar no configurado. Se omite sincronización.',
+    )
     return null
   }
 
@@ -339,30 +397,33 @@ export async function syncCitaVentaToGoogle(citaVentaId: number): Promise<string
   const summary = `${hotelName} CITA VENTA ${clienteNombre} | ${vendedorNombre}`
 
   // Color: Color del vendedor si tiene, o fotógrafo, o Gris ("8")
-  const colorHex = cita.vendedor?.colorAsignado?.color || cita.sesion?.fotografo?.colorAsignado?.color || null
+  const colorHex =
+    cita.vendedor?.colorAsignado?.color || cita.sesion?.fotografo?.colorAsignado?.color || null
   const colorId = colorHex ? mapHexToGoogleColorId(colorHex) : '8'
 
   const startDateTime = cita.fechaHoraCita
   const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000)
 
-  const checkoutStr = formatDateDisplay(cita.sesion?.fechaSalida)
-  const roomStr = cita.sesion?.numeroHabitacion ? `Habitación ${cita.sesion.numeroHabitacion}` : 'Habitación S/N'
-  const paxStr = `${cita.sesion?.numAdultos ?? 1} adults and ${cita.sesion?.numNinos ?? 0} kids`
+  const checkoutFormatted = formatDateLongSpanish(cita.sesion?.fechaSalida)
+  const roomValue = formatRoomDisplay(cita.sesion?.numeroHabitacion)
+  const paxValue = formatPaxDisplay(cita.sesion?.numAdultos ?? 1, cita.sesion?.numNinos ?? 0)
+  const phoneHtml = formatPhoneHtml(cita.sesion?.clienteTelefono)
+  const emailHtml = formatEmailHtml(cita.sesion?.clienteEmail)
 
-  let description = `[CITA DE VENTA]
-${roomStr}
-${clienteNombre}
-And check out ${checkoutStr}
-${paxStr}
-${cita.sesion?.clienteTelefono || 'Sin teléfono'}
-${cita.sesion?.clienteEmail || 'Sin email'}
+  let description = `<b>[CITA DE VENTA]</b>
+<b>HABITACIÓN:</b> ${roomValue}
+<b>CLIENTE:</b> ${clienteNombre}
+<b>CHECK OUT:</b> ${checkoutFormatted}
+<b>PAX:</b> ${paxValue}
+<b>TELÉFONO:</b> ${phoneHtml}
+<b>EMAIL:</b> ${emailHtml}
 
-AGENDA: ${creadorNombre}
-VENDEDOR: ${vendedorNombre}
-FOTÓGRAFO: ${fotografoNombre}`
+<b>AGENDADO POR:</b> ${creadorNombre}
+<b>VENDEDOR:</b> ${vendedorNombre}
+<b>FOTÓGRAFO:</b> ${fotografoNombre}`
 
   if (cita.notas) {
-    description += `\n\nNOTAS:\n${cita.notas}`
+    description += `\n\n<b>Notas:</b>\n${cita.notas}`
   }
 
   const eventPayload = {
@@ -396,9 +457,16 @@ FOTÓGRAFO: ${fotografoNombre}`
           requestBody: eventPayload,
         })
         googleEventId = res.data.id || googleEventId
-        console.log(`[GoogleCalendar] Cita de Venta #${citaVentaId} actualizada en Google Calendar (Event ID: ${googleEventId})`)
+        console.log(
+          `[GoogleCalendar] Cita de Venta #${citaVentaId} actualizada en Google Calendar (Event ID: ${googleEventId})`,
+        )
       } catch (updateErr: any) {
-        if (updateErr?.status === 404 || updateErr?.status === 410 || updateErr?.code === 404 || updateErr?.code === 410) {
+        if (
+          updateErr?.status === 404 ||
+          updateErr?.status === 410 ||
+          updateErr?.code === 404 ||
+          updateErr?.code === 410
+        ) {
           const createRes = await client.calendar.events.insert({
             calendarId: client.calendarId,
             requestBody: eventPayload,
@@ -414,7 +482,9 @@ FOTÓGRAFO: ${fotografoNombre}`
         requestBody: eventPayload,
       })
       googleEventId = createRes.data.id || null
-      console.log(`[GoogleCalendar] Cita de Venta #${citaVentaId} creada en Google Calendar (Event ID: ${googleEventId})`)
+      console.log(
+        `[GoogleCalendar] Cita de Venta #${citaVentaId} creada en Google Calendar (Event ID: ${googleEventId})`,
+      )
     }
 
     if (googleEventId && googleEventId !== cita.googleCalendarEventId) {
@@ -426,7 +496,10 @@ FOTÓGRAFO: ${fotografoNombre}`
 
     return googleEventId
   } catch (err: any) {
-    console.error(`[GoogleCalendar] Error al sincronizar cita de venta #${citaVentaId}:`, err?.message || err)
+    console.error(
+      `[GoogleCalendar] Error al sincronizar cita de venta #${citaVentaId}:`,
+      err?.message || err,
+    )
     return null
   }
 }
@@ -452,7 +525,8 @@ export async function testGoogleCalendarConnection(): Promise<{
   if (!client) {
     return {
       success: false,
-      error: 'Variables de configuración de Google Calendar no encontradas en .env o archivo no existe.',
+      error:
+        'Variables de configuración de Google Calendar no encontradas en .env o archivo no existe.',
     }
   }
 
