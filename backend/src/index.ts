@@ -10,6 +10,7 @@ import { saleRoutes } from './features/sales/infrastructure/sale.routes.js'
 import { goalRoutes } from './features/goals/infrastructure/goal.routes.js'
 import { commissionRoutes } from './features/commissions/infrastructure/commission.routes.js'
 import { calendarioLaboralRoutes } from './features/users/infrastructure/calendario-laboral.routes.js'
+import { googleCalendarRoutes } from './features/integrations/google-calendar/google-calendar.routes.js'
 
 const fastify = Fastify({
   logger: true,
@@ -34,6 +35,7 @@ await fastify.register(saleRoutes)
 await fastify.register(goalRoutes)
 await fastify.register(commissionRoutes)
 await fastify.register(calendarioLaboralRoutes)
+await fastify.register(googleCalendarRoutes)
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }

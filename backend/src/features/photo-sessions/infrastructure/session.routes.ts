@@ -1,5 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../../shared/db.js'
+import {
+  syncSesionToGoogle,
+  deleteSesionFromGoogle,
+} from '../../integrations/google-calendar/google-calendar.service.js'
 
 function parseLocalDateTime(dateStr: string): Date {
   if (!dateStr) return new Date()
@@ -421,6 +425,14 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         },
       })
 
+      // Sincronizar automáticamente con Google Calendar
+      let googleEventId: string | null = null
+      try {
+        googleEventId = await syncSesionToGoogle(nueva.id)
+      } catch (gErr) {
+        fastify.log.error(gErr, 'Error al sincronizar sesión con Google Calendar')
+      }
+
       return reply.status(201).send({
         id: nueva.id,
         hotelId: nueva.hotelId,
@@ -438,7 +450,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         estado: nueva.estado,
         origen: nueva.origen,
         notas: nueva.notas || '',
-        googleCalendarEventId: nueva.googleCalendarEventId || null,
+        googleCalendarEventId: googleEventId || nueva.googleCalendarEventId || null,
         createdAt: nueva.createdAt.toISOString(),
         updatedAt: nueva.updatedAt.toISOString(),
       })
@@ -566,6 +578,14 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         },
       })
 
+      // Sincronizar actualización con Google Calendar
+      let googleEventId: string | null = actualizada.googleCalendarEventId
+      try {
+        googleEventId = await syncSesionToGoogle(actualizada.id)
+      } catch (gErr) {
+        fastify.log.error(gErr, 'Error al actualizar sesión en Google Calendar')
+      }
+
       return reply.send({
         id: actualizada.id,
         hotelId: actualizada.hotelId,
@@ -583,7 +603,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         estado: actualizada.estado,
         origen: actualizada.origen,
         notas: actualizada.notas || '',
-        googleCalendarEventId: actualizada.googleCalendarEventId || null,
+        googleCalendarEventId: googleEventId || null,
         createdAt: actualizada.createdAt.toISOString(),
         updatedAt: actualizada.updatedAt.toISOString(),
       })
@@ -599,10 +619,22 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     try {
       const id = Number(request.params && (request.params as any).id)
 
+      const sesion = await prisma.sesionFotografica.findUnique({
+        where: { id },
+        select: { googleCalendarEventId: true },
+      })
+
       await prisma.sesionFotografica.update({
         where: { id },
         data: { deletedAt: new Date() },
       })
+
+      // Eliminar evento de Google Calendar
+      if (sesion?.googleCalendarEventId) {
+        deleteSesionFromGoogle(sesion.googleCalendarEventId).catch((gErr) => {
+          fastify.log.error(gErr, 'Error al eliminar evento de Google Calendar')
+        })
+      }
 
       return reply.send({ success: true, id })
     } catch (err: unknown) {

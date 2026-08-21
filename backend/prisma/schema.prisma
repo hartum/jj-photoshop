@@ -182,6 +182,7 @@ model CitaVenta {
   numFotosVendidas Int?       @map("num_fotos_vendidas")
   totalVentaUsd    Float?     @map("total_venta_usd")
   notas            String?    @db.Text
+  googleCalendarEventId String? @map("google_calendar_event_id")
   createdAt        DateTime   @default(now()) @map("created_at")
   updatedAt        DateTime   @updatedAt @map("updated_at")
   deletedAt        DateTime?  @map("deleted_at")

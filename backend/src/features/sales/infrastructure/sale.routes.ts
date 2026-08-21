@@ -1,6 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../../shared/db.js'
 import { calculateAndSaveCommissionsForSale } from '../../commissions/application/commission.service.js'
+import {
+  syncCitaVentaToGoogle,
+  deleteCitaVentaFromGoogle,
+} from '../../integrations/google-calendar/google-calendar.service.js'
 
 const SALES_APPOINTMENT_DURATION_MS = 60 * 60 * 1000 // 1 hour
 
@@ -136,6 +140,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         numeroHabitacion: c.sesion.numeroHabitacion || '',
         fotografoId: c.sesion.fotografoId || null,
         sesionFechaHoraInicio: c.sesion.fechaHoraInicio.toISOString().slice(0, 16),
+        googleCalendarEventId: c.googleCalendarEventId || null,
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
       }))
@@ -215,6 +220,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         concepto: cita.sesion.concepto || '',
         sesionFechaHoraInicio: cita.sesion.fechaHoraInicio.toISOString().slice(0, 16),
         hotelNombre: cita.hotel.nombre,
+        googleCalendarEventId: cita.googleCalendarEventId || null,
         createdAt: cita.createdAt.toISOString(),
         updatedAt: cita.updatedAt.toISOString(),
       })
@@ -290,6 +296,14 @@ export async function saleRoutes(fastify: FastifyInstance) {
         include: { sesion: true, vendedor: true },
       })
 
+      // Sincronizar con Google Calendar
+      let googleEventId: string | null = null
+      try {
+        googleEventId = await syncCitaVentaToGoogle(nueva.id)
+      } catch (gErr) {
+        fastify.log.error(gErr, 'Error al sincronizar cita de venta con Google Calendar')
+      }
+
       const response: any = {
         id: nueva.id,
         sesionId: nueva.sesionId,
@@ -302,6 +316,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         totalVentaUsd: nueva.totalVentaUsd,
         notas: nueva.notas || '',
         clienteNombre: nueva.sesion.clienteNombre,
+        googleCalendarEventId: googleEventId || null,
         createdAt: nueva.createdAt.toISOString(),
         updatedAt: nueva.updatedAt.toISOString(),
       }
@@ -389,6 +404,14 @@ export async function saleRoutes(fastify: FastifyInstance) {
         fastify.log.error(commErr, 'Error al calcular comisiones para la venta')
       }
 
+      // Sincronizar actualización con Google Calendar
+      let googleEventId: string | null = actualizada.googleCalendarEventId
+      try {
+        googleEventId = await syncCitaVentaToGoogle(actualizada.id)
+      } catch (gErr) {
+        fastify.log.error(gErr, 'Error al sincronizar actualización de cita de venta con Google Calendar')
+      }
+
       const response: any = {
         id: actualizada.id,
         sesionId: actualizada.sesionId,
@@ -403,6 +426,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         totalVentaUsd: actualizada.totalVentaUsd,
         notas: actualizada.notas || '',
         clienteNombre: actualizada.sesion.clienteNombre,
+        googleCalendarEventId: googleEventId || null,
         createdAt: actualizada.createdAt.toISOString(),
         updatedAt: actualizada.updatedAt.toISOString(),
       }
@@ -432,6 +456,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
     try {
       const id = Number((request.params as any).id)
 
+      const cita = await prisma.citaVenta.findUnique({
+        where: { id },
+        select: { googleCalendarEventId: true },
+      })
+
       await prisma.citaVenta.update({
         where: { id },
         data: { deletedAt: new Date() },
@@ -441,6 +470,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
       await prisma.comision.deleteMany({
         where: { citaVentaId: id },
       })
+
+      // Eliminar evento de Google Calendar
+      if (cita?.googleCalendarEventId) {
+        deleteCitaVentaFromGoogle(cita.googleCalendarEventId).catch((gErr) => {
+          fastify.log.error(gErr, 'Error al eliminar cita de venta de Google Calendar')
+        })
+      }
 
       return reply.send({ success: true, id })
     } catch (err: unknown) {

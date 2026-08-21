@@ -22,6 +22,7 @@ export interface CitaVenta {
   concepto?: string | null
   sesionFechaHoraInicio?: string
   hotelNombre?: string
+  googleCalendarEventId?: string | null
   createdAt?: string
   updatedAt?: string
 }
