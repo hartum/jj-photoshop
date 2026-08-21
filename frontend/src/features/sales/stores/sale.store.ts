@@ -9,8 +9,11 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+function getAuthHeaders(includeContentType = true): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json'
+  }
   const token = localStorage.getItem('token')
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
@@ -101,15 +104,21 @@ export const useSaleStore = defineStore('sales', () => {
     }
   }
 
-  async function deleteCitaVenta(id: number): Promise<void> {
+  async function deleteCitaVenta(id: number, deleteAssociated = false): Promise<void> {
     isLoading.value = true
     try {
-      const res = await fetch(`${API_URL}/citas-venta/${id}`, {
+      const url = deleteAssociated
+        ? `${API_URL}/citas-venta/${id}?deleteSesion=true`
+        : `${API_URL}/citas-venta/${id}`
+      const res = await fetch(url, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(false),
       })
       if (res.ok) {
         citasVenta.value = citasVenta.value.filter((c) => c.id !== id)
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error al eliminar la cita de venta`)
       }
     } finally {
       isLoading.value = false

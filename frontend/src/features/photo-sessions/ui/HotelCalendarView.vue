@@ -15,7 +15,7 @@ import { useProfileStore } from '@/features/users/stores/profile.store'
 import type { SesionFotografica } from '../domain/session.model'
 import type { CitaVenta } from '@/features/sales/domain/sale.model'
 import type { EventContentArg, DatesSetArg, EventClickArg, CalendarOptions } from '@fullcalendar/core'
-import { Plus, Bell, User, InfoFilled, Calendar } from '@element-plus/icons-vue'
+import { Plus, Bell, User, InfoFilled, Calendar, Delete, WarningFilled } from '@element-plus/icons-vue'
 import { Building2 } from '@lucide/vue'
 import { getUserInitials, getUserBgColor } from '@/features/users/utils/user-avatar'
 import { ElMessage } from 'element-plus'
@@ -369,74 +369,125 @@ const calendarOptions = computed<CalendarOptions>(() => ({
   select: handleDateSelect,
   eventClick: handleEventClick,
   datesSet: handleDatesSet,
-  eventContent: renderEventContent,
   events: calendarEvents.value,
 }))
+
+const canDeleteEvents = computed(() => {
+  const roleCode = currentUser.value?.roleCode?.toUpperCase()
+  return roleCode === 'ADMIN' || roleCode === 'SUPERUSUARIO'
+})
+
+function getEventTimeText(arg: EventContentArg): string {
+  if (arg.event.start) {
+    const hours = String(arg.event.start.getHours()).padStart(2, '0')
+    const minutes = String(arg.event.start.getMinutes()).padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+  return arg.timeText ?? ''
+}
+
+// Estado para Popover de Confirmación de Borrado con Checkbox
+const deletePopoverVisible = ref(false)
+const deletePopoverTarget = ref<HTMLElement | null>(null)
+const pendingDeleteEvent = ref<any>(null)
+const deleteAssociated = ref(false)
+const isDeleting = ref(false)
+
+function hasAssociatedEvent(eventObj: any): boolean {
+  if (!eventObj) return false
+  const extendedProps = eventObj.extendedProps || eventObj
+  const type = extendedProps?.type
+  const rawSession = extendedProps?.rawSession
+  const rawSale = extendedProps?.rawSale
+
+  if (type === 'session' && rawSession) {
+    if (rawSession.citaVenta && !rawSession.citaVenta.deletedAt) return true
+    return saleStore.citasVenta.some((c) => Number(c.sesionId) === Number(rawSession.id))
+  }
+
+  if (type === 'sale' && rawSale) {
+    if (rawSale.sesionId) {
+      return sessionStore.sessions.some((s) => Number(s.id) === Number(rawSale.sesionId))
+    }
+  }
+
+  return false
+}
+
+const associatedCheckboxLabel = computed(() => {
+  if (!pendingDeleteEvent.value) return ''
+  const extendedProps = pendingDeleteEvent.value.extendedProps || pendingDeleteEvent.value
+  const type = extendedProps?.type
+
+  if (type === 'session') {
+    return 'Tb Borrar cita de ventas'
+  }
+  if (type === 'sale') {
+    return 'Tb borrar sesión asociada'
+  }
+  return ''
+})
+
+function openDeleteConfirm(eventObj: any, e: MouseEvent) {
+  e.stopPropagation()
+  pendingDeleteEvent.value = eventObj
+  deleteAssociated.value = false
+  deletePopoverTarget.value = e.currentTarget as HTMLElement
+  deletePopoverVisible.value = true
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteEvent.value) return
+  isDeleting.value = true
+  const extendedProps = pendingDeleteEvent.value.extendedProps || pendingDeleteEvent.value
+  const type = extendedProps?.type
+  const rawSession = extendedProps?.rawSession
+  const rawSale = extendedProps?.rawSale
+  const shouldDeleteAssociated = deleteAssociated.value
+
+  try {
+    if (type === 'sale' && rawSale?.id) {
+      await saleStore.deleteCitaVenta(Number(rawSale.id), shouldDeleteAssociated)
+      ElMessage.success(
+        shouldDeleteAssociated
+          ? 'Cita de venta y sesión asociada eliminadas correctamente'
+          : 'Cita de venta eliminada correctamente',
+      )
+    } else if (rawSession?.id) {
+      await sessionStore.deleteSession(Number(rawSession.id), shouldDeleteAssociated)
+      ElMessage.success(
+        shouldDeleteAssociated
+          ? 'Sesión de fotos y cita de ventas asociadas eliminadas correctamente'
+          : 'Sesión fotográfica eliminada correctamente',
+      )
+    }
+
+    deletePopoverVisible.value = false
+    tooltipVisible.value = false
+    mobileDialogVisible.value = false
+
+    await Promise.all([
+      sessionStore.fetchSessions(selectedHotelId.value ? Number(selectedHotelId.value) : undefined),
+      saleStore.fetchCitasVenta(selectedHotelId.value ? Number(selectedHotelId.value) : undefined),
+    ])
+  } catch (err: any) {
+    ElMessage.error(err.message || 'Error al eliminar el evento')
+  } finally {
+    isDeleting.value = false
+    pendingDeleteEvent.value = null
+  }
+}
 
 // SVGs extraídos para el renderizado del calendario
 const ICON_SVG: Record<string, string> = {
   // Lucide: clock-8 (citas de venta)
-  clock8: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l-4 2"/></svg>`,
+  clock8: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l-4 2"/></svg>`,
   // Lucide: camera (sesiones fotográficas)
-  camera: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle;"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg>`,
+  camera: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle;"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg>`,
   // Filled: reloj sólido sin anillo outline
-  clock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 0 1-11.2 1.7L483.3 569.8a7.92 7.92 0 0 1-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.6 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"/></svg>`,
+  clock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 0 1-11.2 1.7L483.3 569.8a7.92 7.92 0 0 1-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.6 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"/></svg>`,
   // Filled: triángulo sólido con exclamación dentro
-  warning: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M955.7 856l-416-720c-12.2-21.2-45.2-21.2-57.4 0l-416 720c-12.2 21.1 3 47.5 28.7 47.5h832c25.7.1 40.9-26.3 28.7-47.5zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8zm32 352a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>`,
-}
-
-function renderEventContent(arg: EventContentArg) {
-  const type = arg.event.extendedProps.type
-  const fotografoPrimerNombre = (arg.event.extendedProps.fotografoPrimerNombre as string) ?? ''
-  const roomStr = (arg.event.extendedProps.roomStr as string) ?? ''
-  const clienteNombre = (arg.event.extendedProps.clienteNombre as string) || arg.event.title
-  const paxStr = (arg.event.extendedProps.paxStr as string) ?? ''
-  
-  let timeText: string = arg.timeText ?? ''
-  if (arg.event.start) {
-    const hours = String(arg.event.start.getHours()).padStart(2, '0')
-    const minutes = String(arg.event.start.getMinutes()).padStart(2, '0')
-    timeText = `${hours}:${minutes}`
-  }
-
-  const iconSvg = type === 'sale' ? (ICON_SVG.clock8 ?? '') : (ICON_SVG.camera ?? '')
-
-  const container = document.createElement('div')
-  container.className = 'jj-event-card-content'
-  container.style.display = 'flex'
-  container.style.flexDirection = 'column'
-  container.style.width = '100%'
-  container.style.overflow = 'hidden'
-  container.style.lineHeight = '1.25'
-
-  // Cabecera: icono, hora, nombre del fotógrafo asignado (sin apellidos solo nombre)
-  let headerHtml =
-    '<div style="display:flex;align-items:center;gap:4px;font-weight:bold;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:0.3rem;margin-bottom:0.3rem;border-bottom: 1px dashed #FFF;">'
-  if (iconSvg) {
-    headerHtml += iconSvg
-  }
-  if (timeText) {
-    headerHtml += `<span>${timeText}</span>`
-  }
-  if (fotografoPrimerNombre) {
-    headerHtml += `<span style="font-weight:600;opacity:0.95;overflow:hidden;text-overflow:ellipsis;"> - ${fotografoPrimerNombre}</span>`
-  }
-  headerHtml += '</div>'
-
-  // Cuerpo: nº habitación, (salto de línea), Nombre cliente, (salto de línea), nº personas
-  let bodyHtml =
-    '<div style="display:flex;flex-direction:column;margin-top:2px;gap:1px;overflow:hidden;">'
-  if (roomStr) {
-    bodyHtml += `<div style="font-size:0.85em;font-weight:600;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${roomStr}</div>`
-  }
-  bodyHtml += `<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${clienteNombre}</div>`
-  if (paxStr) {
-    bodyHtml += `<div style="font-size:0.85em;font-weight:500;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${paxStr}</div>`
-  }
-  bodyHtml += '</div>'
-
-  container.innerHTML = headerHtml + bodyHtml
-  return { domNodes: [container] }
+  warning: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor" style="flex-shrink:0;vertical-align:middle;"><path d="M955.7 856l-416-720c-12.2-21.2-45.2-21.2-57.4 0l-416 720c-12.2 21.1 3 47.5 28.7 47.5h832c25.7.1 40.9-26.3 28.7-47.5zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8zm32 352a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>`,
 }
 
 const STORAGE_KEY = 'jj_selected_hotel_id'
@@ -881,7 +932,79 @@ function handleEventClick(clickInfo: EventClickArg) {
 
     <!-- Calendario de FullCalendar -->
     <div class="calendar-card">
-      <FullCalendar ref="calendarRef" :options="calendarOptions" :events="calendarEvents" />
+      <FullCalendar ref="calendarRef" :options="calendarOptions" :events="calendarEvents">
+        <template #eventContent="arg">
+          <div class="jj-event-card-content">
+            <!-- Cabecera -->
+            <div class="jj-event-header">
+              <div class="jj-event-header-left">
+                <span class="jj-event-icon" v-html="arg.event.extendedProps.type === 'sale' ? ICON_SVG.clock8 : ICON_SVG.camera"></span>
+                <span v-if="getEventTimeText(arg)" class="jj-event-time">{{ getEventTimeText(arg) }}</span>
+                <span v-if="arg.event.extendedProps.fotografoPrimerNombre" class="jj-event-photographer">
+                  - {{ arg.event.extendedProps.fotografoPrimerNombre }}
+                </span>
+              </div>
+
+              <!-- Icono Cubo de Basura (Solo ADMIN y SUPERUSUARIO) -->
+              <div v-if="canDeleteEvents" class="jj-event-delete-wrapper" @click.stop>
+                <button
+                  type="button"
+                  class="jj-event-trash-btn"
+                  title="Eliminar evento"
+                  @click.stop="openDeleteConfirm(arg.event, $event)"
+                >
+                  <el-icon :size="13"><Delete /></el-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="jj-event-body">
+              <div v-if="arg.event.extendedProps.roomStr" class="jj-event-room">
+                {{ arg.event.extendedProps.roomStr }}
+              </div>
+              <div class="jj-event-client">
+                {{ arg.event.extendedProps.clienteNombre || arg.event.title }}
+              </div>
+              <div v-if="arg.event.extendedProps.paxStr" class="jj-event-pax">
+                {{ arg.event.extendedProps.paxStr }}
+              </div>
+            </div>
+          </div>
+        </template>
+      </FullCalendar>
+
+      <!-- Popover de Confirmación de Borrado con Checkbox Dinámico -->
+      <el-popover
+        v-model:visible="deletePopoverVisible"
+        :virtual-ref="deletePopoverTarget"
+        virtual-triggering
+        trigger="click"
+        width="270"
+        placement="top"
+        popper-class="delete-confirm-popover"
+      >
+        <div class="delete-popconfirm-box">
+          <div class="delete-popconfirm-header">
+            <el-icon class="delete-warning-icon" :size="16" color="#e6a23c"><WarningFilled /></el-icon>
+            <span class="delete-popconfirm-title">¿Eliminar este evento?</span>
+          </div>
+
+          <!-- Checkbox para evento asociado -->
+          <div v-if="hasAssociatedEvent(pendingDeleteEvent)" class="delete-associated-row">
+            <el-checkbox v-model="deleteAssociated" size="default">
+              <span class="delete-checkbox-label">{{ associatedCheckboxLabel }}</span>
+            </el-checkbox>
+          </div>
+
+          <div class="delete-popconfirm-actions">
+            <el-button size="small" plain @click="deletePopoverVisible = false">Cancelar</el-button>
+            <el-button size="small" type="danger" :loading="isDeleting" @click="confirmDelete">
+              Sí, eliminar
+            </el-button>
+          </div>
+        </div>
+      </el-popover>
 
       <!-- Popover de Detalle del Evento (Solo Desktop) -->
       <el-popover
@@ -974,6 +1097,20 @@ function handleEventClick(clickInfo: EventClickArg) {
             >
               Editar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
             </el-button>
+
+            <!-- Botón de Borrar en Popover para ADMIN y SUPERUSUARIO -->
+            <div v-if="canDeleteEvents" style="margin-top: 8px">
+              <el-button
+                type="danger"
+                plain
+                style="width: 100%"
+                @click="openDeleteConfirm(activeTooltipInfo, $event)"
+              >
+                <el-icon style="margin-right: 4px"><Delete /></el-icon>
+                Eliminar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
+              </el-button>
+            </div>
+
             <div class="double-click-hint">
               <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>
               O haz doble clic en el evento para editar
@@ -1070,6 +1207,20 @@ function handleEventClick(clickInfo: EventClickArg) {
             >
               Editar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
             </el-button>
+
+            <!-- Botón de Borrar en Diálogo Móvil para ADMIN y SUPERUSUARIO -->
+            <div v-if="canDeleteEvents" style="margin-top: 10px">
+              <el-button
+                type="danger"
+                size="large"
+                plain
+                style="width: 100%"
+                @click="openDeleteConfirm(activeTooltipInfo, $event)"
+              >
+                <el-icon style="margin-right: 4px"><Delete /></el-icon>
+                Eliminar {{ activeTooltipInfo.type === 'sale' ? 'Cita Venta' : 'Sesión' }}
+              </el-button>
+            </div>
           </div>
           <div class="double-click-hint">
             <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>
@@ -1370,6 +1521,126 @@ function handleEventClick(clickInfo: EventClickArg) {
 :deep(.fc-daygrid-event .jj-event-card-content),
 :deep(.fc-timegrid-event .jj-event-card-content) {
   color: #ffffff !important;
+}
+
+:deep(.jj-event-card-content) {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+:deep(.jj-event-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-weight: bold;
+  flex-shrink: 0;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.6);
+}
+
+:deep(.fc-list-event .jj-event-header) {
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+:deep(.jj-event-header-left) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+:deep(.jj-event-delete-wrapper) {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  z-index: 10;
+}
+
+:deep(.jj-event-trash-btn) {
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  border-radius: 4px;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+:deep(.fc-list-event .jj-event-trash-btn) {
+  background: rgba(0, 0, 0, 0.08);
+  color: #64748b;
+}
+
+:deep(.jj-event-trash-btn:hover) {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  transform: scale(1.15);
+}
+
+/* ── Popover de Confirmación de Borrado con Checkbox ── */
+:deep(.delete-confirm-popover) {
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid var(--el-border-color-lighter, #e2e8f0) !important;
+}
+
+.delete-popconfirm-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.delete-popconfirm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-warning-icon {
+  flex-shrink: 0;
+}
+
+.delete-popconfirm-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #0f172a);
+}
+
+.delete-associated-row {
+  background: var(--el-fill-color-light, #f8fafc);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px dashed var(--el-border-color, #cbd5e1);
+  display: flex;
+  align-items: center;
+}
+
+.delete-checkbox-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #334155);
+}
+
+.delete-popconfirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 /* ── Vista Agenda / Lista: texto oscuro legible y punto de color nativo ── */

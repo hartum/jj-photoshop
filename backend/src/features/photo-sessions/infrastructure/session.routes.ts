@@ -3,6 +3,7 @@ import { prisma } from '../../../shared/db.js'
 import {
   syncSesionToGoogle,
   deleteSesionFromGoogle,
+  deleteCitaVentaFromGoogle,
 } from '../../integrations/google-calendar/google-calendar.service.js'
 
 function parseLocalDateTime(dateStr: string): Date {
@@ -618,11 +619,21 @@ export async function sessionRoutes(fastify: FastifyInstance) {
   fastify.delete('/api/sesiones/:id', async (request, reply) => {
     try {
       const id = Number(request.params && (request.params as any).id)
+      if (!id || isNaN(id)) {
+        return reply.status(400).send({ error: 'ID de sesión inválido' })
+      }
+
+      const query = (request.query || {}) as { deleteCitaVenta?: string; deleteAssociated?: string }
+      const deleteCitaVenta = query.deleteCitaVenta === 'true' || query.deleteAssociated === 'true'
 
       const sesion = await prisma.sesionFotografica.findUnique({
         where: { id },
-        select: { googleCalendarEventId: true },
+        include: { citaVenta: true },
       })
+
+      if (!sesion) {
+        return reply.status(404).send({ error: 'Sesión no encontrada' })
+      }
 
       await prisma.sesionFotografica.update({
         where: { id },
@@ -630,10 +641,26 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       })
 
       // Eliminar evento de Google Calendar
-      if (sesion?.googleCalendarEventId) {
+      if (sesion.googleCalendarEventId) {
         deleteSesionFromGoogle(sesion.googleCalendarEventId).catch((gErr) => {
           fastify.log.error(gErr, 'Error al eliminar evento de Google Calendar')
         })
+      }
+
+      // Si el usuario marcó borrar también la cita de venta asociada
+      if (deleteCitaVenta && sesion.citaVenta && !sesion.citaVenta.deletedAt) {
+        await prisma.citaVenta.update({
+          where: { id: sesion.citaVenta.id },
+          data: { deletedAt: new Date() },
+        })
+        await prisma.comision.deleteMany({
+          where: { citaVentaId: sesion.citaVenta.id },
+        })
+        if (sesion.citaVenta.googleCalendarEventId) {
+          deleteCitaVentaFromGoogle(sesion.citaVenta.googleCalendarEventId).catch((gErr) => {
+            fastify.log.error(gErr, 'Error al eliminar cita de venta de Google Calendar')
+          })
+        }
       }
 
       return reply.send({ success: true, id })

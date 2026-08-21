@@ -4,8 +4,11 @@ import type { SesionFotografica, CreateSesionPayload } from '../domain/session.m
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+function getAuthHeaders(includeContentType = true): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json'
+  }
   const token = localStorage.getItem('token')
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
@@ -103,6 +106,27 @@ export const useSessionStore = defineStore('sessions', () => {
     await updateSession(id, { estado: 'CANCELADA' })
   }
 
+  async function deleteSession(id: number, deleteAssociated = false): Promise<void> {
+    isLoading.value = true
+    try {
+      const url = deleteAssociated
+        ? `${API_URL}/sesiones/${id}?deleteCitaVenta=true`
+        : `${API_URL}/sesiones/${id}`
+      const res = await fetch(url, {
+        method: 'DELETE',
+        headers: getAuthHeaders(false),
+      })
+      if (res.ok) {
+        sessions.value = sessions.value.filter((s) => s.id !== id)
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error al eliminar la sesión`)
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     sessions,
     isLoading,
@@ -111,5 +135,6 @@ export const useSessionStore = defineStore('sessions', () => {
     addSession,
     updateSession,
     cancelSession,
+    deleteSession,
   }
 })
